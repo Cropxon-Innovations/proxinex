@@ -38,6 +38,7 @@ import {
 import { ConfidenceBadge } from "@/components/ConfidenceBadge";
 import { FeedbackActions } from "@/components/chat/FeedbackActions";
 import { SourcesDisplay, Source } from "@/components/chat/SourcesDisplay";
+import { ChatReadAloud } from "@/components/chat/ChatReadAloud";
 import { ProxinexIcon } from "@/components/Logo";
 import { toast } from "sonner";
 
@@ -624,14 +625,54 @@ export const ChatMessage = ({
       flushBlockquote();
       
       let formattedLine = line;
-      // Bold
-      formattedLine = formattedLine.replace(/\*\*([^*]+)\*\*/g, '<strong class="text-primary font-semibold">$1</strong>');
-      // Inline code
-      formattedLine = formattedLine.replace(/`([^`]+)`/g, '<code class="text-primary bg-primary/10 px-1.5 py-0.5 rounded text-xs font-mono border border-primary/20">$1</code>');
-      // Links
-      formattedLine = formattedLine.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline">$1</a>');
-      // Citations
-      formattedLine = formattedLine.replace(/\[(\d+)\]/g, '<sup class="text-primary font-semibold cursor-pointer hover:text-primary/80">[$1]</sup>');
+      
+      // Bold + Italic (***text***) - highlighted with gradient background
+      formattedLine = formattedLine.replace(
+        /\*\*\*([^*]+)\*\*\*/g, 
+        '<strong class="font-bold italic text-transparent bg-clip-text bg-gradient-to-r from-primary via-purple-500 to-primary">$1</strong>'
+      );
+      
+      // Bold (**text**) - primary color with semibold
+      formattedLine = formattedLine.replace(
+        /\*\*([^*]+)\*\*/g, 
+        '<strong class="font-semibold text-primary">$1</strong>'
+      );
+      
+      // Italic (*text*) - accent color with italic
+      formattedLine = formattedLine.replace(
+        /(?<!\*)\*([^*]+)\*(?!\*)/g, 
+        '<em class="italic text-amber-500 dark:text-amber-400">$1</em>'
+      );
+      
+      // Highlighted text (==text==) - yellow background
+      formattedLine = formattedLine.replace(
+        /==([^=]+)==/g, 
+        '<mark class="bg-yellow-200 dark:bg-yellow-400/30 text-foreground px-0.5 rounded">$1</mark>'
+      );
+      
+      // Inline code with enhanced styling
+      formattedLine = formattedLine.replace(
+        /`([^`]+)`/g, 
+        '<code class="text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-1.5 py-0.5 rounded text-xs font-mono border border-emerald-200 dark:border-emerald-500/20">$1</code>'
+      );
+      
+      // Links with icon indication
+      formattedLine = formattedLine.replace(
+        /\[([^\]]+)\]\(([^)]+)\)/g, 
+        '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-primary hover:underline underline-offset-2 decoration-primary/50">$1↗</a>'
+      );
+      
+      // Citations with badge style
+      formattedLine = formattedLine.replace(
+        /\[(\d+)\]/g, 
+        '<sup class="inline-flex items-center justify-center w-4 h-4 text-[10px] font-bold text-primary-foreground bg-primary rounded-full cursor-pointer hover:bg-primary/80 transition-colors">$1</sup>'
+      );
+      
+      // Important text (!!text!!)
+      formattedLine = formattedLine.replace(
+        /!!([^!]+)!!/g, 
+        '<span class="font-medium text-rose-500 dark:text-rose-400">$1</span>'
+      );
       
       elements.push(
         <p 
@@ -761,6 +802,9 @@ export const ChatMessage = ({
                 <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
               </button>
             )}
+
+            {/* Read Aloud */}
+            <ChatReadAloud content={content} />
 
             <FeedbackActions content={content} onFeedback={onFeedback} />
           </div>

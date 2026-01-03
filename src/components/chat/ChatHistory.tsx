@@ -1,29 +1,24 @@
 import { useState, useMemo } from "react";
 import { 
   MessageSquare, 
-  Trash2, 
-  MoreVertical, 
   Clock,
   CheckCircle,
   Star,
-  FolderOpen,
   Archive,
   Calendar,
   ChevronDown,
   ChevronRight,
   Search,
-  Filter,
+  Pin,
+  CalendarDays,
+  CalendarRange,
+  History,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-} from "@/components/ui/dropdown-menu";
-import { format, isToday, isYesterday, isThisWeek, isThisMonth, isThisYear, parseISO } from "date-fns";
+import { ChatActionsMenu } from "./ChatActionsMenu";
+import { ChatReadAloud } from "./ChatReadAloud";
+import { format, isToday, isYesterday, isThisWeek, isThisMonth, isThisYear, getMonth, getYear } from "date-fns";
 
 interface ChatSession {
   id: string;
@@ -37,6 +32,8 @@ interface ChatSession {
   projectName?: string;
   isArchived?: boolean;
   isStarred?: boolean;
+  isPinned?: boolean;
+  content?: string; // For read aloud
 }
 
 type DateFilter = "all" | "today" | "yesterday" | "this_week" | "this_month" | "this_year";
@@ -48,6 +45,9 @@ interface ChatHistoryProps {
   onSessionDelete: (sessionId: string) => void;
   onSessionStar?: (sessionId: string) => void;
   onSessionArchive?: (sessionId: string) => void;
+  onSessionPin?: (sessionId: string) => void;
+  onSessionRename?: (sessionId: string, newTitle: string) => void;
+  onSessionExport?: (sessionId: string) => void;
 }
 
 export const ChatHistory = ({
@@ -57,8 +57,11 @@ export const ChatHistory = ({
   onSessionDelete,
   onSessionStar,
   onSessionArchive,
+  onSessionPin,
+  onSessionRename,
+  onSessionExport,
 }: ChatHistoryProps) => {
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["today", "yesterday"]));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["pinned", "today", "yesterday"]));
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [showArchived, setShowArchived] = useState(false);
@@ -94,16 +97,21 @@ export const ChatHistory = ({
     return filtered;
   }, [sessions, searchQuery, dateFilter, showArchived]);
 
-  // Group sessions by date category
+  // Group sessions by timeline: Pinned → Today → Yesterday → This Week → This Month → Monthly (e.g., December 2025) → Yearly
   const groupedSessions = useMemo(() => {
-    const groups: Record<string, { label: string; icon: JSX.Element; sessions: ChatSession[] }> = {
-      starred: { label: "Starred", icon: <Star className="h-4 w-4 text-yellow-400" />, sessions: [] },
-      today: { label: "Today", icon: <Calendar className="h-4 w-4 text-green-400" />, sessions: [] },
-      yesterday: { label: "Yesterday", icon: <Calendar className="h-4 w-4 text-blue-400" />, sessions: [] },
-      this_week: { label: "This Week", icon: <Calendar className="h-4 w-4 text-purple-400" />, sessions: [] },
-      this_month: { label: "This Month", icon: <Calendar className="h-4 w-4 text-orange-400" />, sessions: [] },
-      older: { label: "Older", icon: <Clock className="h-4 w-4 text-muted-foreground" />, sessions: [] },
+    const groups: Record<string, { label: string; icon: JSX.Element; sessions: ChatSession[]; order: number }> = {};
+    
+    // Define base groups
+    const baseGroups = {
+      pinned: { label: "📌 Pinned", icon: <Pin className="h-4 w-4 text-primary fill-primary" />, sessions: [] as ChatSession[], order: 0 },
+      starred: { label: "⭐ Starred", icon: <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />, sessions: [] as ChatSession[], order: 1 },
+      today: { label: "Today", icon: <Calendar className="h-4 w-4 text-green-400" />, sessions: [] as ChatSession[], order: 2 },
+      yesterday: { label: "Yesterday", icon: <Calendar className="h-4 w-4 text-blue-400" />, sessions: [] as ChatSession[], order: 3 },
+      this_week: { label: "This Week", icon: <CalendarDays className="h-4 w-4 text-purple-400" />, sessions: [] as ChatSession[], order: 4 },
+      this_month: { label: "This Month", icon: <CalendarRange className="h-4 w-4 text-orange-400" />, sessions: [] as ChatSession[], order: 5 },
     };
+    
+    Object.assign(groups, baseGroups);
 
     // Sort by timestamp descending
     const sorted = [...filteredSessions].sort((a, b) => {
@@ -113,12 +121,19 @@ export const ChatHistory = ({
     });
 
     sorted.forEach(session => {
+      const date = session.timestamp instanceof Date ? session.timestamp : new Date(session.timestamp);
+      
+      // Pinned sessions always go first
+      if (session.isPinned) {
+        groups.pinned.sessions.push(session);
+        return;
+      }
+      
+      // Starred sessions
       if (session.isStarred) {
         groups.starred.sessions.push(session);
         return;
       }
-      
-      const date = session.timestamp instanceof Date ? session.timestamp : new Date(session.timestamp);
       
       if (isToday(date)) {
         groups.today.sessions.push(session);
@@ -128,12 +143,44 @@ export const ChatHistory = ({
         groups.this_week.sessions.push(session);
       } else if (isThisMonth(date)) {
         groups.this_month.sessions.push(session);
+      } else if (isThisYear(date)) {
+        // Group by month
+        const monthKey = `month_${getMonth(date)}`;
+        const monthLabel = format(date, "MMMM yyyy");
+        if (!groups[monthKey]) {
+          groups[monthKey] = {
+            label: monthLabel,
+            icon: <CalendarRange className="h-4 w-4 text-slate-400" />,
+            sessions: [],
+            order: 100 + (12 - getMonth(date)), // Order months from recent to old
+          };
+        }
+        groups[monthKey].sessions.push(session);
       } else {
-        groups.older.sessions.push(session);
+        // Group by year
+        const year = getYear(date);
+        const yearKey = `year_${year}`;
+        if (!groups[yearKey]) {
+          groups[yearKey] = {
+            label: year.toString(),
+            icon: <History className="h-4 w-4 text-muted-foreground" />,
+            sessions: [],
+            order: 1000 + (2030 - year), // Order years from recent to old
+          };
+        }
+        groups[yearKey].sessions.push(session);
       }
     });
 
-    return groups;
+    // Sort groups by order
+    const sortedGroups: typeof groups = {};
+    Object.entries(groups)
+      .sort(([, a], [, b]) => a.order - b.order)
+      .forEach(([key, value]) => {
+        sortedGroups[key] = value;
+      });
+
+    return sortedGroups;
   }, [filteredSessions]);
 
   const toggleGroup = (groupKey: string) => {
@@ -264,6 +311,9 @@ export const ChatHistory = ({
                           <MessageSquare className="h-4 w-4 text-muted-foreground mt-0.5 flex-shrink-0" />
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-1.5">
+                              {session.isPinned && (
+                                <Pin className="h-3 w-3 text-primary fill-primary" />
+                              )}
                               {session.isStarred && (
                                 <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
                               )}
@@ -292,33 +342,25 @@ export const ChatHistory = ({
                         </div>
                       </button>
 
-                      {/* Actions */}
-                      <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6">
-                              <MoreVertical className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => onSessionStar?.(session.id)}>
-                              <Star className={`h-4 w-4 mr-2 ${session.isStarred ? 'text-yellow-400 fill-yellow-400' : ''}`} />
-                              {session.isStarred ? 'Unstar' : 'Star'}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => onSessionArchive?.(session.id)}>
-                              <Archive className="h-4 w-4 mr-2" />
-                              {session.isArchived ? 'Unarchive' : 'Archive'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => onSessionDelete(session.id)}
-                              className="text-destructive"
-                            >
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      {/* Actions Menu */}
+                      <div className="absolute top-2 right-2 flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                        {/* Read Aloud */}
+                        {session.content && (
+                          <ChatReadAloud content={session.content} sessionTitle={session.title} />
+                        )}
+                        
+                        {/* Actions */}
+                        <ChatActionsMenu
+                          sessionId={session.id}
+                          sessionTitle={session.title}
+                          isPinned={session.isPinned}
+                          isArchived={session.isArchived}
+                          onRename={(id, newTitle) => onSessionRename?.(id, newTitle)}
+                          onPin={(id) => onSessionPin?.(id)}
+                          onArchive={(id) => onSessionArchive?.(id)}
+                          onDelete={(id) => onSessionDelete(id)}
+                          onExport={(id) => onSessionExport?.(id)}
+                        />
                       </div>
                     </div>
                   ))}
@@ -342,6 +384,7 @@ export const ChatHistory = ({
       <div className="p-3 border-t border-border bg-secondary/30">
         <div className="flex items-center justify-between text-[10px] text-muted-foreground">
           <span>{sessions.filter(s => !s.isArchived).length} active chats</span>
+          <span>{sessions.filter(s => s.isPinned).length} pinned</span>
           <span>{sessions.filter(s => s.isArchived).length} archived</span>
         </div>
       </div>
