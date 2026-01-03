@@ -10,6 +10,7 @@ import { IntelligenceFlow } from "@/components/landing/IntelligenceFlow";
 import { HeroLivePreview } from "@/components/landing/HeroLivePreview";
 import { PricingCalculator } from "@/components/landing/PricingCalculator";
 import { VideoShowcase } from "@/components/landing/VideoShowcase";
+import { IntelligenceShowcase } from "@/components/landing/IntelligenceShowcase";
 import { Helmet } from "react-helmet-async";
 
 const Index = () => {
@@ -44,6 +45,7 @@ const Index = () => {
           </section>
 
           <ProblemSection />
+          <IntelligenceShowcase />
           <IntelligenceFlow />
           <VideoShowcase />
           <HowItWorksSection />

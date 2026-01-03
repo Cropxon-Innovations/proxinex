@@ -1,12 +1,45 @@
 import { Play, Pause, Volume2, VolumeX, Maximize } from "lucide-react";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+
+const SUPABASE_URL = "https://jfmrvhrpwyxxjpcblavp.supabase.co";
+const VIDEO_URL = `${SUPABASE_URL}/storage/v1/object/public/proxinex/Proxinex__AI_Control_Plane.mp4`;
 
 export const VideoShowcase = () => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
   const [showControls, setShowControls] = useState(false);
+  const [hasAutoPlayed, setHasAutoPlayed] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Autoplay when scrolling into view
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && !hasAutoPlayed && videoRef.current) {
+            videoRef.current.play().then(() => {
+              setIsPlaying(true);
+              setHasAutoPlayed(true);
+            }).catch(() => {
+              // Autoplay blocked by browser, user will need to click
+            });
+          } else if (!entry.isIntersecting && videoRef.current && isPlaying) {
+            videoRef.current.pause();
+            setIsPlaying(false);
+          }
+        });
+      },
+      { threshold: 0.5 }
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, [hasAutoPlayed, isPlaying]);
 
   const togglePlay = () => {
     if (videoRef.current) {
@@ -62,6 +95,7 @@ export const VideoShowcase = () => {
 
         {/* Video Container */}
         <div 
+          ref={containerRef}
           className="relative max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-2xl shadow-primary/10 border border-border/50 group"
           onMouseEnter={() => setShowControls(true)}
           onMouseLeave={() => setShowControls(false)}
@@ -69,22 +103,20 @@ export const VideoShowcase = () => {
           {/* Decorative glow */}
           <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20 rounded-2xl blur-xl opacity-50 group-hover:opacity-75 transition-opacity duration-500" />
           
-          {/* Video wrapper */}
-          <div className="relative bg-card rounded-2xl overflow-hidden">
-            {/* Placeholder for video - replace src with actual video */}
-            <div className="aspect-video bg-gradient-to-br from-card to-muted/30 relative">
-              <video
-                ref={videoRef}
-                className="w-full h-full object-cover"
-                muted={isMuted}
-                loop
-                playsInline
-                poster="/placeholder.svg"
-              >
-                {/* Video source - will be updated when video is uploaded */}
-                <source src="/videos/Proxinex__AI_Control_Plane.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
+        {/* Video wrapper */}
+        <div className="relative bg-card rounded-2xl overflow-hidden">
+          <div className="aspect-video bg-gradient-to-br from-card to-muted/30 relative">
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover"
+              muted={isMuted}
+              loop
+              playsInline
+              preload="metadata"
+            >
+              <source src={VIDEO_URL} type="video/mp4" />
+              Your browser does not support the video tag.
+            </video>
 
               {/* Play overlay when paused */}
               {!isPlaying && (
