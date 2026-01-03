@@ -23,6 +23,7 @@ import { InlineAskData, InlineAskComment } from "@/components/chat/InlineAskComm
 import { CitationAnswer } from "@/components/CitationAnswer";
 import { CodeThemeSelector } from "@/components/chat/CodeThemeSelector";
 import { PinColorSelector } from "@/components/chat/PinColorSelector";
+import { ThinkingAnimation } from "@/components/chat/ThinkingAnimation";
 import { 
   Plus, 
   MessageSquare, 
@@ -869,6 +870,8 @@ const AppDashboard = () => {
                       const messageMetrics = message.metrics || (message.role === "assistant" ? lastMetrics : null);
                       const isPinned = pinnedMessages.some(m => m.originalIndex === index);
                       const hasResearchResponse = message.researchResponse && message.role === "assistant";
+                      const isLastMessage = index === messages.length - 1;
+                      const isThinking = isLoading && isLastMessage && message.role === "assistant" && !message.content;
                       
                       return (
                         <div
@@ -884,6 +887,11 @@ const AppDashboard = () => {
                               isPinned={isPinned}
                               onPin={() => handlePinMessage(index)}
                             />
+                          ) : isThinking ? (
+                            <ThinkingAnimation 
+                              isResearchMode={researchMode}
+                              sources={message.researchResponse?.citations?.map(c => c.title.split(' ').slice(0, 3).join(' ')) || []}
+                            />
                           ) : hasResearchResponse ? (
                             <div className="py-4">
                               <CitationAnswer
@@ -891,7 +899,7 @@ const AppDashboard = () => {
                                 confidence={message.researchResponse!.confidence}
                                 confidence_label={message.researchResponse!.confidence_label}
                                 citations={message.researchResponse!.citations}
-                                isLoading={isLoading && index === messages.length - 1}
+                                isLoading={isLoading && isLastMessage}
                               />
                             </div>
                           ) : (
@@ -899,7 +907,7 @@ const AppDashboard = () => {
                               role={message.role}
                               content={message.content}
                               timestamp={message.timestamp}
-                              isLoading={isLoading && index === messages.length - 1}
+                              isLoading={isLoading && isLastMessage && !message.content}
                               accuracy={messageMetrics?.accuracy || 85}
                               cost={messageMetrics?.cost || 0.012}
                               model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
