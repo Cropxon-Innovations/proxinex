@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ import {
   Users
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { DocSearch } from "@/components/docs/DocSearch";
+import { InteractiveCodeEditor } from "@/components/docs/InteractiveCodeEditor";
+import { SyntaxHighlighter } from "@/components/docs/SyntaxHighlighter";
 
 const sidebarSections = [
   {
@@ -283,6 +286,19 @@ const Docs = () => {
   const [playgroundInput, setPlaygroundInput] = useState("What are the key benefits of renewable energy?");
   const [playgroundResponse, setPlaygroundResponse] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Keyboard shortcut for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        document.querySelector<HTMLInputElement>('input[placeholder*="Search"]')?.focus();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const copyCode = (code?: string) => {
     navigator.clipboard.writeText(code || codeExamples[activeTab]);
@@ -329,8 +345,20 @@ const Docs = () => {
 
   const scrollToSection = (id: string) => {
     setActiveSection(id);
+    setSearchQuery("");
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth' });
   };
+
+  // Filter sidebar based on search
+  const filteredSidebarSections = searchQuery.trim() 
+    ? sidebarSections.map(section => ({
+        ...section,
+        items: section.items.filter(item => 
+          item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          section.title.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      })).filter(section => section.items.length > 0)
+    : sidebarSections;
 
   return (
     <>
@@ -350,21 +378,16 @@ const Docs = () => {
           <aside className="w-72 border-r border-border bg-card/50 h-[calc(100vh-4rem)] sticky top-16 overflow-y-auto hidden lg:block">
             {/* Search */}
             <div className="p-4 border-b border-border">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input 
-                  type="text"
-                  placeholder="Search docs..."
-                  className="w-full pl-10 pr-4 py-2 text-sm bg-background border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-foreground placeholder:text-muted-foreground"
-                />
-                <kbd className="absolute right-3 top-1/2 transform -translate-y-1/2 px-1.5 py-0.5 text-[10px] font-mono bg-secondary rounded text-muted-foreground">
-                  ⌘K
-                </kbd>
-              </div>
+              <DocSearch
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                onResultClick={scrollToSection}
+                sidebarSections={sidebarSections}
+              />
             </div>
 
             <nav className="p-4">
-              {sidebarSections.map((section) => (
+              {filteredSidebarSections.map((section) => (
                 <div key={section.title} className="mb-6">
                   <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2 px-3">
                     {section.title}
@@ -382,12 +405,23 @@ const Docs = () => {
                         >
                           <item.icon className="h-4 w-4" />
                           {item.label}
+                          {searchQuery && (
+                            <Badge variant="outline" className="ml-auto text-[9px] px-1">
+                              match
+                            </Badge>
+                          )}
                         </button>
                       </li>
                     ))}
                   </ul>
                 </div>
               ))}
+              {searchQuery && filteredSidebarSections.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Search className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No results for "{searchQuery}"</p>
+                </div>
+              )}
             </nav>
 
             {/* Version Badge */}
@@ -596,13 +630,28 @@ const Docs = () => {
                           </div>
                         </div>
                         <div className="p-4 bg-card overflow-x-auto">
-                          <pre className="text-sm font-mono text-foreground">
-                            <code>{codeExamples[activeTab]}</code>
-                          </pre>
+                          <SyntaxHighlighter code={codeExamples[activeTab]} language={activeTab} />
                         </div>
                       </div>
                     </div>
                   </div>
+                </div>
+
+                {/* Interactive Code Playground */}
+                <div className="mt-10">
+                  <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+                    <Play className="h-5 w-5 text-primary" />
+                    Try it Live
+                  </h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Edit the code below and run it to see real API responses with syntax highlighting.
+                  </p>
+                  <InteractiveCodeEditor
+                    initialCode={codeExamples.python}
+                    language="python"
+                    title="Live API Playground"
+                    description="Edit this code and click 'Run Code' to execute it against the Proxinex API"
+                  />
                 </div>
               </section>
 
@@ -1095,45 +1144,30 @@ usage = client.usage.get(
               <section id="playground" className="mb-16 scroll-mt-20">
                 <h2 className="text-2xl font-bold text-foreground mb-4">API Playground</h2>
                 <p className="text-muted-foreground mb-6">
-                  Test the Proxinex API directly from this page with live responses.
+                  Test the Proxinex API directly from this page with live responses. Edit the code and run it to see real results.
                 </p>
 
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="p-4 bg-secondary/30 border-b border-border flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Terminal className="h-4 w-4 text-primary" />
-                      <span className="font-medium text-foreground">Live API Playground</span>
-                    </div>
-                    <Badge variant="secondary">Demo Mode</Badge>
-                  </div>
-                  <div className="p-4 bg-card">
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-foreground mb-2">Your Prompt</label>
-                      <textarea
-                        value={playgroundInput}
-                        onChange={(e) => setPlaygroundInput(e.target.value)}
-                        className="w-full px-4 py-3 bg-background border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                        rows={3}
-                        placeholder="Enter your question..."
-                      />
-                    </div>
-                    <Button onClick={runPlayground} disabled={isLoading} className="mb-4">
-                      <Play className="h-4 w-4 mr-2" />
-                      {isLoading ? "Running..." : "Run Request"}
-                    </Button>
-                    
-                    {playgroundResponse && (
-                      <div className="rounded-lg border border-border overflow-hidden">
-                        <div className="px-4 py-2 bg-secondary/30 border-b border-border text-sm font-medium text-muted-foreground">
-                          Response
-                        </div>
-                        <pre className="p-4 bg-background text-sm font-mono text-foreground overflow-x-auto">
-                          {playgroundResponse}
-                        </pre>
-                      </div>
-                    )}
-                  </div>
-                </div>
+                <InteractiveCodeEditor
+                  initialCode={`# Try the Proxinex API live!
+from proxinex import Proxinex
+
+client = Proxinex(api_key="pnx_demo_key")
+
+# Ask any question
+response = client.chat.completions.create(
+    messages=[
+        {"role": "user", "content": "What is machine learning?"}
+    ],
+    routing="auto",
+    track_cost=True
+)
+
+print(response.content)
+print(f"Accuracy: {response.accuracy}%")`}
+                  language="python"
+                  title="API Playground"
+                  description="Click 'Run Code' to execute this request and see the live response"
+                />
               </section>
 
               {/* Chat Completions API */}
@@ -1402,23 +1436,23 @@ embeddings = client.embeddings.create(
                 <div className="space-y-6">
                   <div className="p-4 rounded-lg border border-border bg-card">
                     <h3 className="font-semibold text-foreground mb-3">Installation</h3>
-                    <code className="block px-3 py-2 bg-background border border-border rounded text-sm font-mono text-foreground">
-                      pip install proxinex
-                    </code>
+                    <div className="rounded border border-border overflow-hidden">
+                      <SyntaxHighlighter code="pip install proxinex" language="python" />
+                    </div>
                   </div>
 
-                  <div className="rounded-lg border border-border overflow-hidden">
-                    <div className="px-4 py-2 bg-secondary/30 border-b border-border text-sm font-medium text-foreground">
-                      Complete Python Example
-                    </div>
-                    <div className="p-4 bg-card overflow-x-auto">
-                      <pre className="text-sm font-mono text-foreground">{codeExamples.python}</pre>
-                    </div>
-                  </div>
+                  <InteractiveCodeEditor
+                    initialCode={codeExamples.python}
+                    language="python"
+                    title="Python Example"
+                    description="Edit and run this Python code to test the API"
+                  />
 
                   <div className="p-4 rounded-lg border border-border bg-card">
                     <h3 className="font-semibold text-foreground mb-3">Async Support</h3>
-                    <pre className="text-sm font-mono text-foreground bg-background p-3 rounded border border-border">{`import asyncio
+                    <div className="rounded border border-border overflow-hidden">
+                      <SyntaxHighlighter 
+                        code={`import asyncio
 from proxinex import AsyncProxinex
 
 async def main():
@@ -1428,7 +1462,10 @@ async def main():
     )
     print(response.content)
 
-asyncio.run(main())`}</pre>
+asyncio.run(main())`}
+                        language="python"
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
@@ -1442,19 +1479,17 @@ asyncio.run(main())`}</pre>
                 <div className="space-y-6">
                   <div className="p-4 rounded-lg border border-border bg-card">
                     <h3 className="font-semibold text-foreground mb-3">Installation</h3>
-                    <code className="block px-3 py-2 bg-background border border-border rounded text-sm font-mono text-foreground">
-                      npm install @proxinex/sdk
-                    </code>
+                    <div className="rounded border border-border overflow-hidden">
+                      <SyntaxHighlighter code="npm install @proxinex/sdk" language="javascript" />
+                    </div>
                   </div>
 
-                  <div className="rounded-lg border border-border overflow-hidden">
-                    <div className="px-4 py-2 bg-secondary/30 border-b border-border text-sm font-medium text-foreground">
-                      Complete JavaScript Example
-                    </div>
-                    <div className="p-4 bg-card overflow-x-auto">
-                      <pre className="text-sm font-mono text-foreground">{codeExamples.javascript}</pre>
-                    </div>
-                  </div>
+                  <InteractiveCodeEditor
+                    initialCode={codeExamples.javascript}
+                    language="javascript"
+                    title="JavaScript Example"
+                    description="Edit and run this JavaScript code to test the API"
+                  />
                 </div>
               </section>
 
@@ -1464,14 +1499,12 @@ asyncio.run(main())`}</pre>
                   Direct HTTP requests for any language or platform.
                 </p>
 
-                <div className="rounded-lg border border-border overflow-hidden">
-                  <div className="px-4 py-2 bg-secondary/30 border-b border-border text-sm font-medium text-foreground">
-                    cURL Example
-                  </div>
-                  <div className="p-4 bg-card overflow-x-auto">
-                    <pre className="text-sm font-mono text-foreground">{codeExamples.curl}</pre>
-                  </div>
-                </div>
+                <InteractiveCodeEditor
+                  initialCode={codeExamples.curl}
+                  language="curl"
+                  title="cURL Example"
+                  description="Copy this cURL command to test in your terminal"
+                />
               </section>
 
               <section id="sdk-dotnet" className="mb-16 scroll-mt-20">
@@ -1483,19 +1516,17 @@ asyncio.run(main())`}</pre>
                 <div className="space-y-6">
                   <div className="p-4 rounded-lg border border-border bg-card">
                     <h3 className="font-semibold text-foreground mb-3">Installation</h3>
-                    <code className="block px-3 py-2 bg-background border border-border rounded text-sm font-mono text-foreground">
-                      dotnet add package Proxinex
-                    </code>
+                    <div className="rounded border border-border overflow-hidden">
+                      <SyntaxHighlighter code="dotnet add package Proxinex" language="dotnet" />
+                    </div>
                   </div>
 
-                  <div className="rounded-lg border border-border overflow-hidden">
-                    <div className="px-4 py-2 bg-secondary/30 border-b border-border text-sm font-medium text-foreground">
-                      .NET Example
-                    </div>
-                    <div className="p-4 bg-card overflow-x-auto">
-                      <pre className="text-sm font-mono text-foreground">{codeExamples.dotnet}</pre>
-                    </div>
-                  </div>
+                  <InteractiveCodeEditor
+                    initialCode={codeExamples.dotnet}
+                    language="dotnet"
+                    title=".NET Example"
+                    description="Edit and run this C# code to test the API"
+                  />
                 </div>
               </section>
 
@@ -1614,7 +1645,9 @@ asyncio.run(main())`}</pre>
                       <TrendingUp className="h-5 w-5 text-primary" />
                       Track Your Usage
                     </h3>
-                    <pre className="text-sm font-mono text-foreground bg-background p-3 rounded border border-border">{`# Get current billing period usage
+                    <div className="rounded border border-border overflow-hidden">
+                      <SyntaxHighlighter 
+                        code={`# Get current billing period usage
 usage = client.billing.usage()
 
 # Response:
@@ -1624,7 +1657,10 @@ usage = client.billing.usage()
 #   "total_requests": 2345,
 #   "total_tokens": 456789,
 #   "remaining_free_tier": 0
-# }`}</pre>
+# }`}
+                        language="python"
+                      />
+                    </div>
                   </div>
                 </div>
               </section>
