@@ -1,13 +1,37 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { Navbar } from "@/components/Navbar";
+import { Footer } from "@/components/Footer";
+import { HeroSection } from "@/components/landing/HeroSection";
+import { ProblemSection } from "@/components/landing/ProblemSection";
+import { FlowSection } from "@/components/landing/FlowSection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { SandboxPreview } from "@/components/landing/SandboxPreview";
+import { CTASection } from "@/components/landing/CTASection";
+import { Helmet } from "react-helmet-async";
 
 const Index = () => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
+    <>
+      <Helmet>
+        <title>Proxinex - AI Intelligence Control Plane | Control Intelligence</title>
+        <meta 
+          name="description" 
+          content="Proxinex is the AI Intelligence Control Plane. Route queries to optimal AI models, verify accuracy with trust scores, and see exact costs. Control your AI." 
+        />
+      </Helmet>
+      
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <main>
+          <HeroSection />
+          <ProblemSection />
+          <FlowSection />
+          <FeaturesSection />
+          <SandboxPreview />
+          <CTASection />
+        </main>
+        <Footer />
       </div>
-    </div>
+    </>
   );
 };
 
