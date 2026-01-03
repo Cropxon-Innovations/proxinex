@@ -62,7 +62,16 @@ export const Footer = () => {
 
         <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Cropxon Technologies. All rights reserved.
+            © {new Date().getFullYear()}{" "}
+            <a
+              href="https://www.cropxon.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-medium text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
+            >
+              CROPXON INNOVATIONS PVT LTD
+            </a>
+            . All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-muted-foreground">
             <span>Made with precision in India</span>
