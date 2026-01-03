@@ -6,6 +6,12 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SelectToAsk, useSelectToAsk } from "@/components/SelectToAsk";
 import { streamChat, Message } from "@/lib/chat";
 import { useToast } from "@/hooks/use-toast";
+import { ChatInput } from "@/components/chat/ChatInput";
+import { ChatMessage } from "@/components/chat/ChatMessage";
+import { ChatHistory } from "@/components/chat/ChatHistory";
+import { RelatedQueries } from "@/components/chat/RelatedQueries";
+import { ProjectMemory } from "@/components/chat/ProjectMemory";
+import { ThemeSelector } from "@/components/chat/ThemeSelector";
 import { 
   Plus, 
   MessageSquare, 
@@ -21,16 +27,13 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
-  Send,
-  Star,
-  Clock,
-  DollarSign,
-  ExternalLink,
   LogOut,
-  Loader2,
-  User
+  User,
+  History,
+  Star
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { supabase } from "@/integrations/supabase/client";
 
 const sidebarItems = [
   { icon: Plus, label: "New Session", path: "/app", isNew: true },
@@ -48,22 +51,83 @@ const sidebarItems = [
   { icon: Settings, label: "Settings", path: "/app/settings" },
 ];
 
+interface ChatSessionData {
+  id: string;
+  title: string;
+  preview: string;
+  timestamp: Date;
+  messageCount: number;
+  verified: boolean;
+  citationCount: number;
+  projectId?: string;
+  projectName?: string;
+}
+
 const AppDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"details" | "history">("details");
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [currentCost, setCurrentCost] = useState(0);
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [autoMode, setAutoMode] = useState(true);
+  const [chatSessions, setChatSessions] = useState<ChatSessionData[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { selection, handleMouseUp, clearSelection } = useSelectToAsk();
 
+  // Mock memories for project
+  const projectMemories = [
+    { id: "1", type: "fact" as const, content: "Quantum computing uses qubits that can exist in superposition", timestamp: new Date(), verified: true, sources: 3 },
+    { id: "2", type: "decision" as const, content: "Focus on practical AI applications for 2025 roadmap", timestamp: new Date(), verified: true },
+    { id: "3", type: "summary" as const, content: "India's AI funding grew 47% in 2024 driven by govt initiatives", timestamp: new Date(), verified: true, sources: 5 },
+  ];
+
+  // Related queries based on last message
+  const relatedQueries = messages.length > 0 ? [
+    "What are the key challenges in quantum computing?",
+    "Compare quantum vs classical computing performance",
+    "Top quantum computing companies in 2025",
+    "Quantum computing applications in AI"
+  ] : [];
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  // Load chat sessions from database
+  useEffect(() => {
+    const loadSessions = async () => {
+      if (!user) return;
+      
+      const { data, error } = await supabase
+        .from("chat_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+
+      if (data && !error) {
+        setChatSessions(data.map(session => ({
+          id: session.id,
+          title: session.title,
+          preview: "Chat session",
+          timestamp: new Date(session.updated_at),
+          messageCount: Array.isArray(session.messages) ? session.messages.length : 0,
+          verified: true,
+          citationCount: 0,
+        })));
+      }
+    };
+
+    loadSessions();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -96,6 +160,8 @@ const AppDashboard = () => {
       onDone: () => {
         setIsLoading(false);
         setCurrentCost(prev => prev + 0.018);
+        // Save session to history
+        saveChatSession();
       },
       onError: (error) => {
         toast({
@@ -108,9 +174,77 @@ const AppDashboard = () => {
     });
   };
 
+  const saveChatSession = async () => {
+    if (!user || messages.length === 0) return;
+
+    const title = messages[0]?.content.slice(0, 50) || "New Chat";
+    
+    const { data, error } = await supabase
+      .from("chat_sessions")
+      .upsert({
+        id: activeSessionId || undefined,
+        user_id: user.id,
+        title,
+        messages: messages as any,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (data && !error) {
+      setActiveSessionId(data.id);
+    }
+  };
+
+  const handleDeleteSession = async (sessionId: string) => {
+    const { error } = await supabase
+      .from("chat_sessions")
+      .delete()
+      .eq("id", sessionId);
+
+    if (!error) {
+      setChatSessions(prev => prev.filter(s => s.id !== sessionId));
+      toast({ title: "Session deleted" });
+    }
+  };
+
+  const handleSelectSession = async (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    if (!session) return;
+
+    const { data, error } = await supabase
+      .from("chat_sessions")
+      .select("messages")
+      .eq("id", sessionId)
+      .single();
+
+    if (data && !error && Array.isArray(data.messages)) {
+      setMessages(data.messages as unknown as Message[]);
+      setActiveSessionId(sessionId);
+    }
+  };
+
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleVoiceStart = () => {
+    setIsRecording(true);
+    toast({ title: "Voice recording started", description: "Speak your query..." });
+  };
+
+  const handleVoiceStop = () => {
+    setIsRecording(false);
+    toast({ title: "Voice recording stopped" });
+  };
+
+  const handleFileUpload = (files: FileList) => {
+    toast({ title: `${files.length} file(s) selected`, description: "Processing..." });
+  };
+
+  const handleRelatedQueryClick = (q: string) => {
+    setQuery(q);
   };
 
   const lastAssistantMessage = messages.filter(m => m.role === "assistant").pop();
@@ -122,12 +256,12 @@ const AppDashboard = () => {
         <meta name="description" content="Access the Proxinex AI Intelligence Control Plane." />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex">
-        {/* Sidebar */}
+      <div className="h-screen bg-background flex overflow-hidden">
+        {/* Left Sidebar - Fixed */}
         <aside 
-          className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col transition-all duration-300`}
+          className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300`}
         >
-          <div className="h-16 border-b border-sidebar-border flex items-center px-4">
+          <div className="h-16 border-b border-sidebar-border flex items-center px-4 flex-shrink-0">
             <Link to="/">
               <Logo size="sm" showText={!sidebarCollapsed} />
             </Link>
@@ -161,7 +295,7 @@ const AppDashboard = () => {
 
           {/* User Info */}
           {!sidebarCollapsed && user && (
-            <div className="p-4 border-t border-sidebar-border">
+            <div className="p-4 border-t border-sidebar-border flex-shrink-0">
               <div className="flex items-center gap-3 mb-3">
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
                   <User className="h-4 w-4 text-primary" />
@@ -186,15 +320,16 @@ const AppDashboard = () => {
 
           <button
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="h-12 border-t border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+            className="h-12 border-t border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors flex-shrink-0"
           >
             {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
           </button>
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col">
-          <header className="h-16 border-b border-border flex items-center justify-between px-6">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Header - Fixed */}
+          <header className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
             <div className="flex items-center gap-4">
               <h1 className="font-semibold text-foreground">Chat</h1>
               {messages.length > 0 && (
@@ -202,19 +337,27 @@ const AppDashboard = () => {
                   {messages.length} messages
                 </span>
               )}
+              {autoMode && (
+                <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                  Auto Mode
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-3">
               <span className="text-sm text-muted-foreground">
-                Session cost: ₹{currentCost.toFixed(3)}
+                Session: ₹{currentCost.toFixed(3)}
               </span>
+              <ThemeSelector />
             </div>
           </header>
 
-          {/* Chat Area */}
-          <div className="flex-1 flex">
+          {/* Chat Area - Scrollable */}
+          <div className="flex-1 flex overflow-hidden">
+            {/* Messages Column - Scrollable */}
             <div 
+              ref={chatContainerRef}
               className="flex-1 overflow-y-auto p-6"
-              onMouseUp={handleMouseUp}
+              onMouseUp={(e) => handleMouseUp(e)}
             >
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center">
@@ -246,126 +389,137 @@ const AppDashboard = () => {
                   </div>
                 </div>
               ) : (
-                <div className="max-w-3xl mx-auto space-y-6">
+                <div className="max-w-3xl mx-auto">
                   {messages.map((message, index) => (
-                    <div key={index} className={message.role === "user" ? "flex justify-end" : ""}>
-                      {message.role === "user" ? (
-                        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg max-w-md">
-                          {message.content}
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="bg-card border border-border rounded-lg p-6">
-                            <div className="prose prose-sm prose-invert max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
-                              {message.content}
-                              {isLoading && index === messages.length - 1 && (
-                                <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />
-                              )}
-                            </div>
-                          </div>
-
-                          {index === messages.length - 1 && !isLoading && (
-                            <div className="flex items-center gap-6 text-sm">
-                              <div className="flex items-center gap-2">
-                                <Star className="h-4 w-4 text-primary fill-primary" />
-                                <span className="text-foreground font-medium">94% Accuracy</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <Clock className="h-4 w-4" />
-                                <span>LIVE</span>
-                              </div>
-                              <div className="flex items-center gap-2 text-muted-foreground">
-                                <DollarSign className="h-4 w-4" />
-                                <span>₹0.018</span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                    <ChatMessage
+                      key={index}
+                      role={message.role}
+                      content={message.content}
+                      timestamp={message.timestamp}
+                      isLoading={isLoading && index === messages.length - 1 && message.role === "assistant"}
+                      accuracy={94}
+                      cost={0.018}
+                      model={autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel}
+                    />
                   ))}
+
+                  {/* Related Queries */}
+                  {!isLoading && messages.length > 0 && (
+                    <RelatedQueries
+                      queries={relatedQueries}
+                      onQueryClick={handleRelatedQueryClick}
+                    />
+                  )}
+
                   <div ref={messagesEndRef} />
                 </div>
               )}
             </div>
 
-            {/* Right Panel */}
-            {lastAssistantMessage && (
-              <aside className="w-80 border-l border-border bg-card/50 p-4 hidden lg:block overflow-y-auto">
-                <h3 className="font-semibold text-foreground mb-4">Response Details</h3>
-                
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                    <div className="text-xs text-muted-foreground mb-1">Accuracy Score</div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                        <div className="h-full bg-primary rounded-full" style={{ width: "94%" }} />
-                      </div>
-                      <span className="text-sm font-medium text-foreground">94%</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                    <div className="text-xs text-muted-foreground mb-1">Freshness</div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
-                      <span className="text-sm text-foreground">LIVE</span>
-                    </div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                    <div className="text-xs text-muted-foreground mb-1">Query Cost</div>
-                    <div className="text-lg font-semibold text-foreground">₹0.018</div>
-                  </div>
-
-                  <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                    <div className="text-xs text-muted-foreground mb-1">Model</div>
-                    <div className="text-sm text-foreground">Gemini 2.5 Flash</div>
-                  </div>
+            {/* Right Panel - Fixed */}
+            {messages.length > 0 && (
+              <aside className="w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col overflow-hidden">
+                {/* Tabs */}
+                <div className="flex border-b border-border flex-shrink-0">
+                  <button
+                    onClick={() => setRightPanelTab("details")}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                      rightPanelTab === "details" 
+                        ? "text-primary border-b-2 border-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <Star className="h-4 w-4 inline mr-1.5" />
+                    Details
+                  </button>
+                  <button
+                    onClick={() => setRightPanelTab("history")}
+                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
+                      rightPanelTab === "history" 
+                        ? "text-primary border-b-2 border-primary" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    <History className="h-4 w-4 inline mr-1.5" />
+                    History
+                  </button>
                 </div>
 
-                <div className="mt-6 p-4 rounded-lg bg-primary/10 border border-primary/30">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Star className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-foreground">Inline Ask™</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Highlight any text in the response to ask follow-up questions.
-                  </p>
+                {/* Panel Content - Scrollable */}
+                <div className="flex-1 overflow-y-auto">
+                  {rightPanelTab === "details" ? (
+                    <div className="p-4 space-y-4">
+                      {/* Response Details */}
+                      <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                        <div className="text-xs text-muted-foreground mb-1">Accuracy Score</div>
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                            <div className="h-full bg-primary rounded-full" style={{ width: "94%" }} />
+                          </div>
+                          <span className="text-sm font-medium text-foreground">94%</span>
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                        <div className="text-xs text-muted-foreground mb-1">Model</div>
+                        <div className="text-sm text-foreground">
+                          {autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel}
+                        </div>
+                      </div>
+
+                      <div className="p-4 rounded-lg bg-secondary/50 border border-border">
+                        <div className="text-xs text-muted-foreground mb-1">Query Cost</div>
+                        <div className="text-lg font-semibold text-foreground">₹0.018</div>
+                      </div>
+
+                      {/* Project Memory */}
+                      <ProjectMemory
+                        projectName="Current Project"
+                        memories={projectMemories}
+                        onDeleteMemory={(id) => toast({ title: "Memory removed" })}
+                      />
+
+                      {/* Inline Ask Tip */}
+                      <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
+                        <div className="flex items-center gap-2 mb-2">
+                          <Star className="h-4 w-4 text-primary" />
+                          <span className="text-sm font-medium text-foreground">Inline Ask™</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Highlight any text to: Explain, Rewrite, Verify, or Ask follow-up questions.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <ChatHistory
+                      sessions={chatSessions}
+                      activeSessionId={activeSessionId || undefined}
+                      onSessionSelect={handleSelectSession}
+                      onSessionDelete={handleDeleteSession}
+                    />
+                  )}
                 </div>
               </aside>
             )}
           </div>
 
-          {/* Input Area */}
-          <div className="border-t border-border p-4">
-            <form onSubmit={handleSubmit} className="max-w-3xl mx-auto">
-              <div className="flex items-center gap-3">
-                <div className="flex-1 relative">
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Ask anything..."
-                    disabled={isLoading}
-                    className="w-full px-4 py-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent disabled:opacity-50"
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  size="lg" 
-                  disabled={!query.trim() || isLoading}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90 glow"
-                >
-                  {isLoading ? (
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
+          {/* Input Area - Fixed */}
+          <ChatInput
+            query={query}
+            setQuery={setQuery}
+            isLoading={isLoading}
+            onSubmit={handleSubmit}
+            onFileUpload={handleFileUpload}
+            onImageUpload={handleFileUpload}
+            onVideoUpload={handleFileUpload}
+            onVoiceStart={handleVoiceStart}
+            onVoiceStop={handleVoiceStop}
+            isRecording={isRecording}
+            selectedModel={selectedModel}
+            onModelChange={setSelectedModel}
+            autoMode={autoMode}
+            onAutoModeChange={setAutoMode}
+          />
         </main>
       </div>
 
