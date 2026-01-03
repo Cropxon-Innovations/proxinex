@@ -14,17 +14,88 @@ interface ThemeOption {
   id: Theme;
   name: string;
   primary: string;
-  background: string;
-  preview: string;
+  variables: Record<string, string>;
 }
 
 const themes: ThemeOption[] = [
-  { id: "default", name: "Obsidian", primary: "#00e5ff", background: "#0a0f1a", preview: "bg-[#0a0f1a]" },
-  { id: "midnight", name: "Midnight", primary: "#818cf8", background: "#0f0f23", preview: "bg-[#0f0f23]" },
-  { id: "ocean", name: "Ocean", primary: "#22d3ee", background: "#0c1929", preview: "bg-[#0c1929]" },
-  { id: "forest", name: "Forest", primary: "#4ade80", background: "#0f1a15", preview: "bg-[#0f1a15]" },
-  { id: "sunset", name: "Sunset", primary: "#fb923c", background: "#1a0f0f", preview: "bg-[#1a0f0f]" },
-  { id: "lavender", name: "Lavender", primary: "#c084fc", background: "#150f1a", preview: "bg-[#150f1a]" },
+  { 
+    id: "default", 
+    name: "Obsidian", 
+    primary: "#00e5ff",
+    variables: {
+      "--primary": "186 100% 50%",
+      "--primary-foreground": "222 47% 6%",
+      "--accent": "186 70% 40%",
+      "--background": "222 47% 6%",
+      "--card": "222 47% 9%",
+      "--ring": "186 100% 50%",
+    }
+  },
+  { 
+    id: "midnight", 
+    name: "Midnight", 
+    primary: "#818cf8",
+    variables: {
+      "--primary": "239 84% 67%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "239 60% 50%",
+      "--background": "240 20% 6%",
+      "--card": "240 20% 9%",
+      "--ring": "239 84% 67%",
+    }
+  },
+  { 
+    id: "ocean", 
+    name: "Ocean", 
+    primary: "#22d3ee",
+    variables: {
+      "--primary": "188 94% 53%",
+      "--primary-foreground": "222 47% 6%",
+      "--accent": "188 70% 40%",
+      "--background": "210 40% 8%",
+      "--card": "210 40% 11%",
+      "--ring": "188 94% 53%",
+    }
+  },
+  { 
+    id: "forest", 
+    name: "Forest", 
+    primary: "#4ade80",
+    variables: {
+      "--primary": "142 71% 60%",
+      "--primary-foreground": "222 47% 6%",
+      "--accent": "142 50% 45%",
+      "--background": "150 20% 6%",
+      "--card": "150 20% 9%",
+      "--ring": "142 71% 60%",
+    }
+  },
+  { 
+    id: "sunset", 
+    name: "Sunset", 
+    primary: "#fb923c",
+    variables: {
+      "--primary": "27 96% 61%",
+      "--primary-foreground": "222 47% 6%",
+      "--accent": "27 80% 50%",
+      "--background": "15 20% 6%",
+      "--card": "15 20% 9%",
+      "--ring": "27 96% 61%",
+    }
+  },
+  { 
+    id: "lavender", 
+    name: "Lavender", 
+    primary: "#c084fc",
+    variables: {
+      "--primary": "270 91% 75%",
+      "--primary-foreground": "222 47% 6%",
+      "--accent": "270 60% 60%",
+      "--background": "270 20% 6%",
+      "--card": "270 20% 9%",
+      "--ring": "270 91% 75%",
+    }
+  },
 ];
 
 interface ThemeSelectorProps {
@@ -33,14 +104,47 @@ interface ThemeSelectorProps {
 }
 
 export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelectorProps) => {
-  const [selectedTheme, setSelectedTheme] = useState<Theme>("default");
-  const [colorMode, setColorMode] = useState<ColorMode>("dark");
+  const [selectedTheme, setSelectedTheme] = useState<Theme>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem("proxinex-theme") as Theme) || "default";
+    }
+    return "default";
+  });
+  const [colorMode, setColorMode] = useState<ColorMode>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem("proxinex-color-mode") as ColorMode) || "dark";
+    }
+    return "dark";
+  });
+
+  // Apply theme on mount and when it changes
+  useEffect(() => {
+    const theme = themes.find(t => t.id === selectedTheme);
+    if (theme) {
+      const root = document.documentElement;
+      Object.entries(theme.variables).forEach(([key, value]) => {
+        root.style.setProperty(key, value);
+      });
+      root.setAttribute("data-theme", selectedTheme);
+      localStorage.setItem("proxinex-theme", selectedTheme);
+    }
+  }, [selectedTheme]);
+
+  // Apply color mode
+  useEffect(() => {
+    const root = document.documentElement;
+    if (colorMode === "system") {
+      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+      root.classList.toggle("dark", isDark);
+    } else {
+      root.classList.toggle("dark", colorMode === "dark");
+    }
+    localStorage.setItem("proxinex-color-mode", colorMode);
+  }, [colorMode]);
 
   const handleThemeChange = (theme: Theme) => {
     setSelectedTheme(theme);
     onThemeChange?.(theme);
-    // In a real app, you'd apply CSS variables here
-    document.documentElement.setAttribute("data-theme", theme);
   };
 
   const handleColorModeChange = (mode: ColorMode) => {
@@ -105,8 +209,11 @@ export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelecto
                 }`}
               >
                 <div
-                  className={`w-8 h-8 rounded-full ${theme.preview} border-2 mb-1`}
-                  style={{ borderColor: theme.primary }}
+                  className="w-8 h-8 rounded-full border-2 mb-1"
+                  style={{ 
+                    background: theme.primary,
+                    borderColor: theme.primary 
+                  }}
                 />
                 <span className="text-[10px] text-muted-foreground">{theme.name}</span>
                 {selectedTheme === theme.id && (
