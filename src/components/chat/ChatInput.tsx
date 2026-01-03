@@ -420,7 +420,7 @@ export const ChatInput = ({
 
   return (
     <div 
-      className="border-t border-border bg-background p-3 md:p-4 flex-shrink-0"
+      className="border-t border-border bg-background p-3 md:p-4 lg:p-5 flex-shrink-0"
       ref={dropZoneRef}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -438,7 +438,7 @@ export const ChatInput = ({
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="w-full max-w-3xl mx-auto relative">
+      <form onSubmit={onSubmit} className="w-full max-w-2xl mx-auto relative lg:mr-[180px]">
         {/* Connector Menu Popover */}
         {showConnectorMenu && (
           <div className="absolute bottom-full mb-2 left-0 right-0 max-w-md bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
