@@ -20,6 +20,7 @@ interface CitationAnswerProps {
   citations: Citation[];
   isLoading?: boolean;
   showVerification?: boolean;
+  onOpenLinkPreview?: (url: string, title?: string) => void;
 }
 
 export const CitationAnswer = ({
@@ -29,6 +30,7 @@ export const CitationAnswer = ({
   citations,
   isLoading,
   showVerification = false,
+  onOpenLinkPreview,
 }: CitationAnswerProps) => {
   const hasCitations = citations.length > 0;
   const isLowConfidence = confidence < 40;
@@ -113,12 +115,10 @@ export const CitationAnswer = ({
               })();
 
               return (
-                <a
+                <button
                   key={citation.id}
-                  href={citation.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="group flex items-start gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-transparent hover:border-primary/20 transition-all"
+                  onClick={() => onOpenLinkPreview?.(citation.url, citation.title)}
+                  className="group flex items-start gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-transparent hover:border-primary/20 transition-all text-left w-full"
                 >
                   {/* Citation Number Badge */}
                   <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold flex items-center justify-center">
@@ -155,7 +155,7 @@ export const CitationAnswer = ({
                   </div>
                   
                   <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-                </a>
+                </button>
               );
             })}
           </div>
