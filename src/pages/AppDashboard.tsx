@@ -239,6 +239,35 @@ const AppDashboard = () => {
     }
   };
 
+  // Load inline asks for a session
+  const loadInlineAsks = async (sessionId: string) => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from("inline_asks")
+      .select("*")
+      .eq("session_id", sessionId)
+      .eq("user_id", user.id);
+    
+    if (data && !error) {
+      const loadedAsks: InlineAskData[] = data.map(ask => ({
+        id: ask.id,
+        selectedText: ask.highlighted_text,
+        question: ask.question,
+        answer: ask.answer || "",
+        confidence: 85,
+        timestamp: new Date(ask.created_at),
+        messageIndex: 0,
+        startOffset: ask.position_start || 0,
+        endOffset: ask.position_end || 0,
+        conversationHistory: Array.isArray(ask.conversation_history) 
+          ? ask.conversation_history as any
+          : []
+      }));
+      setInlineAsks(loadedAsks);
+    }
+  };
+
   const handleSelectSession = async (sessionId: string) => {
     const session = chatSessions.find(s => s.id === sessionId);
     if (!session) return;
@@ -259,6 +288,9 @@ const AppDashboard = () => {
       if (lastAssistantMsg?.metrics) {
         setLastMetrics(lastAssistantMsg.metrics);
       }
+      
+      // Load inline asks for this session
+      await loadInlineAsks(sessionId);
     }
   };
 
@@ -318,12 +350,38 @@ const AppDashboard = () => {
     messageRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
   };
 
-  // Inline Ask save handler
-  const handleSaveInlineAsk = (data: InlineAskData) => {
+  // Inline Ask save handler - persist to database
+  const handleSaveInlineAsk = async (data: InlineAskData) => {
     setInlineAsks(prev => [...prev, data]);
+    
+    // Persist to database
+    if (user && activeSessionId) {
+      try {
+        const conversationData = data.conversationHistory 
+          ? data.conversationHistory.map(c => ({
+              role: c.role,
+              content: c.content,
+              timestamp: c.timestamp.toISOString()
+            }))
+          : [];
+        
+        await supabase.from("inline_asks").insert([{
+          user_id: user.id,
+          session_id: activeSessionId,
+          highlighted_text: data.selectedText,
+          question: data.question,
+          answer: data.answer,
+          position_start: data.startOffset,
+          position_end: data.endOffset,
+          conversation_history: conversationData
+        }]);
+      } catch (error) {
+        console.error("Failed to persist inline ask:", error);
+      }
+    }
+    
     toast({ title: "Inline Ask saved" });
   };
-
   const handleVoiceStart = () => {
     setIsRecording(true);
     toast({ title: "Voice recording started", description: "Speak your query..." });

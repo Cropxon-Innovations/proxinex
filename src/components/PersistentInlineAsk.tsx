@@ -13,7 +13,8 @@ import {
   ExternalLink,
   Calendar,
   Maximize2,
-  Minimize2
+  Minimize2,
+  MessageCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -22,6 +23,12 @@ import { InlineAskData } from "@/components/chat/InlineAskComment";
 
 type ActionType = "ask" | "explain" | "verify" | "sources" | "rewrite";
 type RewriteStyle = "shorter" | "formal" | "technical" | "friendly";
+
+interface ConversationEntry {
+  role: "user" | "assistant";
+  content: string;
+  timestamp: Date;
+}
 
 interface PersistentInlineAskProps {
   selectedText: string;
@@ -34,6 +41,7 @@ interface PersistentInlineAskProps {
   selectionOffset?: { start: number; end: number };
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
+  sessionId?: string;
 }
 
 interface ActionResult {
@@ -70,21 +78,30 @@ export const PersistentInlineAsk = ({
   messageIndex = 0,
   selectionOffset = { start: 0, end: 0 },
   isMaximized = false,
-  onToggleMaximize
+  onToggleMaximize,
+  sessionId
 }: PersistentInlineAskProps) => {
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [askQuestion, setAskQuestion] = useState("");
+  const [conversation, setConversation] = useState<ConversationEntry[]>([]);
+  const [showConversation, setShowConversation] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+  const conversationEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+
+  // Scroll to bottom of conversation
+  useEffect(() => {
+    conversationEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [conversation]);
 
   // Determine border color based on state
   const getBorderClass = () => {
     if (hasActivePopup) {
       return "border-2 border-destructive shadow-destructive/20";
     }
-    if (activeAction === "ask" || isLoading) {
+    if (activeAction === "ask" || isLoading || showConversation) {
       return "border-2 border-green-500 shadow-green-500/20";
     }
     return "border border-border";
@@ -95,13 +112,17 @@ export const PersistentInlineAsk = ({
     
     setActiveAction(action);
     setIsLoading(true);
-    setResult(null);
 
     try {
+      // Build context from previous conversation
+      const conversationContext = conversation.length > 0 
+        ? `\n\nPrevious conversation about this text:\n${conversation.map(c => `${c.role}: ${c.content}`).join('\n')}`
+        : '';
+
       const { data, error } = await supabase.functions.invoke("text-action", {
         body: {
           selected_text: selectedText,
-          full_answer_context: fullContext,
+          full_answer_context: fullContext + conversationContext,
           action,
           user_query: action === "ask" ? askQuestion : undefined,
           rewrite_style: rewriteStyle,
@@ -111,20 +132,32 @@ export const PersistentInlineAsk = ({
       if (error) throw error;
       setResult(data);
 
-      // Save inline ask if it was an ask action
-      if (action === "ask" && data && onSaveInlineAsk) {
-        const inlineAskData: InlineAskData = {
-          id: `inline-${Date.now()}`,
-          selectedText,
-          question: askQuestion,
-          answer: data.answer,
-          confidence: data.confidence,
-          timestamp: new Date(),
-          messageIndex,
-          startOffset: selectionOffset.start,
-          endOffset: selectionOffset.end,
-        };
-        onSaveInlineAsk(inlineAskData);
+      // Add to conversation if it was an ask action
+      if (action === "ask" && data) {
+        const newEntry: ConversationEntry[] = [
+          { role: "user", content: askQuestion, timestamp: new Date() },
+          { role: "assistant", content: data.answer, timestamp: new Date() }
+        ];
+        setConversation(prev => [...prev, ...newEntry]);
+        setShowConversation(true);
+        setAskQuestion(""); // Clear for next question
+
+        // Save inline ask with conversation history
+        if (onSaveInlineAsk) {
+          const inlineAskData: InlineAskData = {
+            id: `inline-${Date.now()}`,
+            selectedText,
+            question: askQuestion,
+            answer: data.answer,
+            confidence: data.confidence,
+            timestamp: new Date(),
+            messageIndex,
+            startOffset: selectionOffset.start,
+            endOffset: selectionOffset.end,
+            conversationHistory: [...conversation, ...newEntry]
+          };
+          onSaveInlineAsk(inlineAskData);
+        }
       }
     } catch (error) {
       toast({
@@ -173,13 +206,14 @@ export const PersistentInlineAsk = ({
   };
 
   // Calculate position
-  const panelWidth = isMaximized ? 480 : 360;
+  const panelWidth = isMaximized ? 520 : 380;
+  const panelHeight = isMaximized ? 600 : 400;
   const left = isMaximized 
     ? (window.innerWidth - panelWidth) / 2 
     : Math.min(Math.max(position.x - panelWidth / 2, 10), window.innerWidth - panelWidth - 10);
   const top = isMaximized 
     ? window.innerHeight * 0.1
-    : position.y + 10;
+    : Math.min(position.y + 10, window.innerHeight - panelHeight - 20);
 
   return (
     <div 
@@ -189,6 +223,7 @@ export const PersistentInlineAsk = ({
         left, 
         top,
         width: panelWidth,
+        maxHeight: isMaximized ? '80vh' : '70vh',
       }}
       onClick={(e) => e.stopPropagation()}
     >
@@ -202,8 +237,92 @@ export const PersistentInlineAsk = ({
         </div>
       )}
 
-      {/* Floating Action Bar */}
-      {!activeAction && !result && (
+      {/* Conversation View */}
+      {showConversation && conversation.length > 0 && (
+        <div className="flex flex-col h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-3 border-b border-border bg-green-500/10">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-4 w-4 text-green-500" />
+              <span className="text-sm font-medium text-foreground">Inline Ask Conversation</span>
+              <span className="text-xs text-muted-foreground">({conversation.length / 2} exchanges)</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {onToggleMaximize && (
+                <button onClick={onToggleMaximize} className="text-muted-foreground hover:text-foreground p-1">
+                  {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </button>
+              )}
+              <button onClick={onClose} className="text-muted-foreground hover:text-foreground p-1">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          {/* Selected Text */}
+          <div className="px-3 py-2 border-b border-border bg-yellow-500/10">
+            <div className="text-xs text-muted-foreground mb-1">About:</div>
+            <div className="text-xs text-foreground line-clamp-2 italic">
+              "{selectedText}"
+            </div>
+          </div>
+
+          {/* Conversation Messages */}
+          <div className={`flex-1 overflow-y-auto p-3 space-y-3 ${isMaximized ? 'max-h-80' : 'max-h-48'}`}>
+            {conversation.map((entry, idx) => (
+              <div
+                key={idx}
+                className={`flex ${entry.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
+                    entry.role === 'user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-secondary text-foreground'
+                  }`}
+                >
+                  {entry.content}
+                </div>
+              </div>
+            ))}
+            {isLoading && (
+              <div className="flex justify-start">
+                <div className="bg-secondary rounded-lg px-3 py-2 text-sm text-muted-foreground flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Thinking...
+                </div>
+              </div>
+            )}
+            <div ref={conversationEndRef} />
+          </div>
+
+          {/* Continue Asking Input */}
+          <div className="p-3 border-t border-green-500/30 bg-green-500/5">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={askQuestion}
+                onChange={(e) => setAskQuestion(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAction("ask")}
+                placeholder="Ask a follow-up question..."
+                className="flex-1 px-3 py-2 text-sm bg-input border border-green-500/50 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500"
+                autoFocus
+              />
+              <Button 
+                size="sm" 
+                onClick={() => handleAction("ask")}
+                disabled={!askQuestion.trim() || isLoading}
+                className="bg-green-600 hover:bg-green-700"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Initial Action Bar (only show if no conversation) */}
+      {!showConversation && !activeAction && !result && (
         <div className="p-2">
           <div className="flex items-center gap-1 flex-wrap">
             {actions.map(({ id, label, icon: Icon }) => (
@@ -237,7 +356,7 @@ export const PersistentInlineAsk = ({
       )}
 
       {/* Ask Input Panel */}
-      {activeAction === "ask" && !result && (
+      {!showConversation && activeAction === "ask" && !result && (
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -256,7 +375,7 @@ export const PersistentInlineAsk = ({
             </div>
           </div>
           
-          <div className="text-xs text-muted-foreground mb-3 p-2 bg-secondary/50 rounded border border-green-500/30 line-clamp-2">
+          <div className="text-xs text-muted-foreground mb-3 p-2 bg-yellow-500/10 rounded border border-green-500/30 line-clamp-2">
             "{selectedText}"
           </div>
 
@@ -283,7 +402,7 @@ export const PersistentInlineAsk = ({
       )}
 
       {/* Rewrite Options Panel */}
-      {activeAction === "rewrite" && !result && (
+      {!showConversation && activeAction === "rewrite" && !result && (
         <div className="p-4">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
@@ -311,7 +430,7 @@ export const PersistentInlineAsk = ({
       )}
 
       {/* Loading State */}
-      {isLoading && activeAction !== "ask" && (
+      {!showConversation && isLoading && activeAction !== "ask" && (
         <div className="p-4">
           <div className="flex items-center gap-3">
             <Loader2 className="h-5 w-5 animate-spin text-green-500" />
@@ -322,8 +441,8 @@ export const PersistentInlineAsk = ({
         </div>
       )}
 
-      {/* Result Panel */}
-      {result && (
+      {/* Result Panel (for non-ask actions) */}
+      {!showConversation && result && activeAction !== "ask" && (
         <div className="overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between p-3 border-b border-border bg-secondary/30">
@@ -349,7 +468,7 @@ export const PersistentInlineAsk = ({
           </div>
 
           {/* Selected Text */}
-          <div className="px-3 py-2 border-b border-border bg-secondary/20">
+          <div className="px-3 py-2 border-b border-border bg-yellow-500/10">
             <div className="text-xs text-muted-foreground line-clamp-1">
               "{selectedText}"
             </div>
