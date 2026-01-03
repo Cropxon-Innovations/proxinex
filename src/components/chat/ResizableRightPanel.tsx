@@ -68,16 +68,7 @@ export const ResizableRightPanel = ({
   // Collapsed state - show only Sources icon
   if (isCollapsed) {
     return (
-      <div 
-        className="w-12 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col"
-        style={{
-          position: 'absolute',
-          right: 0,
-          top: 0,
-          bottom: 0,
-          height: '100%'
-        }}
-      >
+      <div className="w-12 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full">
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -102,16 +93,8 @@ export const ResizableRightPanel = ({
   return (
     <div
       ref={panelRef}
-      className="border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col relative"
-      style={{ 
-        width: `${width}px`, 
-        maxWidth: '40vw',
-        height: '100%',
-        position: 'absolute',
-        right: 0,
-        top: 0,
-        bottom: 0
-      }}
+      className="border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full relative"
+      style={{ width: `${width}px`, minWidth: `${minWidth}px`, maxWidth: `${maxWidth}px` }}
     >
       {/* Resize Handle - Left Edge */}
       <div
@@ -144,7 +127,7 @@ export const ResizableRightPanel = ({
       </div>
 
       {/* Panel Content - Fully Scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden" style={{ height: 'calc(100vh - 60px)' }}>
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {children}
       </div>
     </div>

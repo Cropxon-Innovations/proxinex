@@ -438,7 +438,7 @@ export const ChatInput = ({
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="w-full max-w-2xl mx-auto relative lg:mr-[180px]">
+      <form onSubmit={onSubmit} className="w-full max-w-3xl mx-auto relative">
         {/* Connector Menu Popover */}
         {showConnectorMenu && (
           <div className="absolute bottom-full mb-2 left-0 right-0 max-w-md bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
