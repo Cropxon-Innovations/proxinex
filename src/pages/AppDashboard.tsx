@@ -407,6 +407,44 @@ const AppDashboard = () => {
       if (!activeSessionId) {
         navigate(`/app?chat=${data.id}`, { replace: true });
       }
+      
+      // Update local chatSessions state with the new/updated session
+      const messagesArray = Array.isArray(data.messages) ? data.messages as any[] : [];
+      const hasResearchResponse = messagesArray.some((m: any) => m?.researchResponse);
+      const contentPreview = messagesArray
+        .filter((m: any) => m?.role === "assistant")
+        .map((m: any) => m?.content || "")
+        .join("\n\n");
+      const firstMessage = messagesArray[0];
+      const previewText = typeof firstMessage?.content === 'string' 
+        ? firstMessage.content.slice(0, 50) 
+        : "Chat session";
+      
+      const updatedSession: ChatSessionData = {
+        id: data.id,
+        title: data.title,
+        preview: previewText,
+        timestamp: new Date(data.updated_at),
+        messageCount: messagesArray.length,
+        verified: true,
+        citationCount: 0,
+        isPinned: (data as any).is_pinned || false,
+        isArchived: (data as any).is_archived || false,
+        isResearch: hasResearchResponse,
+        content: contentPreview,
+        pinColor: (data as any).pin_color || "primary",
+        pinOrder: (data as any).pin_order || 0,
+      };
+      
+      setChatSessions(prev => {
+        const existingIndex = prev.findIndex(s => s.id === data.id);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = updatedSession;
+          return updated;
+        }
+        return [updatedSession, ...prev];
+      });
     }
   };
 

@@ -71,11 +71,11 @@ export const PullToRefresh = ({
   const showIndicator = pullDistance > 10 || isRefreshing;
 
   return (
-    <div className="relative flex-1 min-w-0 h-full flex flex-col">
+    <div className="relative flex-1 min-w-0 h-full flex flex-col overflow-hidden">
       {/* Pull Indicator */}
       {showIndicator && (
         <div
-          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center"
+          className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center justify-center pointer-events-none"
           style={{
             top: `${Math.min(pullDistance - 40, 20)}px`,
             opacity,
@@ -90,13 +90,13 @@ export const PullToRefresh = ({
         </div>
       )}
 
-      {/* Content */}
+      {/* Content - Properly scrollable container */}
       <div
         ref={(el) => {
           containerRef.current = el;
           if (scrollContainerRef) scrollContainerRef.current = el;
         }}
-        className="flex-1 min-h-0 overflow-y-auto"
+        className="flex-1 overflow-y-auto overscroll-contain"
         style={{
           transform: pullDistance > 0 ? `translateY(${pullDistance * 0.3}px)` : undefined,
           transition: isPulling.current ? undefined : 'transform 0.2s ease-out',
@@ -110,7 +110,7 @@ export const PullToRefresh = ({
 
       {/* Refreshing text */}
       {isRefreshing && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-primary font-medium">
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 text-xs text-primary font-medium pointer-events-none">
           Syncing...
         </div>
       )}
