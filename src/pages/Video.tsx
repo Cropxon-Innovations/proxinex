@@ -37,6 +37,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+import { useNotifications } from "@/components/NotificationCenter";
 
 interface VideoModel {
   id: string;
@@ -49,12 +51,12 @@ interface VideoModel {
 }
 
 const videoModels: VideoModel[] = [
+  { id: "proxinex-video", name: "Proxinex Video AI", provider: "Proxinex", type: "closed", quality: "premium", maxDuration: 10, freeGenerations: 5 },
   { id: "runway-gen3", name: "Runway Gen-3 Alpha", provider: "Runway", type: "closed", quality: "premium", maxDuration: 10, freeGenerations: 3 },
   { id: "pika-1.0", name: "Pika 1.0", provider: "Pika Labs", type: "closed", quality: "premium", maxDuration: 4, freeGenerations: 5 },
   { id: "stable-video", name: "Stable Video Diffusion", provider: "Stability AI", type: "open", quality: "standard", maxDuration: 4, freeGenerations: 10 },
   { id: "kling-1.5", name: "Kling 1.5", provider: "Kuaishou", type: "closed", quality: "premium", maxDuration: 10, freeGenerations: 2 },
   { id: "minimax", name: "Minimax Video", provider: "MiniMax", type: "closed", quality: "standard", maxDuration: 6, freeGenerations: 5 },
-  { id: "haiper", name: "Haiper 2.0", provider: "Haiper", type: "open", quality: "standard", maxDuration: 4, freeGenerations: 20 },
 ];
 
 interface GeneratedVideo {
@@ -66,6 +68,7 @@ interface GeneratedVideo {
   status: "generating" | "ready" | "error";
   duration: string;
   createdAt: Date;
+  description?: string;
 }
 
 interface UploadedVideo {
@@ -87,7 +90,7 @@ interface UploadedVideo {
 export default function VideoPage() {
   const [activeMode, setActiveMode] = useState<"generate" | "analyze">("generate");
   const [prompt, setPrompt] = useState("");
-  const [selectedModel, setSelectedModel] = useState<string>("stable-video");
+  const [selectedModel, setSelectedModel] = useState<string>("proxinex-video");
   const [autoSelectModel, setAutoSelectModel] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideos, setGeneratedVideos] = useState<GeneratedVideo[]>([]);
@@ -98,6 +101,7 @@ export default function VideoPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+  const { addNotification, updateNotification } = useNotifications();
 
   const MAX_SIZE = 50 * 1024 * 1024; // 50MB
 
@@ -105,7 +109,7 @@ export default function VideoPage() {
     if (!prompt.trim()) return;
 
     setIsGenerating(true);
-    const modelToUse = autoSelectModel ? "stable-video" : selectedModel;
+    const modelToUse = autoSelectModel ? "proxinex-video" : selectedModel;
     const model = videoModels.find(m => m.id === modelToUse);
 
     const newVideo: GeneratedVideo = {
@@ -115,30 +119,84 @@ export default function VideoPage() {
       url: "",
       thumbnail: "",
       status: "generating",
-      duration: `${model?.maxDuration || 4}s`,
+      duration: `${model?.maxDuration || 5}s`,
       createdAt: new Date(),
     };
 
     setGeneratedVideos(prev => [newVideo, ...prev]);
 
-    // Simulate generation (longer for video)
-    await new Promise(r => setTimeout(r, 4000 + Math.random() * 3000));
+    // Add notification
+    const notificationId = addNotification({
+      type: "loading",
+      title: "Generating video...",
+      message: prompt.trim().slice(0, 50) + (prompt.length > 50 ? "..." : ""),
+      category: "video",
+      progress: 0,
+    });
 
-    // Use placeholder
-    const placeholderUrl = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-    const thumbnailUrl = `https://picsum.photos/seed/${newVideo.id}/640/360`;
+    try {
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        updateNotification(notificationId, {
+          progress: Math.min(90, (Math.random() * 20) + 30),
+        });
+      }, 1000);
 
-    setGeneratedVideos(prev =>
-      prev.map(vid =>
-        vid.id === newVideo.id
-          ? { ...vid, status: "ready" as const, url: placeholderUrl, thumbnail: thumbnailUrl }
-          : vid
-      )
-    );
+      const { data, error } = await supabase.functions.invoke("generate-video", {
+        body: { prompt: prompt.trim(), duration: model?.maxDuration || 5, aspectRatio: "16:9" },
+      });
+
+      clearInterval(progressInterval);
+
+      if (error) throw error;
+
+      setGeneratedVideos(prev =>
+        prev.map(vid =>
+          vid.id === newVideo.id
+            ? { 
+                ...vid, 
+                status: "ready" as const, 
+                url: data.videoUrl, 
+                thumbnail: data.thumbnailUrl,
+                description: data.description,
+              }
+            : vid
+        )
+      );
+
+      updateNotification(notificationId, {
+        type: "success",
+        title: "Video generated!",
+        message: `Created with ${model?.name}`,
+        progress: undefined,
+      });
+
+      toast({ title: "Video generated", description: `Created with ${model?.name}` });
+    } catch (error) {
+      console.error("Error generating video:", error);
+      
+      setGeneratedVideos(prev =>
+        prev.map(vid =>
+          vid.id === newVideo.id ? { ...vid, status: "error" as const } : vid
+        )
+      );
+
+      updateNotification(notificationId, {
+        type: "error",
+        title: "Video generation failed",
+        message: error instanceof Error ? error.message : "Unknown error",
+        progress: undefined,
+      });
+
+      toast({ 
+        title: "Generation failed", 
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive" 
+      });
+    }
 
     setIsGenerating(false);
     setPrompt("");
-    toast({ title: "Video generated", description: `Created with ${model?.name}` });
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {

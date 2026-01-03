@@ -12,6 +12,8 @@ import { ChatHistory } from "@/components/chat/ChatHistory";
 import { RelatedQueries } from "@/components/chat/RelatedQueries";
 import { ProjectMemory } from "@/components/chat/ProjectMemory";
 import { ThemeSelector } from "@/components/chat/ThemeSelector";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { KeyboardShortcutsButton, KeyboardShortcutsIndicator } from "@/components/KeyboardShortcuts";
 import { 
   Plus, 
   MessageSquare, 
@@ -344,10 +346,13 @@ const AppDashboard = () => {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <KeyboardShortcutsIndicator />
               <span className="text-sm text-muted-foreground">
                 Session: ₹{currentCost.toFixed(3)}
               </span>
+              <KeyboardShortcutsButton />
+              <NotificationCenter />
               <ThemeSelector />
             </div>
           </header>

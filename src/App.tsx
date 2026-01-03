@@ -7,6 +7,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { CommandPalette } from "@/components/CommandPalette";
+import { NotificationProvider } from "@/components/NotificationCenter";
 import Index from "./pages/Index";
 import Compare from "./pages/Compare";
 import Sandbox from "./pages/Sandbox";
@@ -34,38 +35,40 @@ const App = () => (
   <HelmetProvider>
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <CommandPalette />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/compare" element={<Compare />} />
-              <Route path="/sandbox" element={<Sandbox />} />
-              <Route path="/docs" element={<Docs />} />
-              <Route path="/pricing" element={<Pricing />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/help" element={<HelpCenterPage />} />
-              <Route path="/app" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
-              <Route path="/app/chat" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
-              <Route path="/app/research" element={<ProtectedRoute><ResearchPage /></ProtectedRoute>} />
-              <Route path="/app/memory" element={<ProtectedRoute><ProjectMemoryPage /></ProtectedRoute>} />
-              <Route path="/app/notebooks" element={<ProtectedRoute><NotebooksPage /></ProtectedRoute>} />
-              <Route path="/app/api-keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
-              <Route path="/app/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
-              <Route path="/app/images" element={<ProtectedRoute><ImagesPage /></ProtectedRoute>} />
-              <Route path="/app/video" element={<ProtectedRoute><VideoPage /></ProtectedRoute>} />
-              <Route path="/app/usage" element={<ProtectedRoute><UsagePage /></ProtectedRoute>} />
-              <Route path="/app/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
-              <Route path="/app/personalization" element={<ProtectedRoute><PersonalizationPage /></ProtectedRoute>} />
-              <Route path="/app/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
-              <Route path="/app/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
-              <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
+        <NotificationProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <CommandPalette />
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/compare" element={<Compare />} />
+                <Route path="/sandbox" element={<Sandbox />} />
+                <Route path="/docs" element={<Docs />} />
+                <Route path="/pricing" element={<Pricing />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/help" element={<HelpCenterPage />} />
+                <Route path="/app" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
+                <Route path="/app/chat" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
+                <Route path="/app/research" element={<ProtectedRoute><ResearchPage /></ProtectedRoute>} />
+                <Route path="/app/memory" element={<ProtectedRoute><ProjectMemoryPage /></ProtectedRoute>} />
+                <Route path="/app/notebooks" element={<ProtectedRoute><NotebooksPage /></ProtectedRoute>} />
+                <Route path="/app/api-keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
+                <Route path="/app/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+                <Route path="/app/images" element={<ProtectedRoute><ImagesPage /></ProtectedRoute>} />
+                <Route path="/app/video" element={<ProtectedRoute><VideoPage /></ProtectedRoute>} />
+                <Route path="/app/usage" element={<ProtectedRoute><UsagePage /></ProtectedRoute>} />
+                <Route path="/app/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+                <Route path="/app/personalization" element={<ProtectedRoute><PersonalizationPage /></ProtectedRoute>} />
+                <Route path="/app/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
+                <Route path="/app/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+                <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </NotificationProvider>
       </AuthProvider>
     </QueryClientProvider>
   </HelmetProvider>
