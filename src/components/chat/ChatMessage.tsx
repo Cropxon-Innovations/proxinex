@@ -18,6 +18,7 @@ import {
   BarChart3,
   Zap,
   FileText,
+  Pin,
 } from "lucide-react";
 import { ConfidenceBadge } from "@/components/ConfidenceBadge";
 import { FeedbackActions } from "@/components/chat/FeedbackActions";
@@ -69,8 +70,10 @@ interface ChatMessageProps {
   model?: string;
   sources?: Source[];
   verified?: boolean;
+  isPinned?: boolean;
   onCopy?: () => void;
   onFeedback?: (type: "up" | "down" | "love", reason?: string) => void;
+  onPin?: () => void;
 }
 
 // Tokenize code for syntax highlighting
@@ -263,8 +266,10 @@ export const ChatMessage = ({
   model = "Gemini 2.5 Flash",
   sources = [],
   verified = true,
+  isPinned = false,
   onCopy,
   onFeedback,
+  onPin,
 }: ChatMessageProps) => {
   const [displayedContent, setDisplayedContent] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -310,9 +315,22 @@ export const ChatMessage = ({
 
   if (role === "user") {
     return (
-      <div className="flex justify-end mb-4">
-        <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-md max-w-md">
+      <div className="flex justify-end mb-4 group">
+        <div className="relative bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-md max-w-md">
           <p className="text-sm">{content}</p>
+          {onPin && (
+            <button
+              onClick={onPin}
+              className={`absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all ${
+                isPinned 
+                  ? "bg-primary/20 text-primary opacity-100" 
+                  : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary hover:bg-primary/10"
+              }`}
+              title={isPinned ? "Unpin message" : "Pin message"}
+            >
+              <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -658,6 +676,20 @@ export const ChatMessage = ({
             )}
 
             <div className="flex-1" />
+
+            {onPin && (
+              <button
+                onClick={onPin}
+                className={`p-1.5 rounded transition-colors ${
+                  isPinned 
+                    ? "text-primary bg-primary/10" 
+                    : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                }`}
+                title={isPinned ? "Unpin message" : "Pin message"}
+              >
+                <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+              </button>
+            )}
 
             <FeedbackActions content={content} onFeedback={onFeedback} />
           </div>
