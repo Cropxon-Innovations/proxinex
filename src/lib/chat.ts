@@ -18,7 +18,7 @@ interface StreamChatOptions {
   messages: Message[];
   type?: "chat" | "research" | "inline_ask";
   onDelta: (deltaText: string) => void;
-  onDone: (metrics?: ChatMetrics) => void;
+  onDone: (metrics?: ChatMetrics, relatedQueries?: string[]) => void;
   onError?: (error: string) => void;
 }
 
@@ -59,6 +59,7 @@ export async function streamChat({
     let textBuffer = "";
     let streamDone = false;
     let metrics: ChatMetrics | undefined;
+    let relatedQueries: string[] | undefined;
 
     while (!streamDone) {
       const { done, value } = await reader.read();
@@ -84,8 +85,13 @@ export async function streamChat({
           const parsed = JSON.parse(jsonStr);
           
           // Check for metadata event
-          if (parsed.type === "metadata" && parsed.metrics) {
-            metrics = parsed.metrics;
+          if (parsed.type === "metadata") {
+            if (parsed.metrics) {
+              metrics = parsed.metrics;
+            }
+            if (parsed.relatedQueries) {
+              relatedQueries = parsed.relatedQueries;
+            }
             continue;
           }
           
@@ -110,8 +116,13 @@ export async function streamChat({
         try {
           const parsed = JSON.parse(jsonStr);
           
-          if (parsed.type === "metadata" && parsed.metrics) {
-            metrics = parsed.metrics;
+          if (parsed.type === "metadata") {
+            if (parsed.metrics) {
+              metrics = parsed.metrics;
+            }
+            if (parsed.relatedQueries) {
+              relatedQueries = parsed.relatedQueries;
+            }
             continue;
           }
           
@@ -121,7 +132,7 @@ export async function streamChat({
       }
     }
 
-    onDone(metrics);
+    onDone(metrics, relatedQueries);
   } catch (error) {
     console.error("Stream chat error:", error);
     onError?.(error instanceof Error ? error.message : "Failed to connect to AI service");
