@@ -428,8 +428,26 @@ export const ChatHistory = ({
               <div className="p-4 text-center">
                 <MessageSquare className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">
-                  {searchQuery ? "No matches found" : showArchived ? "No archived sessions" : "No history yet"}
+                  {searchQuery 
+                    ? "No matches found" 
+                    : showArchived 
+                      ? "No archived sessions" 
+                      : categoryFilter === "research"
+                        ? "No research sessions yet"
+                        : categoryFilter === "chat"
+                          ? "No chat sessions yet"
+                          : "No history yet"}
                 </p>
+                {categoryFilter !== "all" && sessions.length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setCategoryFilter("all")}
+                    className="mt-2 text-xs"
+                  >
+                    View all sessions
+                  </Button>
+                )}
               </div>
             )}
           </div>
