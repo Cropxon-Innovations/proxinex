@@ -132,6 +132,44 @@ const AppDashboard = () => {
   }, [messages]);
 
   // Load chat sessions from database
+  // Load chat from URL parameter
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const chatId = searchParams.get('chat');
+    
+    if (chatId && user && chatId !== activeSessionId) {
+      // Load the specific chat session
+      const loadChatFromUrl = async () => {
+        const { data, error } = await supabase
+          .from("chat_sessions")
+          .select("*")
+          .eq("id", chatId)
+          .eq("user_id", user.id)
+          .single();
+
+        if (data && !error) {
+          const messagesArray = Array.isArray(data.messages) 
+            ? data.messages as unknown as MessageWithMetrics[]
+            : [];
+          setMessages(messagesArray);
+          setActiveSessionId(data.id);
+          
+          // Reset metrics to last message's metrics if available
+          const lastAssistantMsg = messagesArray
+            .filter(m => m.role === "assistant")
+            .pop();
+          if (lastAssistantMsg?.metrics) {
+            setLastMetrics(lastAssistantMsg.metrics);
+          }
+          
+          // Load inline asks for this session
+          await loadInlineAsks(data.id);
+        }
+      };
+      loadChatFromUrl();
+    }
+  }, [location.search, user, activeSessionId]);
+
   useEffect(() => {
     const loadSessions = async () => {
       if (!user) return;
