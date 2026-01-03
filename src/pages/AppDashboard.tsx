@@ -382,6 +382,64 @@ const AppDashboard = () => {
     
     toast({ title: "Inline Ask saved" });
   };
+
+  // Delete inline ask
+  const handleDeleteInlineAsk = async (id: string) => {
+    // Remove from local state
+    setInlineAsks(prev => prev.filter(ask => ask.id !== id));
+    
+    // Delete from database
+    if (user) {
+      try {
+        await supabase
+          .from("inline_asks")
+          .delete()
+          .eq("id", id)
+          .eq("user_id", user.id);
+        toast({ title: "Inline Ask deleted" });
+      } catch (error) {
+        console.error("Failed to delete inline ask:", error);
+        toast({ title: "Failed to delete", variant: "destructive" });
+      }
+    }
+    
+    // Close maximized view if it's the one being deleted
+    if (maximizedInlineAsk?.id === id) {
+      setMaximizedInlineAsk(null);
+    }
+  };
+
+  // Edit inline ask
+  const handleEditInlineAsk = async (id: string, updatedData: Partial<InlineAskData>) => {
+    // Update local state
+    setInlineAsks(prev => prev.map(ask => 
+      ask.id === id ? { ...ask, ...updatedData } : ask
+    ));
+    
+    // Update in database
+    if (user) {
+      try {
+        await supabase
+          .from("inline_asks")
+          .update({
+            question: updatedData.question,
+            answer: updatedData.answer
+          })
+          .eq("id", id)
+          .eq("user_id", user.id);
+        toast({ title: "Inline Ask updated" });
+      } catch (error) {
+        console.error("Failed to update inline ask:", error);
+        toast({ title: "Failed to update", variant: "destructive" });
+      }
+    }
+    
+    // Update maximized view if it's being edited
+    if (maximizedInlineAsk?.id === id) {
+      setMaximizedInlineAsk(prev => prev ? { ...prev, ...updatedData } : null);
+    }
+  };
+
   const handleVoiceStart = () => {
     setIsRecording(true);
     toast({ title: "Voice recording started", description: "Speak your query..." });
@@ -746,6 +804,8 @@ const AppDashboard = () => {
           data={maximizedInlineAsk}
           onMaximize={() => {}}
           onClose={() => setMaximizedInlineAsk(null)}
+          onDelete={handleDeleteInlineAsk}
+          onEdit={handleEditInlineAsk}
           isMinimized={false}
         />
       )}
