@@ -8,6 +8,7 @@ import { SandboxPreview } from "@/components/landing/SandboxPreview";
 import { CTASection } from "@/components/landing/CTASection";
 import { IntelligenceFlow } from "@/components/landing/IntelligenceFlow";
 import { HeroLivePreview } from "@/components/landing/HeroLivePreview";
+import { PricingCalculator } from "@/components/landing/PricingCalculator";
 import { Helmet } from "react-helmet-async";
 
 const Index = () => {
@@ -45,6 +46,7 @@ const Index = () => {
           <IntelligenceFlow />
           <HowItWorksSection />
           <FeaturesSection />
+          <PricingCalculator />
           <SandboxPreview />
           <CTASection />
         </main>

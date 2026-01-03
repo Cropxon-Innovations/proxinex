@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Check, Zap, Building2, Rocket } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { PricingCalculator } from "@/components/landing/PricingCalculator";
 
 const plans = [
   {
@@ -142,6 +143,9 @@ const Pricing = () => {
                 </div>
               ))}
             </div>
+
+            {/* Pricing Calculator */}
+            <PricingCalculator />
 
             {/* FAQ Section */}
             <div className="max-w-2xl mx-auto mt-24">
