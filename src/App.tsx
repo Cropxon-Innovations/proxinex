@@ -28,6 +28,18 @@ import PersonalizationPage from "./pages/Personalization";
 import HelpCenterPage from "./pages/HelpCenter";
 import ProjectsPage from "./pages/Projects";
 import NotFound from "./pages/NotFound";
+import ProductOverview from "./pages/ProductOverview";
+import ProductInlineAsk from "./pages/ProductInlineAsk";
+import ProductHowItWorks from "./pages/ProductHowItWorks";
+import ProductTrust from "./pages/ProductTrust";
+import ProductDevelopers from "./pages/ProductDevelopers";
+import ProductEnterprise from "./pages/ProductEnterprise";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import RefundPolicy from "./pages/RefundPolicy";
+import DataPolicy from "./pages/DataPolicy";
+import GDPRPolicy from "./pages/GDPRPolicy";
+import Security from "./pages/Security";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +61,21 @@ const App = () => (
                 <Route path="/pricing" element={<Pricing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/help" element={<HelpCenterPage />} />
+                {/* Product Pages */}
+                <Route path="/product" element={<ProductOverview />} />
+                <Route path="/product/how-it-works" element={<ProductHowItWorks />} />
+                <Route path="/product/inline-ask" element={<ProductInlineAsk />} />
+                <Route path="/product/trust" element={<ProductTrust />} />
+                <Route path="/product/developers" element={<ProductDevelopers />} />
+                <Route path="/product/enterprise" element={<ProductEnterprise />} />
+                {/* Legal Pages */}
+                <Route path="/terms" element={<TermsOfService />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
+                <Route path="/refund" element={<RefundPolicy />} />
+                <Route path="/data-policy" element={<DataPolicy />} />
+                <Route path="/gdpr" element={<GDPRPolicy />} />
+                <Route path="/security" element={<Security />} />
+                {/* App Routes */}
                 <Route path="/app" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
                 <Route path="/app/chat" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
                 <Route path="/app/research" element={<ProtectedRoute><ResearchPage /></ProtectedRoute>} />

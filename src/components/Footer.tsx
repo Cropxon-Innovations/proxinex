@@ -4,26 +4,29 @@ import { Logo } from "./Logo";
 const footerLinks = {
   Product: [
     { label: "Overview", href: "/product" },
+    { label: "How It Works", href: "/product/how-it-works" },
     { label: "Sandbox", href: "/sandbox" },
     { label: "Inline Ask™", href: "/product/inline-ask" },
     { label: "Pricing", href: "/pricing" },
   ],
   Developers: [
     { label: "Documentation", href: "/docs" },
-    { label: "API Reference", href: "/docs/api" },
-    { label: "SDKs", href: "/docs/sdks" },
-    { label: "Changelog", href: "/docs/changelog" },
+    { label: "API Reference", href: "/docs" },
+    { label: "For Developers", href: "/product/developers" },
+    { label: "Enterprise", href: "/product/enterprise" },
   ],
   Company: [
-    { label: "About", href: "/about" },
-    { label: "Blog", href: "/blog" },
-    { label: "Careers", href: "/careers" },
-    { label: "Contact", href: "/contact" },
+    { label: "About", href: "/product" },
+    { label: "Security", href: "/security" },
+    { label: "Trust & Accuracy", href: "/product/trust" },
+    { label: "Help Center", href: "/help" },
   ],
   Legal: [
-    { label: "Privacy", href: "/privacy" },
-    { label: "Terms", href: "/terms" },
-    { label: "Security", href: "/security" },
+    { label: "Terms of Service", href: "/terms" },
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Refund Policy", href: "/refund" },
+    { label: "Data Policy", href: "/data-policy" },
+    { label: "GDPR", href: "/gdpr" },
   ],
 };
 
