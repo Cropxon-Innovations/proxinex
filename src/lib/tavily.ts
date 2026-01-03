@@ -6,6 +6,7 @@ export interface Citation {
   url: string;
   published_date?: string;
   score: number;
+  snippet?: string;
 }
 
 export interface ResearchResponse {
