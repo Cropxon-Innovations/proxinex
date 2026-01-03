@@ -127,7 +127,7 @@ export const ResizableRightPanel = ({
       </div>
 
       {/* Panel Content - Fully Scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      <div className="flex-1 overflow-hidden min-h-0">
         {children}
       </div>
     </div>

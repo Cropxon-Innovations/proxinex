@@ -362,7 +362,7 @@ export const SourceVerificationPanel = ({
   };
 
   return (
-    <div className="flex flex-col h-full min-h-0 overflow-hidden">
+    <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
       <Collapsible open={!isCollapsed} onOpenChange={() => onToggleCollapse?.()}>
         <CollapsibleTrigger className="w-full">
@@ -397,7 +397,7 @@ export const SourceVerificationPanel = ({
           </div>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="flex-1 flex flex-col min-h-0 overflow-y-auto">
+        <CollapsibleContent className="flex-1 flex flex-col overflow-hidden">
           {/* Verification Progress */}
           {isVerifying && (
             <div className="px-3 py-2 border-b border-border bg-primary/5">
