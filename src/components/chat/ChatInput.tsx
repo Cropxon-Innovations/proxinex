@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Plus,
@@ -18,7 +18,14 @@ import {
   Zap,
   Calculator,
   Briefcase,
-  Users
+  Users,
+  MessageSquare,
+  Cloud,
+  FileCode,
+  Calendar,
+  Database,
+  ExternalLink,
+  AtSign
 } from "lucide-react";
 import {
   Popover,
@@ -33,6 +40,8 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { VoiceInput } from "@/components/chat/VoiceInput";
+import { Badge } from "@/components/ui/badge";
+import { Link } from "react-router-dom";
 
 interface Model {
   id: string;
@@ -42,6 +51,16 @@ interface Model {
   description: string;
   bestFor: string;
 }
+
+// Connectors definition
+const connectors = [
+  { id: "notion", name: "Notion", icon: FileText, connected: true, description: "Search Notion workspace" },
+  { id: "github", name: "GitHub", icon: FileCode, connected: true, description: "Search repos & code" },
+  { id: "slack", name: "Slack", icon: MessageSquare, connected: false, description: "Search Slack messages" },
+  { id: "google-drive", name: "Google Drive", icon: Cloud, connected: false, description: "Access Drive files" },
+  { id: "jira", name: "Jira", icon: Calendar, connected: false, description: "Search Jira tickets" },
+  { id: "dropbox", name: "Dropbox", icon: Database, connected: false, description: "Access Dropbox files" },
+];
 
 const openSourceModels: Model[] = [
   { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash", tag: "new", type: "open", description: "Fast & efficient for everyday tasks", bestFor: "Quick responses, summarization, simple Q&A" },
@@ -124,12 +143,33 @@ export const ChatInput = ({
   const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showSearchModes, setShowSearchModes] = useState(false);
+  const [showConnectorMenu, setShowConnectorMenu] = useState(false);
   const [activeModes, setActiveModes] = useState<Record<string, boolean>>({ web: true });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const selectedModelInfo = [...openSourceModels, ...closedSourceModels].find(m => m.id === selectedModel);
+
+  // Detect @ symbol to show connectors
+  useEffect(() => {
+    const lastChar = query.slice(-1);
+    if (lastChar === "@") {
+      setShowConnectorMenu(true);
+    } else if (!query.includes("@") || query.endsWith(" ")) {
+      setShowConnectorMenu(false);
+    }
+  }, [query]);
+
+  const handleConnectorSelect = (connector: typeof connectors[0]) => {
+    if (connector.connected) {
+      // Insert the connector mention
+      const newQuery = query.replace(/@$/, `@${connector.id} `);
+      setQuery(newQuery);
+      setShowConnectorMenu(false);
+    }
+  };
 
   const getTagColor = (tag?: string) => {
     switch (tag) {
@@ -147,16 +187,69 @@ export const ChatInput = ({
 
   return (
     <div className="border-t border-border bg-background p-4">
-      <form onSubmit={onSubmit} className="max-w-3xl mx-auto">
+      <form onSubmit={onSubmit} className="max-w-3xl mx-auto relative">
+        {/* Connector Menu Popover */}
+        {showConnectorMenu && (
+          <div className="absolute bottom-full mb-2 left-0 right-0 max-w-md bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
+            <div className="p-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <AtSign className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Mention an app</span>
+              </div>
+            </div>
+            <div className="max-h-64 overflow-y-auto p-2">
+              {connectors.map(connector => (
+                <button
+                  key={connector.id}
+                  type="button"
+                  onClick={() => handleConnectorSelect(connector)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left ${
+                    connector.connected 
+                      ? "hover:bg-secondary cursor-pointer" 
+                      : "opacity-50 cursor-not-allowed"
+                  }`}
+                  disabled={!connector.connected}
+                >
+                  <div className={`p-2 rounded-lg ${connector.connected ? "bg-primary/20" : "bg-secondary"}`}>
+                    <connector.icon className={`h-4 w-4 ${connector.connected ? "text-primary" : "text-muted-foreground"}`} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium">{connector.name}</span>
+                      {connector.connected ? (
+                        <Badge className="bg-primary/20 text-primary text-[10px]">Connected</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[10px]">Not connected</Badge>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{connector.description}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="p-2 border-t border-border bg-secondary/50">
+              <Link
+                to="/app/settings"
+                className="flex items-center justify-center gap-2 p-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setShowConnectorMenu(false)}
+              >
+                <ExternalLink className="h-3 w-3" />
+                Manage apps in Settings
+              </Link>
+            </div>
+          </div>
+        )}
+
         {/* Main Input Container */}
         <div className="bg-input border border-border rounded-xl overflow-hidden">
           {/* Input Row */}
           <div className="flex items-center gap-2 p-3">
             <input
+              ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ask anything. Type @ for mentions and / for shortcuts"
+              placeholder="Ask anything. Type @ for apps and / for shortcuts"
               disabled={isLoading}
               className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-sm"
             />
