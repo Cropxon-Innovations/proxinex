@@ -166,6 +166,7 @@ export const AppSidebar = ({
   const location = useLocation();
   const navigate = useNavigate();
   const [historyOpen, setHistoryOpen] = useState(true);
+  const [historyCollapsed, setHistoryCollapsed] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const { plan, isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
@@ -343,8 +344,15 @@ export const AppSidebar = ({
       return (
         <Collapsible
           key={item.path}
-          open={historyOpen}
-          onOpenChange={setHistoryOpen}
+          open={historyOpen && !historyCollapsed}
+          onOpenChange={(open) => {
+            if (historyCollapsed) {
+              setHistoryCollapsed(false);
+              setHistoryOpen(true);
+            } else {
+              setHistoryOpen(open);
+            }
+          }}
           className="mx-2"
         >
           <CollapsibleTrigger className="w-full">
@@ -358,7 +366,7 @@ export const AppSidebar = ({
               <History className={`h-5 w-5 flex-shrink-0 ${active ? "text-primary" : ""}`} />
               <span className="text-sm flex-1 text-left">History</span>
               <ChevronDown
-                className={`h-4 w-4 transition-transform ${historyOpen ? "rotate-180" : ""}`}
+                className={`h-4 w-4 transition-transform ${historyOpen && !historyCollapsed ? "rotate-180" : ""}`}
               />
             </div>
           </CollapsibleTrigger>
