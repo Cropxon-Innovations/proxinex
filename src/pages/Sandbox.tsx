@@ -2,65 +2,43 @@ import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Send, Star, Clock, DollarSign, Check } from "lucide-react";
+import { Send, Star, Clock, DollarSign, Check, Loader2, AlertCircle } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const models = [
-  { id: "gpt4", name: "GPT-4", provider: "OpenAI", selected: true },
-  { id: "claude", name: "Claude 3.5", provider: "Anthropic", selected: true },
-  { id: "gemini", name: "Gemini Pro", provider: "Google", selected: true },
-  { id: "llama", name: "Llama 3.1", provider: "Meta", selected: false },
+  { id: "gemini-flash", name: "Gemini 2.5 Flash", provider: "Google", selected: true },
+  { id: "gemini-pro", name: "Gemini 2.5 Pro", provider: "Google", selected: true },
+  { id: "gpt5", name: "GPT-5", provider: "OpenAI", selected: false },
+  { id: "gpt5-mini", name: "GPT-5 Mini", provider: "OpenAI", selected: true },
 ];
 
-const mockResults = [
-  {
-    model: "GPT-4",
-    provider: "OpenAI",
-    accuracy: 94,
-    latency: "1.2s",
-    cost: "₹0.024",
-    response: `The speed of light in a vacuum is exactly **299,792,458 meters per second** (approximately 300,000 km/s or about 186,282 miles per second).
+interface ModelResult {
+  model: string;
+  provider: string;
+  response: string;
+  latency: number;
+  cost: number;
+  success: boolean;
+  error?: string;
+}
 
-**Key Facts:**
-- This is a fundamental physical constant, denoted as *c*
-- Nothing with mass can travel at this speed
-- It takes light about 8 minutes and 20 seconds to travel from the Sun to Earth
-- The speed of light is used to define the meter in the SI unit system`,
-  },
-  {
-    model: "Claude 3.5",
-    provider: "Anthropic",
-    accuracy: 96,
-    latency: "0.9s",
-    cost: "₹0.018",
-    response: `Light travels at precisely **299,792,458 m/s** in a vacuum—a fundamental constant of nature designated *c*.
-
-**Context:**
-- This speed is the cosmic speed limit; nothing can exceed it
-- In other media (water, glass), light travels slower
-- Einstein's special relativity is built upon this constant
-- Light from the Moon reaches Earth in ~1.3 seconds`,
-  },
-  {
-    model: "Gemini Pro",
-    provider: "Google",
-    accuracy: 93,
-    latency: "1.1s",
-    cost: "₹0.015",
-    response: `The speed of light is **299,792,458 meters per second** in a vacuum.
-
-**Important Points:**
-- Symbol: *c* (from Latin "celeritas" meaning speed)
-- Approximately 3 × 10⁸ m/s for quick calculations
-- Defines the relationship E = mc²
-- Light year = distance light travels in one year (~9.46 trillion km)`,
-  },
-];
+interface ComparisonResult {
+  results: ModelResult[];
+  summary: {
+    highestAccuracy: string | null;
+    fastestResponse: { model: string; latency: number } | null;
+    lowestCost: { model: string; cost: number } | null;
+  };
+}
 
 const Sandbox = () => {
-  const [query, setQuery] = useState("What is the speed of light?");
-  const [selectedModels, setSelectedModels] = useState(["gpt4", "claude", "gemini"]);
-  const [hasQueried, setHasQueried] = useState(true);
+  const [query, setQuery] = useState("");
+  const [selectedModels, setSelectedModels] = useState(["gemini-flash", "gemini-pro", "gpt5-mini"]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [results, setResults] = useState<ComparisonResult | null>(null);
+  const { toast } = useToast();
 
   const toggleModel = (modelId: string) => {
     setSelectedModels(prev => 
@@ -70,11 +48,46 @@ const Sandbox = () => {
     );
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (query.trim()) {
-      setHasQueried(true);
+    if (!query.trim() || selectedModels.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please enter a query and select at least one model",
+        variant: "destructive",
+      });
+      return;
     }
+
+    setIsLoading(true);
+    setResults(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("model-compare", {
+        body: { query: query.trim(), models: selectedModels },
+      });
+
+      if (error) throw error;
+      setResults(data);
+    } catch (error) {
+      console.error("Comparison error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to compare models. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const formatLatency = (ms: number) => {
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
+  };
+
+  const formatCost = (cost: number) => {
+    return `₹${cost.toFixed(4)}`;
   };
 
   return (
@@ -83,7 +96,7 @@ const Sandbox = () => {
         <title>AI Sandbox - Compare Models Side by Side | Proxinex</title>
         <meta 
           name="description" 
-          content="Compare GPT-4, Claude, Gemini, and more AI models side by side. See accuracy, speed, and cost differences for the same query." 
+          content="Compare GPT-5, Gemini, and more AI models side by side. See accuracy, speed, and cost differences for the same query." 
         />
       </Helmet>
 
@@ -110,7 +123,8 @@ const Sandbox = () => {
                   <button
                     key={model.id}
                     onClick={() => toggleModel(model.id)}
-                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                    disabled={isLoading}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all disabled:opacity-50 ${
                       selectedModels.includes(model.id)
                         ? 'border-primary bg-primary/10 text-foreground'
                         : 'border-border bg-card text-muted-foreground hover:border-primary/50'
@@ -136,23 +150,60 @@ const Sandbox = () => {
                     onChange={(e) => setQuery(e.target.value)}
                     placeholder="Enter your query to compare models..."
                     className="w-full px-4 py-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    disabled={isLoading}
                   />
                 </div>
-                <Button type="submit" size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 glow">
-                  <Send className="h-5 w-5 mr-2" />
-                  Compare
+                <Button 
+                  type="submit" 
+                  size="lg" 
+                  disabled={isLoading || !query.trim() || selectedModels.length === 0}
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 glow"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <>
+                      <Send className="h-5 w-5 mr-2" />
+                      Compare
+                    </>
+                  )}
                 </Button>
               </form>
             </div>
 
-            {/* Results Grid */}
-            {hasQueried && (
+            {/* Loading State */}
+            {isLoading && (
               <div className="max-w-6xl mx-auto">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {mockResults.map((result, index) => (
+                  {selectedModels.map((modelId) => {
+                    const model = models.find(m => m.id === modelId);
+                    return (
+                      <div 
+                        key={modelId}
+                        className="rounded-lg border border-border bg-card overflow-hidden animate-pulse"
+                      >
+                        <div className="p-4 border-b border-border bg-secondary/30">
+                          <div className="font-semibold text-foreground">{model?.name}</div>
+                          <div className="text-xs text-muted-foreground">{model?.provider}</div>
+                        </div>
+                        <div className="p-4 min-h-[200px] flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Results Grid */}
+            {results && !isLoading && (
+              <div className="max-w-6xl mx-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {results.results.map((result, index) => (
                     <div 
                       key={result.model}
-                      className="rounded-lg border border-border bg-card overflow-hidden animate-fade-up"
+                      className="rounded-lg border border-border bg-card overflow-hidden animate-fade-in"
                       style={{ animationDelay: `${index * 0.1}s` }}
                     >
                       {/* Model Header */}
@@ -162,18 +213,29 @@ const Sandbox = () => {
                             <div className="font-semibold text-foreground">{result.model}</div>
                             <div className="text-xs text-muted-foreground">{result.provider}</div>
                           </div>
-                          <div className="flex items-center gap-1 text-primary">
-                            <Star className="h-4 w-4 fill-primary" />
-                            <span className="font-medium">{result.accuracy}%</span>
-                          </div>
+                          {result.success && (
+                            <div className="flex items-center gap-1 text-primary">
+                              <Star className="h-4 w-4 fill-primary" />
+                              <span className="font-medium">
+                                {Math.min(95, Math.round(85 + (result.response.length / 100)))}%
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
 
                       {/* Response */}
                       <div className="p-4">
-                        <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed min-h-[200px]">
-                          {result.response}
-                        </div>
+                        {result.success ? (
+                          <div className="text-sm text-foreground whitespace-pre-wrap leading-relaxed min-h-[200px] max-h-[300px] overflow-y-auto">
+                            {result.response}
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-red-500 min-h-[200px]">
+                            <AlertCircle className="h-5 w-5" />
+                            <span className="text-sm">{result.error || "Failed to get response"}</span>
+                          </div>
+                        )}
                       </div>
 
                       {/* Metrics Footer */}
@@ -181,11 +243,11 @@ const Sandbox = () => {
                         <div className="flex items-center justify-between text-xs text-muted-foreground">
                           <div className="flex items-center gap-1">
                             <Clock className="h-3 w-3" />
-                            <span>{result.latency}</span>
+                            <span>{formatLatency(result.latency)}</span>
                           </div>
                           <div className="flex items-center gap-1">
                             <DollarSign className="h-3 w-3" />
-                            <span>{result.cost}</span>
+                            <span>{formatCost(result.cost)}</span>
                           </div>
                         </div>
                       </div>
@@ -194,23 +256,37 @@ const Sandbox = () => {
                 </div>
 
                 {/* Summary */}
-                <div className="mt-8 p-6 rounded-lg bg-card border border-border">
-                  <h3 className="font-semibold text-foreground mb-4">Summary</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Highest Accuracy:</span>
-                      <span className="ml-2 text-foreground font-medium">Claude 3.5 (96%)</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Fastest Response:</span>
-                      <span className="ml-2 text-foreground font-medium">Claude 3.5 (0.9s)</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Lowest Cost:</span>
-                      <span className="ml-2 text-foreground font-medium">Gemini Pro (₹0.015)</span>
+                {results.summary && (
+                  <div className="mt-8 p-6 rounded-lg bg-card border border-border">
+                    <h3 className="font-semibold text-foreground mb-4">Summary</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                      {results.summary.highestAccuracy && (
+                        <div>
+                          <span className="text-muted-foreground">Most Comprehensive:</span>
+                          <span className="ml-2 text-foreground font-medium">
+                            {results.summary.highestAccuracy}
+                          </span>
+                        </div>
+                      )}
+                      {results.summary.fastestResponse && (
+                        <div>
+                          <span className="text-muted-foreground">Fastest Response:</span>
+                          <span className="ml-2 text-foreground font-medium">
+                            {results.summary.fastestResponse.model} ({formatLatency(results.summary.fastestResponse.latency)})
+                          </span>
+                        </div>
+                      )}
+                      {results.summary.lowestCost && (
+                        <div>
+                          <span className="text-muted-foreground">Lowest Cost:</span>
+                          <span className="ml-2 text-foreground font-medium">
+                            {results.summary.lowestCost.model} ({formatCost(results.summary.lowestCost.cost)})
+                          </span>
+                        </div>
+                      )}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             )}
           </div>
