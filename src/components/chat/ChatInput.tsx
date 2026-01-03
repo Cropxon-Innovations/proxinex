@@ -22,6 +22,7 @@ import {
   AtSign,
   Wand2
 } from "lucide-react";
+import { PromptEnhanceDialog } from "./PromptEnhanceDialog";
 import {
   Popover,
   PopoverContent,
@@ -132,6 +133,9 @@ export const ChatInput = ({
   const [showConnectorMenu, setShowConnectorMenu] = useState(false);
   const [activeModes, setActiveModes] = useState<Record<string, boolean>>({ web: true });
   const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceDialogOpen, setEnhanceDialogOpen] = useState(false);
+  const [originalPrompt, setOriginalPrompt] = useState("");
+  const [enhancedPrompt, setEnhancedPrompt] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -176,6 +180,8 @@ export const ChatInput = ({
     if (!query.trim() || isEnhancing) return;
 
     setIsEnhancing(true);
+    setOriginalPrompt(query);
+    
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enhance-prompt`,
@@ -197,11 +203,8 @@ export const ChatInput = ({
       const data = await response.json();
       
       if (data.changed && data.enhanced) {
-        setQuery(data.enhanced);
-        toast({
-          title: "Prompt Enhanced",
-          description: "Your text has been improved with better grammar and clarity.",
-        });
+        setEnhancedPrompt(data.enhanced);
+        setEnhanceDialogOpen(true);
       } else {
         toast({
           title: "Already Perfect",
@@ -218,6 +221,24 @@ export const ChatInput = ({
     } finally {
       setIsEnhancing(false);
     }
+  };
+
+  const handleAcceptEnhanced = () => {
+    setQuery(enhancedPrompt);
+    setEnhanceDialogOpen(false);
+    toast({
+      title: "Prompt Enhanced",
+      description: "Your text has been improved with better grammar and clarity.",
+    });
+  };
+
+  const handleRevertToOriginal = () => {
+    setQuery(originalPrompt);
+    setEnhanceDialogOpen(false);
+    toast({
+      title: "Kept Original",
+      description: "Your original prompt has been restored.",
+    });
   };
 
   return (
@@ -471,11 +492,17 @@ export const ChatInput = ({
                     >
                       <Sparkles className={`h-4 w-4 ${researchMode ? 'text-primary' : ''}`} />
                       <span className="text-xs font-medium">Research</span>
-                      <Switch
-                        checked={researchMode}
-                        onCheckedChange={onResearchModeChange}
-                        className="scale-75"
-                      />
+                      <div 
+                        className={`w-8 h-4 rounded-full relative transition-colors ${
+                          researchMode ? 'bg-primary' : 'bg-muted'
+                        }`}
+                      >
+                        <div 
+                          className={`absolute top-0.5 w-3 h-3 rounded-full bg-background shadow transition-transform ${
+                            researchMode ? 'translate-x-4' : 'translate-x-0.5'
+                          }`}
+                        />
+                      </div>
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
@@ -541,6 +568,16 @@ export const ChatInput = ({
           onChange={(e) => e.target.files && onVideoUpload?.(e.target.files)}
         />
       </form>
+
+      {/* Prompt Enhance Before/After Dialog */}
+      <PromptEnhanceDialog
+        open={enhanceDialogOpen}
+        onOpenChange={setEnhanceDialogOpen}
+        original={originalPrompt}
+        enhanced={enhancedPrompt}
+        onAccept={handleAcceptEnhanced}
+        onRevert={handleRevertToOriginal}
+      />
     </div>
   );
 };

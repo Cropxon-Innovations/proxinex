@@ -44,6 +44,7 @@ import {
   PanelLeft,
   Pin,
   ChevronDown,
+  Sparkles,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
@@ -749,6 +750,12 @@ const AppDashboard = () => {
               {autoMode && (
                 <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                   Auto Mode
+                </span>
+              )}
+              {researchMode && (
+                <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/30 px-2.5 py-1 rounded-full animate-pulse">
+                  <Sparkles className="h-3 w-3" />
+                  Research Mode Active
                 </span>
               )}
             </div>
