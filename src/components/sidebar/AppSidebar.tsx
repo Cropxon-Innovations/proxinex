@@ -134,7 +134,6 @@ const advancedItems: NavItem[] = [
 // Organization section
 const orgItems: NavItem[] = [
   { icon: Star, label: "Projects", path: "/app/projects" },
-  { icon: Pin, label: "Pinned", path: "/app/pinned" },
 ];
 
 // Settings section
@@ -736,19 +735,6 @@ export const AppSidebar = ({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem asChild>
-                  <Link to="/app/settings" className="flex items-center gap-2">
-                    <Settings className="h-4 w-4" />
-                    Settings
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/app/personalization" className="flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Personalization
-                  </Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={onSignOut} className="text-destructive focus:text-destructive">
                   <LogOut className="h-4 w-4 mr-2" />
                   Sign Out

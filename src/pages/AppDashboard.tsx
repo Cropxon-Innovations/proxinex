@@ -22,7 +22,8 @@ import { PinnedMessages } from "@/components/chat/PinnedMessages";
 import { InlineAskData, InlineAskComment } from "@/components/chat/InlineAskComment";
 import { CitationAnswer } from "@/components/CitationAnswer";
 import { CodeThemeSelector } from "@/components/chat/CodeThemeSelector";
-import { PinColorSelector } from "@/components/chat/PinColorSelector";
+import { PinColorSelector, PinColor } from "@/components/chat/PinColorSelector";
+import { PinColorPickerDialog } from "@/components/chat/PinColorPickerDialog";
 import { ThinkingAnimation } from "@/components/chat/ThinkingAnimation";
 import { LinkPreviewPanel } from "@/components/LinkPreviewPanel";
 import { 
@@ -55,8 +56,9 @@ interface ChatSessionData {
   isStarred?: boolean;
   isPinned?: boolean;
   isResearch?: boolean;
-  content?: string; // For read aloud
+  content?: string;
   pinColor?: "primary" | "red" | "orange" | "yellow" | "green" | "blue" | "purple";
+  pinOrder?: number;
 }
 
 interface MessageWithMetrics extends Message {
@@ -85,6 +87,8 @@ const AppDashboard = () => {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
   const [linkPreviewTitle, setLinkPreviewTitle] = useState<string | undefined>(undefined);
+  const [pinColorPickerOpen, setPinColorPickerOpen] = useState(false);
+  const [pendingPinSessionId, setPendingPinSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -179,7 +183,9 @@ const AppDashboard = () => {
             isPinned: (session as any).is_pinned || false,
             isArchived: (session as any).is_archived || false,
             isResearch: hasResearchResponse,
-            content: contentPreview, // For read aloud
+            content: contentPreview,
+            pinColor: (session as any).pin_color || "primary",
+            pinOrder: (session as any).pin_order || 0,
           };
         }));
       }
@@ -421,22 +427,54 @@ const AppDashboard = () => {
 
   const handlePinSession = async (sessionId: string) => {
     const session = chatSessions.find(s => s.id === sessionId);
-    const newPinned = !session?.isPinned;
+    
+    // If already pinned, unpin it
+    if (session?.isPinned) {
+      setChatSessions(prev => prev.map(s => 
+        s.id === sessionId ? { ...s, isPinned: false } : s
+      ));
+      
+      if (user) {
+        await supabase
+          .from("chat_sessions")
+          .update({ is_pinned: false })
+          .eq("id", sessionId)
+          .eq("user_id", user.id);
+      }
+      
+      toast({ title: "Session unpinned" });
+    } else {
+      // Show color picker for new pin
+      setPendingPinSessionId(sessionId);
+      setPinColorPickerOpen(true);
+    }
+  };
+
+  const handlePinWithColor = async (color: PinColor) => {
+    if (!pendingPinSessionId) return;
+    
+    const pinnedCount = chatSessions.filter(s => s.isPinned).length;
     
     setChatSessions(prev => prev.map(s => 
-      s.id === sessionId ? { ...s, isPinned: newPinned } : s
+      s.id === pendingPinSessionId 
+        ? { ...s, isPinned: true, pinColor: color, pinOrder: pinnedCount } 
+        : s
     ));
     
-    // Persist to database
     if (user) {
       await supabase
         .from("chat_sessions")
-        .update({ is_pinned: newPinned })
-        .eq("id", sessionId)
+        .update({ 
+          is_pinned: true, 
+          pin_color: color,
+          pin_order: pinnedCount 
+        })
+        .eq("id", pendingPinSessionId)
         .eq("user_id", user.id);
     }
     
-    toast({ title: newPinned ? "Session pinned" : "Session unpinned" });
+    toast({ title: "Session pinned" });
+    setPendingPinSessionId(null);
   };
 
   const handleRenameSession = async (sessionId: string, newTitle: string) => {
@@ -478,12 +516,24 @@ const AppDashboard = () => {
   }, []);
 
   // Handle reordering pinned sessions
-  const handleReorderPinnedSessions = useCallback((reorderedSessions: ChatSessionData[]) => {
+  const handleReorderPinnedSessions = useCallback(async (reorderedSessions: ChatSessionData[]) => {
     setChatSessions(prev => {
       const unpinned = prev.filter(s => !s.isPinned);
-      return [...reorderedSessions, ...unpinned];
+      return [...reorderedSessions.map((s, i) => ({ ...s, pinOrder: i })), ...unpinned];
     });
-  }, []);
+    
+    // Persist new order to database
+    if (user) {
+      const updates = reorderedSessions.map((session, index) => 
+        supabase
+          .from("chat_sessions")
+          .update({ pin_order: index })
+          .eq("id", session.id)
+          .eq("user_id", user.id)
+      );
+      await Promise.all(updates);
+    }
+  }, [user]);
 
   // Handle new session - save current chat first
   const handleNewSession = async () => {
@@ -931,6 +981,14 @@ const AppDashboard = () => {
           isMinimized={false}
         />
       )}
+
+      {/* Pin Color Picker Dialog */}
+      <PinColorPickerDialog
+        open={pinColorPickerOpen}
+        onOpenChange={setPinColorPickerOpen}
+        onSelectColor={handlePinWithColor}
+        currentColor="primary"
+      />
     </>
   );
 };
