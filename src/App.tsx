@@ -24,6 +24,7 @@ import ImagesPage from "./pages/Images";
 import ProjectMemoryPage from "./pages/ProjectMemory";
 import PersonalizationPage from "./pages/Personalization";
 import HelpCenterPage from "./pages/HelpCenter";
+import ProjectsPage from "./pages/Projects";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +58,7 @@ const App = () => (
               <Route path="/app/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/app/personalization" element={<ProtectedRoute><PersonalizationPage /></ProtectedRoute>} />
               <Route path="/app/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
+              <Route path="/app/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
               <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
