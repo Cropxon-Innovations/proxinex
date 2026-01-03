@@ -131,9 +131,9 @@ const advancedItems: NavItem[] = [
   { icon: Code, label: "API Playground", path: "/app/api", feature: "apiPlayground" },
 ];
 
-// Organization section
+// Organization section - Using Layers for Projects (project iconography)
 const orgItems: NavItem[] = [
-  { icon: Star, label: "Projects", path: "/app/projects" },
+  { icon: Layers, label: "Projects", path: "/app/projects" },
 ];
 
 // Settings section - Removed Settings (now in email dropdown)
@@ -222,7 +222,7 @@ export const AppSidebar = ({
     return (
       <div
         key={session.id}
-        className={`group flex items-center gap-2 w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
+        className={`group flex items-center w-full text-left px-2 py-2 text-xs rounded-md transition-colors ${
           activeSessionId === session.id
             ? "bg-primary/10 text-primary"
             : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
@@ -230,60 +230,63 @@ export const AppSidebar = ({
       >
         <button
           onClick={() => onSelectSession?.(session.id)}
-          className="flex items-center gap-2 flex-1 min-w-0"
+          className="flex items-center gap-2.5 flex-1 min-w-0"
         >
           {isResearch ? (
-            <Search className="h-3 w-3 flex-shrink-0" />
+            <Search className="h-3.5 w-3.5 flex-shrink-0" />
           ) : (
-            <MessageSquare className="h-3 w-3 flex-shrink-0" />
+            <MessageSquare className="h-3.5 w-3.5 flex-shrink-0" />
           )}
-          <span className="truncate flex-1">{session.title.slice(0, 18)}{session.title.length > 18 ? "..." : ""}</span>
+          <span className="truncate flex-1 text-left leading-tight">{session.title.slice(0, 20)}{session.title.length > 20 ? "..." : ""}</span>
         </button>
         
-        {/* Colored Pin Icon - Right Side */}
-        {session.isPinned && (
-          <Pin className={`h-3 w-3 flex-shrink-0 ${colorConfig.text} ${colorConfig.fill}`} />
-        )}
-        
-        {/* Star Icon */}
-        {session.isStarred && !session.isPinned && (
-          <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />
-        )}
-        
-        {/* Actions Menu */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <button className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary rounded transition-opacity">
-              <MoreHorizontal className="h-3 w-3" />
-            </button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-36">
-            <DropdownMenuItem onClick={() => onRenameSession?.(session.id, session.title)}>
-              <Pencil className="h-3 w-3 mr-2" />
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onPinSession?.(session.id)}>
-              <Pin className={`h-3 w-3 mr-2 ${session.isPinned ? colorConfig.fill + " " + colorConfig.text : ""}`} />
-              {session.isPinned ? "Unpin" : "Pin"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onShareSession?.(session.id)}>
-              <Share2 className="h-3 w-3 mr-2" />
-              Share
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onArchiveSession?.(session.id)}>
-              <Archive className="h-3 w-3 mr-2" />
-              Archive
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem 
-              onClick={() => onDeleteSession?.(session.id)}
-              className="text-destructive focus:text-destructive"
-            >
-              <Trash2 className="h-3 w-3 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        {/* Status icons container - fixed width for alignment */}
+        <div className="flex items-center gap-1.5 flex-shrink-0 ml-1">
+          {/* Colored Pin Icon */}
+          {session.isPinned && (
+            <Pin className={`h-3 w-3 ${colorConfig.text} ${colorConfig.fill}`} />
+          )}
+          
+          {/* Star Icon */}
+          {session.isStarred && !session.isPinned && (
+            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
+          )}
+          
+          {/* Actions Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary rounded transition-opacity">
+                <MoreHorizontal className="h-3.5 w-3.5" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36">
+              <DropdownMenuItem onClick={() => onRenameSession?.(session.id, session.title)}>
+                <Pencil className="h-3 w-3 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onPinSession?.(session.id)}>
+                <Pin className={`h-3 w-3 mr-2 ${session.isPinned ? colorConfig.fill + " " + colorConfig.text : ""}`} />
+                {session.isPinned ? "Unpin" : "Pin"}
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onShareSession?.(session.id)}>
+                <Share2 className="h-3 w-3 mr-2" />
+                Share
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => onArchiveSession?.(session.id)}>
+                <Archive className="h-3 w-3 mr-2" />
+                Archive
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                onClick={() => onDeleteSession?.(session.id)}
+                className="text-destructive focus:text-destructive"
+              >
+                <Trash2 className="h-3 w-3 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     );
   };
@@ -560,7 +563,7 @@ export const AppSidebar = ({
 
   return (
     <aside
-      className={`${collapsed ? "w-16" : "w-64"} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300`}
+      className={`${collapsed ? "w-16" : "w-56 lg:w-64"} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300 h-full`}
     >
       {/* Header with Logo - Click to start new chat */}
       <div className="h-14 border-b border-sidebar-border flex items-center justify-between px-3 flex-shrink-0">
@@ -591,8 +594,8 @@ export const AppSidebar = ({
         </button>
       )}
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-3 space-y-1">
+      {/* Navigation - Scrollable */}
+      <nav className="flex-1 overflow-y-auto py-3 space-y-1 min-h-0">
         {/* Primary Items */}
         <div className="space-y-1 px-2">
           {primaryItems.map(renderNavItem)}

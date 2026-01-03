@@ -718,62 +718,66 @@ const AppDashboard = () => {
       </Helmet>
 
       <div className="h-screen bg-background flex overflow-hidden">
-        {/* Left Sidebar - Modular Component */}
-        <AppSidebar
-          collapsed={sidebarCollapsed}
-          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
-          user={user}
-          onSignOut={handleSignOut}
-          chatSessions={chatSessions}
-          activeSessionId={activeSessionId}
-          onSelectSession={handleSelectSession}
-          onNewSession={handleNewSession}
-          onDeleteSession={handleOpenDeleteDialog}
-          onRenameSession={handleOpenRenameDialog}
-          onPinSession={handlePinSession}
-          onArchiveSession={handleArchiveSession}
-          onShareSession={(sessionId) => {
-            const baseUrl = window.location.hostname === 'localhost' 
-              ? window.location.origin 
-              : 'https://proxinex.com';
-            const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
-            navigator.clipboard.writeText(shareUrl);
-            toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
-          }}
-          onReorderPinnedSessions={handleReorderPinnedSessions}
-        />
+        {/* Left Sidebar - Fixed */}
+        <div className="hidden md:block flex-shrink-0 h-full">
+          <AppSidebar
+            collapsed={sidebarCollapsed}
+            onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+            user={user}
+            onSignOut={handleSignOut}
+            chatSessions={chatSessions}
+            activeSessionId={activeSessionId}
+            onSelectSession={handleSelectSession}
+            onNewSession={handleNewSession}
+            onDeleteSession={handleOpenDeleteDialog}
+            onRenameSession={handleOpenRenameDialog}
+            onPinSession={handlePinSession}
+            onArchiveSession={handleArchiveSession}
+            onShareSession={(sessionId) => {
+              const baseUrl = window.location.hostname === 'localhost' 
+                ? window.location.origin 
+                : 'https://proxinex.com';
+              const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
+              navigator.clipboard.writeText(shareUrl);
+              toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
+            }}
+            onReorderPinnedSessions={handleReorderPinnedSessions}
+          />
+        </div>
 
         {/* Main Content */}
-        <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <main className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {/* Header - Fixed */}
-          <header className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
-            <div className="flex items-center gap-4">
-              <h1 className="font-semibold text-foreground">Chat</h1>
+          <header className="h-14 md:h-16 border-b border-border flex items-center justify-between px-3 md:px-6 flex-shrink-0 bg-background">
+            <div className="flex items-center gap-2 md:gap-4 min-w-0">
+              <h1 className="font-semibold text-foreground text-sm md:text-base">Chat</h1>
               {messages.length > 0 && (
-                <span className="text-xs text-muted-foreground">
+                <span className="text-xs text-muted-foreground hidden sm:inline">
                   {messages.length} messages
                 </span>
               )}
               {autoMode && (
-                <span className="text-xs text-primary bg-primary/10 px-2 py-0.5 rounded-full">
-                  Auto Mode
+                <span className="text-[10px] md:text-xs text-primary bg-primary/10 px-1.5 md:px-2 py-0.5 rounded-full">
+                  Auto
                 </span>
               )}
               {researchMode && (
-                <span className="flex items-center gap-1.5 text-xs text-primary bg-primary/10 border border-primary/30 px-2.5 py-1 rounded-full animate-pulse">
+                <span className="flex items-center gap-1 text-[10px] md:text-xs text-primary bg-primary/10 border border-primary/30 px-1.5 md:px-2.5 py-0.5 md:py-1 rounded-full animate-pulse">
                   <Sparkles className="h-3 w-3" />
-                  Research Mode Active
+                  <span className="hidden sm:inline">Research Mode</span>
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
-              {/* Token Counter */}
-              {query && <TokenCounter text={query} model={selectedModel} />}
-              <span className="text-sm text-muted-foreground">
-                Session: ₹{currentCost.toFixed(3)}
+            <div className="flex items-center gap-1 md:gap-2">
+              {/* Token Counter - Hidden on mobile */}
+              {query && <div className="hidden md:block"><TokenCounter text={query} model={selectedModel} /></div>}
+              <span className="text-xs md:text-sm text-muted-foreground hidden sm:inline">
+                ₹{currentCost.toFixed(3)}
               </span>
-              <InlineAskExport inlineAsks={inlineAsks} sessionTitle={messages[0]?.content.slice(0, 30) || "Proxinex Ask"} />
-              <ChatExport messages={messages} sessionTitle={messages[0]?.content.slice(0, 30) || "Chat"} />
+              <div className="hidden md:flex items-center gap-2">
+                <InlineAskExport inlineAsks={inlineAsks} sessionTitle={messages[0]?.content.slice(0, 30) || "Proxinex Ask"} />
+                <ChatExport messages={messages} sessionTitle={messages[0]?.content.slice(0, 30) || "Chat"} />
+              </div>
               <KeyboardShortcutsButton />
               <NotificationCenter />
               <ThemeSelector />
@@ -781,11 +785,11 @@ const AppDashboard = () => {
           </header>
 
           {/* Chat Area - Scrollable */}
-          <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex overflow-hidden min-h-0">
             {/* Messages Column - Scrollable */}
             <div 
               ref={chatContainerRef}
-              className="flex-1 overflow-y-auto"
+              className="flex-1 overflow-y-auto min-w-0"
               onMouseUp={(e) => handleMouseUp(e, messages.map(m => m.content).join("\n\n"))}
             >
               {/* Pinned Messages Section */}
@@ -797,17 +801,17 @@ const AppDashboard = () => {
                 />
               )}
 
-              <div className="p-6">
+              <div className="p-4 md:p-6">
                 {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center">
-                    <div className="text-center max-w-md">
-                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                        <MessageSquare className="h-8 w-8 text-primary" />
+                  <div className="h-full flex flex-col items-center justify-center min-h-[60vh]">
+                    <div className="text-center max-w-md px-4">
+                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                        <MessageSquare className="h-6 w-6 md:h-8 md:w-8 text-primary" />
                       </div>
-                      <h2 className="text-2xl font-bold text-foreground mb-2">
+                      <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
                         What can I help you with?
                       </h2>
-                      <p className="text-muted-foreground mb-6">
+                      <p className="text-sm md:text-base text-muted-foreground mb-6">
                         Ask anything. Get accurate, cited answers. Highlight text to use Inline Ask™.
                       </p>
                       <div className="flex flex-wrap justify-center gap-2">
@@ -819,7 +823,7 @@ const AppDashboard = () => {
                           <button
                             key={suggestion}
                             onClick={() => setQuery(suggestion)}
-                            className="px-3 py-1.5 text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
+                            className="px-3 py-1.5 text-xs md:text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
                           >
                             {suggestion}
                           </button>
@@ -897,15 +901,17 @@ const AppDashboard = () => {
               </div>
             </div>
 
-            {/* Right Panel - Link Preview or Chat History */}
+            {/* Right Panel - Fixed, Link Preview or Chat History */}
             {linkPreviewUrl ? (
-              <LinkPreviewPanel
-                url={linkPreviewUrl}
-                title={linkPreviewTitle}
-                onClose={handleCloseLinkPreview}
-              />
+              <div className="w-80 flex-shrink-0 hidden lg:block h-full overflow-hidden">
+                <LinkPreviewPanel
+                  url={linkPreviewUrl}
+                  title={linkPreviewTitle}
+                  onClose={handleCloseLinkPreview}
+                />
+              </div>
             ) : messages.length > 0 && (
-              <aside className="w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col overflow-hidden">
+              <aside className="w-72 xl:w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
                   <div className="flex items-center gap-2">
@@ -915,7 +921,7 @@ const AppDashboard = () => {
                 </div>
 
                 {/* Panel Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto">
+                <div className="flex-1 overflow-y-auto min-h-0">
                   <ChatHistory
                     sessions={chatSessions}
                     activeSessionId={activeSessionId || undefined}
