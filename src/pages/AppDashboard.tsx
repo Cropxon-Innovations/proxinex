@@ -30,6 +30,8 @@ import { DeleteSessionDialog } from "@/components/chat/DeleteSessionDialog";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { SwipeableSidebar, useSwipeToOpen } from "@/components/SwipeableSidebar";
 import { CitationPreviewPanel } from "@/components/CitationPreviewPanel";
+import { ResizableRightPanel } from "@/components/chat/ResizableRightPanel";
+import { PullToRefresh } from "@/components/chat/PullToRefresh";
 import { 
   MessageSquare,
   Sparkles,
@@ -40,7 +42,6 @@ import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { UploadedFile } from "@/components/chat/FileUploadPreview";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-// Collapsible imports now handled in AppSidebar
 
 // Sidebar items moved to AppSidebar component
 
@@ -850,164 +851,189 @@ const AppDashboard = () => {
 
           {/* Chat Area - Scrollable */}
           <div className="flex-1 flex overflow-hidden min-h-0">
-            {/* Messages Column - Scrollable */}
-            <div 
-              ref={chatContainerRef}
-              className="flex-1 overflow-y-auto min-w-0"
-              onMouseUp={(e) => handleMouseUp(e, messages.map(m => m.content).join("\n\n"))}
+            {/* Messages Column - Scrollable with Pull to Refresh */}
+            <PullToRefresh
+              onRefresh={async () => {
+                if (activeSessionId && user) {
+                  const { data, error } = await supabase
+                    .from("chat_sessions")
+                    .select("*")
+                    .eq("id", activeSessionId)
+                    .eq("user_id", user.id)
+                    .single();
+                  
+                  if (data && !error) {
+                    const messagesArray = Array.isArray(data.messages)
+                      ? (data.messages as unknown as MessageWithMetrics[])
+                      : [];
+                    setMessages(messagesArray);
+                    toast({ title: "Session synced" });
+                  }
+                }
+              }}
             >
-              {/* Pinned Messages Section */}
-              {pinnedMessages.length > 0 && (
-                <PinnedMessages
-                  messages={pinnedMessages}
-                  onUnpin={handlePinMessage}
-                  onScrollToMessage={handleScrollToMessage}
-                />
-              )}
+              <div 
+                ref={chatContainerRef}
+                className="min-w-0 h-full"
+                onMouseUp={(e) => handleMouseUp(e, messages.map(m => m.content).join("\n\n"))}
+              >
+                {/* Pinned Messages Section */}
+                {pinnedMessages.length > 0 && (
+                  <PinnedMessages
+                    messages={pinnedMessages}
+                    onUnpin={handlePinMessage}
+                    onScrollToMessage={handleScrollToMessage}
+                  />
+                )}
 
-              <div className="p-4 md:p-6">
-                {messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center min-h-[60vh]">
-                    <div className="text-center max-w-md px-4">
-                      <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                        <MessageSquare className="h-6 w-6 md:h-8 md:w-8 text-primary" />
-                      </div>
-                      <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
-                        What can I help you with?
-                      </h2>
-                      <p className="text-sm md:text-base text-muted-foreground mb-6">
-                        Ask anything. Get accurate, cited answers. Highlight text to use Inline Ask™.
-                      </p>
-                      <div className="flex flex-wrap justify-center gap-2">
-                        {[
-                          "Explain quantum computing",
-                          "Compare React vs Vue",
-                          "Latest AI research trends"
-                        ].map((suggestion) => (
-                          <button
-                            key={suggestion}
-                            onClick={() => setQuery(suggestion)}
-                            className="px-3 py-1.5 text-xs md:text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
+                <div className="p-4 md:p-6">
+                  {messages.length === 0 ? (
+                    <div className="h-full flex flex-col items-center justify-center min-h-[60vh]">
+                      <div className="text-center max-w-md px-4">
+                        <div className="w-12 h-12 md:w-16 md:h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                          <MessageSquare className="h-6 w-6 md:h-8 md:w-8 text-primary" />
+                        </div>
+                        <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
+                          What can I help you with?
+                        </h2>
+                        <p className="text-sm md:text-base text-muted-foreground mb-6">
+                          Ask anything. Get accurate, cited answers. Highlight text to use Inline Ask™.
+                        </p>
+                        <div className="flex flex-wrap justify-center gap-2">
+                          {[
+                            "Explain quantum computing",
+                            "Compare React vs Vue",
+                            "Latest AI research trends"
+                          ].map((suggestion) => (
+                            <button
+                              key={suggestion}
+                              onClick={() => setQuery(suggestion)}
+                              className="px-3 py-1.5 text-xs md:text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
+                            >
+                              {suggestion}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ) : (
-                  <div className="max-w-3xl mx-auto">
-                    {messages.map((message, index) => {
-                      const messageMetrics = message.metrics || (message.role === "assistant" ? lastMetrics : null);
-                      const isPinned = pinnedMessages.some(m => m.originalIndex === index);
-                      const hasResearchResponse = message.researchResponse && message.role === "assistant";
-                      const isLastMessage = index === messages.length - 1;
-                      const isThinking = isLoading && isLastMessage && message.role === "assistant" && !message.content;
-                      
-                      return (
-                        <div
-                          key={index}
-                          ref={(el) => { messageRefs.current[index] = el; }}
-                        >
-                          {message.role === "user" ? (
-                            <ChatMessage
-                              role={message.role}
-                              content={message.content}
-                              timestamp={message.timestamp}
-                              isLoading={false}
-                              isPinned={isPinned}
-                              onPin={() => handlePinMessage(index)}
-                            />
-                          ) : isThinking ? (
-                            <ThinkingAnimation 
-                              isResearchMode={researchMode}
-                              sources={message.researchResponse?.citations?.map(c => c.title.split(' ').slice(0, 3).join(' ')) || []}
-                            />
-                          ) : hasResearchResponse ? (
-                            <div className="py-4">
-                              <CitationAnswer
-                                answer={message.researchResponse!.answer}
-                                confidence={message.researchResponse!.confidence}
-                                confidence_label={message.researchResponse!.confidence_label}
-                                citations={message.researchResponse!.citations}
-                                isLoading={isLoading && isLastMessage}
-                                onOpenLinkPreview={handleOpenLinkPreview}
+                  ) : (
+                    <div className="max-w-3xl mx-auto">
+                      {messages.map((message, index) => {
+                        const messageMetrics = message.metrics || (message.role === "assistant" ? lastMetrics : null);
+                        const isPinned = pinnedMessages.some(m => m.originalIndex === index);
+                        const hasResearchResponse = message.researchResponse && message.role === "assistant";
+                        const isLastMessage = index === messages.length - 1;
+                        const isThinking = isLoading && isLastMessage && message.role === "assistant" && !message.content;
+                        
+                        return (
+                          <div
+                            key={index}
+                            ref={(el) => { messageRefs.current[index] = el; }}
+                          >
+                            {message.role === "user" ? (
+                              <ChatMessage
+                                role={message.role}
+                                content={message.content}
+                                timestamp={message.timestamp}
+                                isLoading={false}
+                                isPinned={isPinned}
+                                onPin={() => handlePinMessage(index)}
                               />
-                            </div>
-                          ) : (
-                            <ChatMessage
-                              role={message.role}
-                              content={message.content}
-                              timestamp={message.timestamp}
-                              isLoading={isLoading && isLastMessage && !message.content}
-                              accuracy={messageMetrics?.accuracy || 85}
-                              cost={messageMetrics?.cost || 0.012}
-                              model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
-                              isPinned={isPinned}
-                              onPin={() => handlePinMessage(index)}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
+                            ) : isThinking ? (
+                              <ThinkingAnimation 
+                                isResearchMode={researchMode}
+                                sources={message.researchResponse?.citations?.map(c => c.title.split(' ').slice(0, 3).join(' ')) || []}
+                              />
+                            ) : hasResearchResponse ? (
+                              <div className="py-4">
+                                <CitationAnswer
+                                  answer={message.researchResponse!.answer}
+                                  confidence={message.researchResponse!.confidence}
+                                  confidence_label={message.researchResponse!.confidence_label}
+                                  citations={message.researchResponse!.citations}
+                                  isLoading={isLoading && isLastMessage}
+                                  onOpenLinkPreview={handleOpenLinkPreview}
+                                />
+                              </div>
+                            ) : (
+                              <ChatMessage
+                                role={message.role}
+                                content={message.content}
+                                timestamp={message.timestamp}
+                                isLoading={isLoading && isLastMessage && !message.content}
+                                accuracy={messageMetrics?.accuracy || 85}
+                                cost={messageMetrics?.cost || 0.012}
+                                model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
+                                isPinned={isPinned}
+                                onPin={() => handlePinMessage(index)}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
 
-                    {/* Related Queries */}
-                    {!isLoading && messages.length > 0 && (
-                      <RelatedQueries
-                        queries={relatedQueries}
-                        onQueryClick={handleRelatedQueryClick}
-                      />
-                    )}
+                      {/* Related Queries */}
+                      {!isLoading && messages.length > 0 && (
+                        <RelatedQueries
+                          queries={relatedQueries}
+                          onQueryClick={handleRelatedQueryClick}
+                        />
+                      )}
 
-                    <div ref={messagesEndRef} />
-                  </div>
-                )}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
+            </PullToRefresh>
 
             {/* Right Panel - Fixed, Link Preview, Citations, or Chat History */}
             {linkPreviewUrl ? (
-              <div className="w-80 flex-shrink-0 hidden lg:block h-full overflow-hidden">
+              <ResizableRightPanel defaultWidth={320} minWidth={280} maxWidth={500}>
                 <LinkPreviewPanel
                   url={linkPreviewUrl}
                   title={linkPreviewTitle}
                   onClose={handleCloseLinkPreview}
                 />
-              </div>
+              </ResizableRightPanel>
             ) : researchMode && currentCitations.length > 0 ? (
-              <CitationPreviewPanel
-                citations={currentCitations}
-                selectedCitation={selectedCitation}
-                onSelectCitation={setSelectedCitation}
-                onClose={() => setRightPanelTab("history")}
-                isCollapsed={rightPanelCollapsed}
-                onToggleCollapse={() => setRightPanelCollapsed(!rightPanelCollapsed)}
-              />
+              <ResizableRightPanel defaultWidth={320} minWidth={240} maxWidth={500}>
+                <CitationPreviewPanel
+                  citations={currentCitations}
+                  selectedCitation={selectedCitation}
+                  onSelectCitation={setSelectedCitation}
+                  onClose={() => setRightPanelTab("history")}
+                  isCollapsed={rightPanelCollapsed}
+                  onToggleCollapse={() => setRightPanelCollapsed(!rightPanelCollapsed)}
+                />
+              </ResizableRightPanel>
             ) : messages.length > 0 && (
-              <aside className="w-72 xl:w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full overflow-hidden">
-                {/* Header */}
-                <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <History className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium">Chat History</span>
+              <ResizableRightPanel defaultWidth={320} minWidth={240} maxWidth={500}>
+                <div className="flex flex-col h-full">
+                  {/* Header */}
+                  <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <History className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Chat History</span>
+                    </div>
+                  </div>
+
+                  {/* Panel Content - Scrollable */}
+                  <div className="flex-1 overflow-y-auto min-h-0">
+                    <ChatHistory
+                      sessions={chatSessions}
+                      activeSessionId={activeSessionId || undefined}
+                      onSessionSelect={handleSelectSession}
+                      onSessionDelete={handleOpenDeleteDialog}
+                      onSessionStar={handleStarSession}
+                      onSessionArchive={handleArchiveSession}
+                      onSessionPin={handlePinSession}
+                      onSessionRename={handleOpenRenameDialog}
+                      onSessionExport={handleExportSession}
+                    />
                   </div>
                 </div>
-
-                {/* Panel Content - Scrollable */}
-                <div className="flex-1 overflow-y-auto min-h-0">
-                  <ChatHistory
-                    sessions={chatSessions}
-                    activeSessionId={activeSessionId || undefined}
-                    onSessionSelect={handleSelectSession}
-                    onSessionDelete={handleOpenDeleteDialog}
-                    onSessionStar={handleStarSession}
-                    onSessionArchive={handleArchiveSession}
-                    onSessionPin={handlePinSession}
-                    onSessionRename={handleOpenRenameDialog}
-                    onSessionExport={handleExportSession}
-                  />
-                </div>
-              </aside>
+              </ResizableRightPanel>
             )}
           </div>
 

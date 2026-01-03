@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, Globe, RefreshCw, X, ChevronDown, ChevronUp } from "lucide-react";
+import { ExternalLink, Globe, RefreshCw, X, ChevronDown, ChevronUp, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -53,8 +53,8 @@ export const CitationPreviewPanel = ({
   }
 
   return (
-    <aside className="w-72 xl:w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full overflow-hidden">
-      {/* Header */}
+    <aside className="flex-shrink-0 hidden lg:flex flex-col h-full overflow-hidden border-l border-border bg-card/50">
+      {/* Header - Always visible */}
       <Collapsible open={!isCollapsed} onOpenChange={() => onToggleCollapse?.()}>
         <CollapsibleTrigger className="w-full">
           <div className="flex items-center justify-between p-3 border-b border-border hover:bg-secondary/30 transition-colors">
@@ -88,9 +88,9 @@ export const CitationPreviewPanel = ({
           </div>
         </CollapsibleTrigger>
 
-        <CollapsibleContent>
+        <CollapsibleContent className="flex-1 flex flex-col min-h-0 overflow-hidden">
           {/* Citation List */}
-          <ScrollArea className="flex-1">
+          <ScrollArea className="flex-1 min-h-0">
             <div className="p-2 space-y-2">
               {citations.map((citation) => (
                 <button
@@ -128,6 +128,19 @@ export const CitationPreviewPanel = ({
                         </p>
                       )}
                     </div>
+                    {/* External Link Button */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleOpenExternal(citation.url);
+                      }}
+                      className="h-6 w-6 p-0 flex-shrink-0 opacity-0 group-hover:opacity-100 hover:opacity-100"
+                      title="Open in new tab"
+                    >
+                      <ExternalLink className="h-3 w-3" />
+                    </Button>
                   </div>
                 </button>
               ))}
@@ -145,6 +158,7 @@ export const CitationPreviewPanel = ({
                     size="sm"
                     onClick={() => setIsLoading(true)}
                     className="h-6 w-6 p-0"
+                    title="Refresh"
                   >
                     <RefreshCw className={`h-3 w-3 ${isLoading ? "animate-spin" : ""}`} />
                   </Button>
@@ -153,26 +167,37 @@ export const CitationPreviewPanel = ({
                     size="sm"
                     onClick={() => handleOpenExternal(selectedCitation.url)}
                     className="h-6 w-6 p-0"
+                    title="Open in new tab"
                   >
                     <ExternalLink className="h-3 w-3" />
                   </Button>
                 </div>
               </div>
-              <div className="bg-secondary/50 rounded-lg p-3 min-h-[100px]">
-                <p className="text-sm font-medium mb-1">{selectedCitation.title}</p>
+              <div className="bg-secondary/50 rounded-lg p-3">
+                <p className="text-sm font-medium mb-1 line-clamp-2">{selectedCitation.title}</p>
                 <a
                   href={selectedCitation.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-xs text-primary hover:underline truncate block"
+                  className="text-xs text-primary hover:underline truncate block mb-2"
                 >
-                  {selectedCitation.url}
+                  {getDomain(selectedCitation.url)}
                 </a>
                 {selectedCitation.snippet && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-muted-foreground line-clamp-4">
                     {selectedCitation.snippet}
                   </p>
                 )}
+                {/* Full Open Link Button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleOpenExternal(selectedCitation.url)}
+                  className="w-full mt-3 gap-2"
+                >
+                  <ExternalLink className="h-3 w-3" />
+                  Open Full Article
+                </Button>
               </div>
             </div>
           )}

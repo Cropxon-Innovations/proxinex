@@ -166,7 +166,8 @@ export const AppSidebar = ({
   const location = useLocation();
   const navigate = useNavigate();
   const [historyOpen, setHistoryOpen] = useState(true);
-  const [historyCollapsed, setHistoryCollapsed] = useState(false);
+  const [chatHistoryExpanded, setChatHistoryExpanded] = useState(true);
+  const [researchHistoryExpanded, setResearchHistoryExpanded] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const { plan, isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
@@ -344,15 +345,8 @@ export const AppSidebar = ({
       return (
         <Collapsible
           key={item.path}
-          open={historyOpen && !historyCollapsed}
-          onOpenChange={(open) => {
-            if (historyCollapsed) {
-              setHistoryCollapsed(false);
-              setHistoryOpen(true);
-            } else {
-              setHistoryOpen(open);
-            }
-          }}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
           className="mx-2"
         >
           <CollapsibleTrigger className="w-full">
@@ -366,7 +360,7 @@ export const AppSidebar = ({
               <History className={`h-5 w-5 flex-shrink-0 ${active ? "text-primary" : ""}`} />
               <span className="text-sm flex-1 text-left">History</span>
               <ChevronDown
-                className={`h-4 w-4 transition-transform ${historyOpen && !historyCollapsed ? "rotate-180" : ""}`}
+                className={`h-4 w-4 transition-transform ${historyOpen ? "rotate-180" : ""}`}
               />
             </div>
           </CollapsibleTrigger>
@@ -405,29 +399,39 @@ export const AppSidebar = ({
               </div>
             )}
 
-            {/* Chat Sessions */}
+            {/* Chat Sessions - Collapsible */}
             {chatOnlySessions.length > 0 && (
-              <div className="mb-2">
-                <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <MessageSquare className="h-3 w-3" />
-                  Chat
-                </div>
-                {chatOnlySessions.slice(0, 4).map((session) => renderSessionItem(session, false))}
-              </div>
+              <Collapsible open={chatHistoryExpanded} onOpenChange={setChatHistoryExpanded} className="mb-2">
+                <CollapsibleTrigger className="w-full">
+                  <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1 hover:bg-secondary/30 rounded transition-colors">
+                    <MessageSquare className="h-3 w-3" />
+                    <span className="flex-1 text-left">Chat ({chatOnlySessions.length})</span>
+                    <ChevronDown className={`h-3 w-3 transition-transform ${chatHistoryExpanded ? "rotate-180" : ""}`} />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-1 space-y-0.5">
+                  {chatOnlySessions.slice(0, 6).map((session) => renderSessionItem(session, false))}
+                </CollapsibleContent>
+              </Collapsible>
             )}
             
-            {/* Research Sessions */}
+            {/* Research Sessions - Collapsible */}
             {researchSessions.length > 0 && (
-              <div className="mb-2">
-                <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
-                  <Search className="h-3 w-3" />
-                  Research
-                </div>
-                {researchSessions.slice(0, 4).map((session) => renderSessionItem(session, true))}
-              </div>
+              <Collapsible open={researchHistoryExpanded} onOpenChange={setResearchHistoryExpanded} className="mb-2">
+                <CollapsibleTrigger className="w-full">
+                  <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1 hover:bg-secondary/30 rounded transition-colors">
+                    <Search className="h-3 w-3" />
+                    <span className="flex-1 text-left">Research ({researchSessions.length})</span>
+                    <ChevronDown className={`h-3 w-3 transition-transform ${researchHistoryExpanded ? "rotate-180" : ""}`} />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-1 space-y-0.5">
+                  {researchSessions.slice(0, 6).map((session) => renderSessionItem(session, true))}
+                </CollapsibleContent>
+              </Collapsible>
             )}
             
-            {chatSessions.length > 8 && (
+            {chatSessions.length > 12 && (
               <Link
                 to="/app/chat"
                 className="block px-2 py-1.5 text-xs text-primary hover:underline"
