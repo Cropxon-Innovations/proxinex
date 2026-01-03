@@ -48,6 +48,51 @@ function calculateAccuracy(response: string, type: string): number {
   return Math.min(score, 99);
 }
 
+// Generate related queries based on the user's question and AI response
+function generateRelatedQueries(userQuery: string, response: string): string[] {
+  const queries: string[] = [];
+  
+  // Extract key topics from the query and response
+  const combinedText = `${userQuery} ${response}`.toLowerCase();
+  
+  // Common topic patterns
+  const topicPatterns = [
+    { pattern: /quantum|qubit|superposition/i, queries: ["Quantum computing applications", "Quantum vs classical computing", "Quantum computing companies"] },
+    { pattern: /react|vue|angular|frontend/i, queries: ["Best frontend frameworks 2025", "React performance optimization", "State management solutions"] },
+    { pattern: /ai|artificial intelligence|machine learning/i, queries: ["Latest AI research papers", "AI implementation best practices", "AI ethics and regulations"] },
+    { pattern: /python|javascript|typescript|programming/i, queries: ["Best coding practices", "Programming language comparison", "Learning resources for developers"] },
+    { pattern: /database|sql|nosql|mongodb/i, queries: ["Database optimization techniques", "SQL vs NoSQL comparison", "Best database for startups"] },
+    { pattern: /api|rest|graphql/i, queries: ["API design best practices", "REST vs GraphQL", "API security measures"] },
+    { pattern: /cloud|aws|azure|gcp/i, queries: ["Cloud cost optimization", "Multi-cloud strategies", "Serverless architecture"] },
+    { pattern: /security|encryption|authentication/i, queries: ["Cybersecurity best practices", "Authentication methods comparison", "Security audit checklist"] },
+    { pattern: /startup|business|entrepreneur/i, queries: ["Startup funding strategies", "Business model validation", "Growth hacking techniques"] },
+    { pattern: /india|indian|₹|rupee/i, queries: ["India tech ecosystem", "Indian startup success stories", "Tech jobs in India"] },
+  ];
+  
+  // Find matching patterns
+  for (const { pattern, queries: patternQueries } of topicPatterns) {
+    if (pattern.test(combinedText)) {
+      queries.push(...patternQueries);
+    }
+  }
+  
+  // Generate query-specific related searches
+  const words = userQuery.split(/\s+/).filter(w => w.length > 4);
+  if (words.length > 0) {
+    const mainTopic = words.slice(0, 3).join(" ");
+    queries.push(
+      `${mainTopic} best practices`,
+      `${mainTopic} alternatives`,
+      `How does ${mainTopic} work?`,
+      `${mainTopic} trends 2025`
+    );
+  }
+  
+  // Remove duplicates and limit to 4
+  const uniqueQueries = [...new Set(queries)];
+  return uniqueQueries.slice(0, 4);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -156,6 +201,9 @@ Always aim for clear, structured, visually organized responses.`;
 
     console.log("Streaming response started");
     
+    // Get the last user message for related query generation
+    const lastUserMessage = messages.filter((m: any) => m.role === "user").pop()?.content || "";
+    
     // Create a TransformStream to inject metadata at the end
     const { readable, writable } = new TransformStream();
     const writer = writable.getWriter();
@@ -190,6 +238,9 @@ Always aim for clear, structured, visually organized responses.`;
         const cost = ((inputTokens * pricing.input) + (outputTokens * pricing.output)) / 1000;
         const accuracy = calculateAccuracy(fullResponse, type);
         
+        // Generate related queries based on context
+        const relatedQueries = generateRelatedQueries(lastUserMessage, fullResponse);
+        
         // Send metadata event
         const metadataEvent = `data: ${JSON.stringify({
           type: "metadata",
@@ -199,7 +250,8 @@ Always aim for clear, structured, visually organized responses.`;
             inputTokens,
             outputTokens,
             model,
-          }
+          },
+          relatedQueries,
         })}\n\n`;
         
         await writer.write(new TextEncoder().encode(metadataEvent));

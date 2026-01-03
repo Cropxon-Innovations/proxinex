@@ -14,6 +14,8 @@ import { ProjectMemory } from "@/components/chat/ProjectMemory";
 import { ThemeSelector } from "@/components/chat/ThemeSelector";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { KeyboardShortcutsButton, KeyboardShortcutsIndicator } from "@/components/KeyboardShortcuts";
+import { ChatExport } from "@/components/chat/ChatExport";
+import { TokenCounter } from "@/components/chat/TokenCounter";
 import { 
   Plus, 
   MessageSquare, 
@@ -32,7 +34,9 @@ import {
   LogOut,
   User,
   History,
-  Star
+  Star,
+  PanelLeftClose,
+  PanelLeft,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
@@ -85,6 +89,7 @@ const AppDashboard = () => {
   const [autoMode, setAutoMode] = useState(true);
   const [chatSessions, setChatSessions] = useState<ChatSessionData[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
@@ -99,14 +104,6 @@ const AppDashboard = () => {
     { id: "2", type: "decision" as const, content: "Focus on practical AI applications for 2025 roadmap", timestamp: new Date(), verified: true },
     { id: "3", type: "summary" as const, content: "India's AI funding grew 47% in 2024 driven by govt initiatives", timestamp: new Date(), verified: true, sources: 5 },
   ];
-
-  // Related queries based on last message
-  const relatedQueries = messages.length > 0 ? [
-    "What are the key challenges in quantum computing?",
-    "Compare quantum vs classical computing performance",
-    "Top quantum computing companies in 2025",
-    "Quantum computing applications in AI"
-  ] : [];
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -167,7 +164,7 @@ const AppDashboard = () => {
       messages: [...messages, userMessage],
       type: "chat",
       onDelta: updateAssistant,
-      onDone: (metrics) => {
+      onDone: (metrics, dynamicRelatedQueries) => {
         setIsLoading(false);
         if (metrics) {
           setLastMetrics(metrics);
@@ -182,6 +179,10 @@ const AppDashboard = () => {
             }
             return prev;
           });
+        }
+        // Set dynamic related queries from AI
+        if (dynamicRelatedQueries && dynamicRelatedQueries.length > 0) {
+          setRelatedQueries(dynamicRelatedQueries);
         }
         // Save session to history
         saveChatSession();
@@ -273,6 +274,21 @@ const AppDashboard = () => {
     navigate("/");
   };
 
+  // Handle new session - save current chat first
+  const handleNewSession = async () => {
+    if (messages.length > 0) {
+      await saveChatSession();
+      toast({ title: "Chat saved to history" });
+    }
+    // Reset state for new session
+    setMessages([]);
+    setActiveSessionId(null);
+    setLastMetrics(null);
+    setCurrentCost(0);
+    setRelatedQueries([]);
+    setQuery("");
+  };
+
   const handleVoiceStart = () => {
     setIsRecording(true);
     toast({ title: "Voice recording started", description: "Speak your query..." });
@@ -305,11 +321,30 @@ const AppDashboard = () => {
         <aside 
           className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300`}
         >
-          <div className="h-16 border-b border-sidebar-border flex items-center px-4 flex-shrink-0">
-            <Link to="/">
+          {/* Collapse Toggle at Top */}
+          <div className="h-14 border-b border-sidebar-border flex items-center justify-between px-3 flex-shrink-0">
+            <Link to="/" className={sidebarCollapsed ? "mx-auto" : ""}>
               <Logo size="sm" showText={!sidebarCollapsed} />
             </Link>
+            <button
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className={`p-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors ${sidebarCollapsed ? "hidden" : ""}`}
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {sidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+            </button>
           </div>
+
+          {/* Expand button when collapsed */}
+          {sidebarCollapsed && (
+            <button
+              onClick={() => setSidebarCollapsed(false)}
+              className="p-2 mx-auto mt-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
+              title="Expand sidebar"
+            >
+              <PanelLeft className="h-4 w-4" />
+            </button>
+          )}
 
           <nav className="flex-1 py-4 overflow-y-auto">
             {sidebarItems.map((item, index) => {
@@ -319,18 +354,20 @@ const AppDashboard = () => {
               
               const Icon = item.icon!;
               const isActive = location.pathname === item.path;
+              const isNewSession = 'isNew' in item && item.isNew;
               
               return (
                 <Link
                   key={item.path}
                   to={item.path!}
+                  onClick={isNewSession ? handleNewSession : undefined}
                   className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${
                     isActive 
                       ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
                       : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                  } ${'isNew' in item && item.isNew ? 'border border-primary/50' : ''}`}
+                  } ${isNewSession ? 'border border-primary/50' : ''}`}
                 >
-                  <Icon className={`h-5 w-5 flex-shrink-0 ${'isNew' in item && item.isNew ? 'text-primary' : ''}`} />
+                  <Icon className={`h-5 w-5 flex-shrink-0 ${isNewSession ? 'text-primary' : isActive ? 'text-primary' : ''}`} />
                   {!sidebarCollapsed && <span className="text-sm">{item.label}</span>}
                 </Link>
               );
@@ -361,13 +398,6 @@ const AppDashboard = () => {
               </Button>
             </div>
           )}
-
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="h-12 border-t border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors flex-shrink-0"
-          >
-            {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
         </aside>
 
         {/* Main Content */}
@@ -388,10 +418,13 @@ const AppDashboard = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {/* Token Counter */}
+              {query && <TokenCounter text={query} model={selectedModel} />}
               <KeyboardShortcutsIndicator />
               <span className="text-sm text-muted-foreground">
                 Session: ₹{currentCost.toFixed(3)}
               </span>
+              <ChatExport messages={messages} sessionTitle={messages[0]?.content.slice(0, 30) || "Chat"} />
               <KeyboardShortcutsButton />
               <NotificationCenter />
               <ThemeSelector />

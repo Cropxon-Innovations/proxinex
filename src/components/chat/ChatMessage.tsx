@@ -25,6 +25,40 @@ import { SourcesDisplay, Source } from "@/components/chat/SourcesDisplay";
 import { ProxinexIcon } from "@/components/Logo";
 import { toast } from "sonner";
 
+// Code copy button component
+const CodeCopyButton = ({ code }: { code: string }) => {
+  const [copied, setCopied] = useState(false);
+  
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(code.trim());
+    setCopied(true);
+    toast.success("Code copied to clipboard!", {
+      description: `${code.trim().split('\n').length} lines copied`,
+      duration: 2000,
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 px-2 py-1 text-xs rounded-md bg-primary/10 hover:bg-primary/20 text-primary transition-all"
+    >
+      {copied ? (
+        <>
+          <Check className="h-3.5 w-3.5" />
+          <span>Copied!</span>
+        </>
+      ) : (
+        <>
+          <Copy className="h-3.5 w-3.5" />
+          <span>Copy code</span>
+        </>
+      )}
+    </button>
+  );
+};
+
 interface ChatMessageProps {
   role: "user" | "assistant";
   content: string;
@@ -378,16 +412,7 @@ export const ChatMessage = ({
                     {codeLanguage || 'code'}
                   </span>
                 </div>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(codeContent);
-                    toast.success("Code copied!");
-                  }}
-                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <Copy className="h-3 w-3" />
-                  Copy
-                </button>
+                <CodeCopyButton code={codeContent} />
               </div>
               <pre className="bg-[#1e1e2e] border border-t-0 border-border rounded-b-lg p-4 overflow-x-auto">
                 <code className="text-xs font-mono">
