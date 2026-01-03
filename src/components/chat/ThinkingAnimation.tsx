@@ -114,16 +114,21 @@ export const ThinkingAnimation = ({
         {/* Header with Animated Proxinex Logo */}
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
-            <div className="w-10 h-10 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/30 to-primary/30 blur-md animate-pulse" />
+            <div className="w-12 h-12 flex items-center justify-center">
+              {/* Pulsing glow effect */}
+              <div className="absolute inset-0 rounded-full bg-primary/40 blur-xl animate-pulse" />
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/40 to-primary/30 blur-lg animate-pulse" style={{ animationDelay: '0.5s' }} />
+              {/* Logo with bounce animation */}
               <img 
                 src={proxinexLogo} 
                 alt="Proxinex" 
-                className="w-8 h-8 object-contain relative z-10 animate-spin"
-                style={{ animationDuration: '3s' }}
+                className="w-10 h-10 object-contain relative z-10 drop-shadow-[0_0_15px_hsl(var(--primary)/0.6)]"
+                style={{ 
+                  animation: 'bounce-scale 1.5s ease-in-out infinite',
+                }}
               />
             </div>
-            <span className="absolute -top-1 -right-1 flex h-3 w-3">
+            <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
               <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
             </span>

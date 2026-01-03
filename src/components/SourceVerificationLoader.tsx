@@ -99,21 +99,29 @@ export const SourceVerificationLoader = ({
       <div className="flex items-center gap-4">
         <div className="relative">
           {/* Animated Logo Container */}
-          <div className="relative w-14 h-14 flex items-center justify-center">
+          <div className="relative w-16 h-16 flex items-center justify-center">
+            {/* Multi-layer pulsing glow effect */}
+            <div className="absolute inset-0 rounded-full bg-primary/50 blur-2xl animate-pulse" />
             <div 
-              className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/30 to-primary/30 blur-lg animate-pulse"
+              className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/40 via-cyan-500/50 to-primary/40 blur-xl animate-pulse"
+              style={{ animationDelay: '0.3s' }}
             />
+            <div 
+              className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/30 via-primary/30 to-cyan-500/30 blur-lg animate-pulse"
+              style={{ animationDelay: '0.6s' }}
+            />
+            {/* Logo with bounce animation */}
             <img 
               src={proxinexLogo} 
               alt="Proxinex" 
-              className={`w-12 h-12 object-contain relative z-10 ${isComplete ? '' : 'animate-spin'}`}
+              className="w-12 h-12 object-contain relative z-10 drop-shadow-[0_0_20px_hsl(var(--primary)/0.7)]"
               style={{ 
-                animationDuration: '2s',
+                animation: isComplete ? 'none' : 'bounce-scale 1.5s ease-in-out infinite',
               }}
             />
           </div>
           {/* Status indicator */}
-          <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center ${isComplete ? 'bg-emerald-500' : 'bg-primary'}`}>
+          <div className={`absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full flex items-center justify-center ${isComplete ? 'bg-emerald-500' : 'bg-primary'} shadow-lg`}>
             {isComplete ? (
               <CheckCircle2 className="h-2.5 w-2.5 text-white" />
             ) : (
