@@ -6,28 +6,23 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import {
   Image as ImageIcon,
   Upload,
-  FileImage,
   Sparkles,
-  Type,
-  Box,
   Trash2,
-  ArrowLeft,
   Loader2,
   Download,
-  Share2,
   ZoomIn,
   Copy,
-  Eye,
   X,
   Wand2,
-  Check,
   Crown,
   Zap,
 } from "lucide-react";
-import { Link } from "react-router-dom";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +34,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Helmet } from "react-helmet-async";
 
 interface ImageModel {
   id: string;
@@ -86,6 +82,7 @@ interface UploadedImage {
 }
 
 export default function ImagesPage() {
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [activeMode, setActiveMode] = useState<"generate" | "analyze">("generate");
   const [prompt, setPrompt] = useState("");
   const [selectedModel, setSelectedModel] = useState<string>("flux-schnell");
@@ -99,6 +96,13 @@ export default function ImagesPage() {
   const [lightboxImage, setLightboxImage] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
@@ -256,232 +260,197 @@ export default function ImagesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card/50">
-        <div className="max-w-7xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
-            <Link to="/app" className="p-2 hover:bg-secondary rounded-lg transition-colors">
-              <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-            </Link>
-            <div className="flex-1">
-              <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                <ImageIcon className="h-5 w-5 text-primary" />
-                Images
-              </h1>
-              <p className="text-sm text-muted-foreground">Generate AI images or analyze uploaded images</p>
+    <>
+      <Helmet>
+        <title>Images - Proxinex</title>
+        <meta name="description" content="Generate and analyze images with AI" />
+      </Helmet>
+
+      <div className="h-screen bg-background flex overflow-hidden">
+        {/* Sidebar */}
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          user={user}
+          onSignOut={handleSignOut}
+        />
+
+        {/* Main Content */}
+        <main className="flex-1 flex flex-col overflow-hidden">
+          {/* Header */}
+          <header className="h-14 border-b border-border flex items-center px-6 flex-shrink-0 bg-background">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <ImageIcon className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-foreground text-sm">Images</h1>
+                <span className="text-xs text-muted-foreground">Generate or analyze images with AI</span>
+              </div>
             </div>
-          </div>
-        </div>
-      </div>
+          </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Mode Tabs */}
-        <Tabs value={activeMode} onValueChange={(v) => setActiveMode(v as "generate" | "analyze")} className="mb-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="generate" className="gap-2">
-              <Wand2 className="h-4 w-4" />
-              Generate
-            </TabsTrigger>
-            <TabsTrigger value="analyze" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              Analyze
-            </TabsTrigger>
-          </TabsList>
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* Mode Tabs */}
+            <Tabs value={activeMode} onValueChange={(v) => setActiveMode(v as "generate" | "analyze")} className="mb-6">
+              <TabsList className="grid w-full max-w-md grid-cols-2">
+                <TabsTrigger value="generate" className="gap-2">
+                  <Wand2 className="h-4 w-4" />
+                  Generate
+                </TabsTrigger>
+                <TabsTrigger value="analyze" className="gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Analyze
+                </TabsTrigger>
+              </TabsList>
 
-          {/* Generate Tab */}
-          <TabsContent value="generate" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Generation Controls */}
-              <div className="lg:col-span-1 space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Generate Image</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <label className="text-sm font-medium mb-2 block">Prompt</label>
-                      <textarea
-                        value={prompt}
-                        onChange={(e) => setPrompt(e.target.value)}
-                        placeholder="Describe the image you want to create..."
-                        rows={4}
-                        className="w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
-                      />
-                    </div>
-
-                    {/* Model Selection */}
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <label className="text-sm font-medium">Auto-select model</label>
-                        <Switch checked={autoSelectModel} onCheckedChange={setAutoSelectModel} />
-                      </div>
-                      {autoSelectModel ? (
-                        <p className="text-xs text-muted-foreground">
-                          Proxinex will choose the best model based on your prompt
-                        </p>
-                      ) : (
-                        <Select value={selectedModel} onValueChange={setSelectedModel}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a model" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {imageModels.map((model) => (
-                              <SelectItem key={model.id} value={model.id}>
-                                <div className="flex items-center gap-2">
-                                  <span>{model.name}</span>
-                                  {model.type === "closed" && <Crown className="h-3 w-3 text-yellow-500" />}
-                                  {model.quality === "premium" && <Zap className="h-3 w-3 text-primary" />}
-                                </div>
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-
-                    <Button
-                      onClick={handleGenerate}
-                      disabled={!prompt.trim() || isGenerating}
-                      className="w-full gap-2"
-                    >
-                      {isGenerating ? (
-                        <>
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                          Generating...
-                        </>
-                      ) : (
-                        <>
-                          <Wand2 className="h-4 w-4" />
-                          Generate Image
-                        </>
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
-
-                {/* Models Info */}
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Available Models</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {imageModels.slice(0, 4).map((model) => (
-                      <div
-                        key={model.id}
-                        className="flex items-center justify-between p-2 rounded-lg bg-secondary/50"
-                      >
+              {/* Generate Tab */}
+              <TabsContent value="generate" className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Generation Controls */}
+                  <div className="lg:col-span-1 space-y-6">
+                    <Card>
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Generate Image</CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
                         <div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">{model.name}</span>
-                            {model.type === "closed" ? (
-                              <Badge variant="outline" className="text-xs">Pro</Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">Open</Badge>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground">{model.provider}</p>
+                          <label className="text-xs font-medium mb-2 block">Prompt</label>
+                          <textarea
+                            value={prompt}
+                            onChange={(e) => setPrompt(e.target.value)}
+                            placeholder="Describe the image you want to create..."
+                            rows={3}
+                            className="w-full px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary resize-none"
+                          />
                         </div>
-                        <span className="text-xs text-muted-foreground">
-                          {model.freeGenerations} free
-                        </span>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-              </div>
 
-              {/* Generated Images Grid */}
-              <div className="lg:col-span-2">
-                <Card className="h-full">
-                  <CardHeader>
-                    <CardTitle className="text-base">Generated Images</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {generatedImages.length === 0 ? (
-                      <div className="py-16 text-center">
-                        <Wand2 className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                        <h3 className="font-medium mb-2">No images yet</h3>
-                        <p className="text-sm text-muted-foreground">
-                          Enter a prompt and generate your first image
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        {generatedImages.map((image) => (
-                          <div
-                            key={image.id}
-                            className="relative aspect-square rounded-lg overflow-hidden bg-secondary group"
-                          >
-                            {image.status === "generating" ? (
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                              </div>
-                            ) : (
-                              <>
-                                <img
-                                  src={image.url}
-                                  alt={image.prompt}
-                                  className="w-full h-full object-cover"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                                    <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
-                                    <div className="flex items-center gap-1">
-                                      <button
-                                        onClick={() => { setLightboxImage(image.url); setLightboxOpen(true); }}
-                                        className="p-1.5 bg-white/20 rounded hover:bg-white/40"
-                                      >
-                                        <ZoomIn className="h-3 w-3 text-white" />
-                                      </button>
-                                      <button className="p-1.5 bg-white/20 rounded hover:bg-white/40">
-                                        <Download className="h-3 w-3 text-white" />
-                                      </button>
-                                      <button
-                                        onClick={() => deleteGeneratedImage(image.id)}
-                                        className="p-1.5 bg-white/20 rounded hover:bg-white/40"
-                                      >
-                                        <Trash2 className="h-3 w-3 text-white" />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                                <Badge className="absolute top-2 right-2 text-[10px]" variant="secondary">
-                                  {image.model}
-                                </Badge>
-                              </>
-                            )}
+                        {/* Model Selection */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-medium">Auto-select model</label>
+                            <Switch checked={autoSelectModel} onCheckedChange={setAutoSelectModel} />
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
+                          {!autoSelectModel && (
+                            <Select value={selectedModel} onValueChange={setSelectedModel}>
+                              <SelectTrigger className="h-9">
+                                <SelectValue placeholder="Select a model" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {imageModels.map((model) => (
+                                  <SelectItem key={model.id} value={model.id}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-sm">{model.name}</span>
+                                      {model.type === "closed" && <Crown className="h-3 w-3 text-yellow-500" />}
+                                    </div>
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
 
-          {/* Analyze Tab */}
-          <TabsContent value="analyze" className="mt-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Upload & Image Grid */}
-              <div className="lg:col-span-1 space-y-6">
-                <Card
-                  className={`transition-colors ${isDragging ? "border-primary bg-primary/5" : ""}`}
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                >
-                  <CardContent className="p-6">
-                    <div className="border-2 border-dashed border-border rounded-xl p-8 text-center">
-                      <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-medium mb-2">Upload Images</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        Drag & drop or click to browse
-                      </p>
-                      <Button onClick={() => fileInputRef.current?.click()}>
-                        Select Images
-                      </Button>
+                        <Button
+                          onClick={handleGenerate}
+                          disabled={!prompt.trim() || isGenerating}
+                          className="w-full gap-2"
+                        >
+                          {isGenerating ? (
+                            <>
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              Generating...
+                            </>
+                          ) : (
+                            <>
+                              <Wand2 className="h-4 w-4" />
+                              Generate
+                            </>
+                          )}
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Generated Images Grid */}
+                  <div className="lg:col-span-2">
+                    <Card className="h-full">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Generated Images</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {generatedImages.length === 0 ? (
+                          <div className="py-12 text-center">
+                            <Wand2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                            <p className="text-sm text-muted-foreground">No images yet</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {generatedImages.map((image) => (
+                              <div
+                                key={image.id}
+                                className="relative aspect-square rounded-lg overflow-hidden bg-secondary group"
+                              >
+                                {image.status === "generating" ? (
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                  </div>
+                                ) : (
+                                  <>
+                                    <img
+                                      src={image.url}
+                                      alt={image.prompt}
+                                      className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <div className="absolute bottom-0 left-0 right-0 p-2">
+                                        <p className="text-[10px] text-white line-clamp-2 mb-1">{image.prompt}</p>
+                                        <div className="flex items-center gap-1">
+                                          <button
+                                            onClick={() => { setLightboxImage(image.url); setLightboxOpen(true); }}
+                                            className="p-1 bg-white/20 rounded hover:bg-white/40"
+                                          >
+                                            <ZoomIn className="h-3 w-3 text-white" />
+                                          </button>
+                                          <button className="p-1 bg-white/20 rounded hover:bg-white/40">
+                                            <Download className="h-3 w-3 text-white" />
+                                          </button>
+                                          <button
+                                            onClick={() => deleteGeneratedImage(image.id)}
+                                            className="p-1 bg-white/20 rounded hover:bg-white/40"
+                                          >
+                                            <Trash2 className="h-3 w-3 text-white" />
+                                          </button>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Analyze Tab */}
+              <TabsContent value="analyze" className="mt-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* Upload Area */}
+                  <div className="lg:col-span-2">
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={handleDrop}
+                      className={`border-2 border-dashed rounded-xl p-8 text-center transition-all mb-6 ${
+                        isDragging ? "border-primary bg-primary/10" : "border-border"
+                      }`}
+                    >
+                      <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+                      <p className="text-sm font-medium mb-1">Drop images here</p>
+                      <p className="text-xs text-muted-foreground mb-3">or click to upload</p>
                       <input
                         ref={fileInputRef}
                         type="file"
@@ -490,154 +459,111 @@ export default function ImagesPage() {
                         className="hidden"
                         onChange={handleFileSelect}
                       />
+                      <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
+                        Select Files
+                      </Button>
                     </div>
-                  </CardContent>
-                </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-base">Your Images</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {uploadedImages.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-4">
-                        No images uploaded yet
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-3">
-                        {uploadedImages.map((image) => (
-                          <div
-                            key={image.id}
-                            onClick={() => image.status === "ready" && setSelectedImage(image)}
-                            className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer group border-2 transition-colors ${
-                              selectedImage?.id === image.id
-                                ? "border-primary"
-                                : "border-transparent hover:border-primary/50"
-                            }`}
+                    {/* Uploaded Images Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                      {uploadedImages.map((img) => (
+                        <div
+                          key={img.id}
+                          onClick={() => img.status === "ready" && setSelectedImage(img)}
+                          className={`relative aspect-square rounded-lg overflow-hidden cursor-pointer group ${
+                            selectedImage?.id === img.id ? "ring-2 ring-primary" : ""
+                          }`}
+                        >
+                          <img src={img.url} alt={img.name} className="w-full h-full object-cover" />
+                          {img.status === "uploading" && (
+                            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                              <Progress value={img.progress} className="w-3/4 h-1" />
+                            </div>
+                          )}
+                          {img.status === "processing" && (
+                            <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                              <Sparkles className="h-5 w-5 text-primary animate-pulse" />
+                            </div>
+                          )}
+                          <button
+                            onClick={(e) => { e.stopPropagation(); deleteUploadedImage(img.id); }}
+                            className="absolute top-2 right-2 p-1 bg-background/80 rounded opacity-0 group-hover:opacity-100 transition-opacity"
                           >
-                            <img src={image.url} alt={image.name} className="w-full h-full object-cover" />
-                            {image.status !== "ready" && (
-                              <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Analysis Panel */}
+                  <div className="lg:col-span-1">
+                    <Card className="h-full">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm">Analysis</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        {selectedImage?.analysis ? (
+                          <div className="space-y-4">
+                            <div>
+                              <h4 className="text-xs font-medium text-muted-foreground mb-1">Description</h4>
+                              <p className="text-sm">{selectedImage.analysis.description}</p>
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-medium text-muted-foreground mb-2">Objects</h4>
+                              <div className="space-y-1">
+                                {selectedImage.analysis.objects.map((obj, i) => (
+                                  <div key={i} className="flex justify-between text-xs">
+                                    <span>{obj.name}</span>
+                                    <span className="text-muted-foreground">{obj.confidence}%</span>
+                                  </div>
+                                ))}
                               </div>
-                            )}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                              <button
-                                onClick={(e) => { e.stopPropagation(); deleteUploadedImage(image.id); }}
-                                className="p-1 bg-white/20 rounded hover:bg-white/40"
-                              >
-                                <Trash2 className="h-4 w-4 text-white" />
-                              </button>
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-medium text-muted-foreground mb-2">Colors</h4>
+                              <div className="flex gap-1">
+                                {selectedImage.analysis.colors.map((c, i) => (
+                                  <div
+                                    key={i}
+                                    className="w-6 h-6 rounded cursor-pointer"
+                                    style={{ backgroundColor: c.hex }}
+                                    title={`${c.name} (${c.percentage}%)`}
+                                    onClick={() => copyText(c.hex)}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                            <div>
+                              <h4 className="text-xs font-medium text-muted-foreground mb-2">Tags</h4>
+                              <div className="flex flex-wrap gap-1">
+                                {selectedImage.analysis.tags.map((tag, i) => (
+                                  <Badge key={i} variant="secondary" className="text-[10px]">{tag}</Badge>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Analysis Panel */}
-              <div className="lg:col-span-2">
-                {selectedImage?.analysis ? (
-                  <Card>
-                    <CardHeader>
-                      <div className="flex items-center gap-4">
-                        <img
-                          src={selectedImage.url}
-                          alt={selectedImage.name}
-                          className="w-20 h-20 rounded-lg object-cover"
-                        />
-                        <div>
-                          <CardTitle className="text-base">{selectedImage.name}</CardTitle>
-                          <p className="text-sm text-muted-foreground">{formatSize(selectedImage.size)}</p>
-                        </div>
-                      </div>
-                    </CardHeader>
-                    <CardContent className="space-y-6">
-                      {/* Description */}
-                      <div>
-                        <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <Sparkles className="h-4 w-4 text-primary" />
-                          AI Description
-                        </h4>
-                        <p className="text-sm text-muted-foreground">{selectedImage.analysis.description}</p>
-                        <div className="flex flex-wrap gap-2 mt-3">
-                          {selectedImage.analysis.tags.map((tag, i) => (
-                            <Badge key={i} variant="secondary">{tag}</Badge>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Objects */}
-                      <div>
-                        <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-                          <Box className="h-4 w-4 text-primary" />
-                          Detected Objects
-                        </h4>
-                        <div className="space-y-2">
-                          {selectedImage.analysis.objects.map((obj, i) => (
-                            <div key={i} className="flex items-center justify-between">
-                              <span className="text-sm">{obj.name}</span>
-                              <div className="flex items-center gap-2">
-                                <Progress value={obj.confidence} className="w-20 h-2" />
-                                <span className="text-xs text-muted-foreground w-8">{obj.confidence}%</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Colors */}
-                      <div>
-                        <h4 className="text-sm font-medium mb-2">Color Palette</h4>
-                        <div className="flex gap-2">
-                          {selectedImage.analysis.colors.map((color, i) => (
-                            <button
-                              key={i}
-                              onClick={() => copyText(color.hex)}
-                              className="flex flex-col items-center gap-1 group"
-                            >
-                              <div
-                                className="w-12 h-12 rounded-lg border border-border group-hover:scale-110 transition-transform"
-                                style={{ backgroundColor: color.hex }}
-                              />
-                              <span className="text-[10px] text-muted-foreground">{color.hex}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <Card className="h-96 flex items-center justify-center">
-                    <div className="text-center">
-                      <ImageIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="font-medium mb-2">No image selected</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Upload and select an image to see analysis
-                      </p>
-                    </div>
-                  </Card>
-                )}
-              </div>
-            </div>
-          </TabsContent>
-        </Tabs>
+                        ) : (
+                          <p className="text-sm text-muted-foreground text-center py-8">
+                            Select an image to see analysis
+                          </p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </main>
       </div>
 
       {/* Lightbox */}
       <Dialog open={lightboxOpen} onOpenChange={setLightboxOpen}>
-        <DialogContent className="max-w-4xl p-0 bg-transparent border-0">
-          <button
-            onClick={() => setLightboxOpen(false)}
-            className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-white hover:bg-black/70 z-10"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <DialogContent className="max-w-4xl p-0 bg-transparent border-none">
           <img src={lightboxImage} alt="Preview" className="w-full h-auto rounded-lg" />
         </DialogContent>
       </Dialog>
-    </div>
+    </>
   );
 }

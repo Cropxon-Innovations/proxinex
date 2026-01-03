@@ -1,25 +1,13 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Logo } from "@/components/Logo";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { 
   Plus, 
-  MessageSquare, 
-  Search, 
-  Layers, 
   BookOpen, 
-  FileText, 
-  Image, 
-  Video, 
-  Code,
-  BarChart3,
-  Key,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
   Star,
   Trash2,
   Edit2,
@@ -33,28 +21,10 @@ import {
   MessageCircle,
   History,
   Share2,
-  Brain
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-
-const sidebarItems = [
-  { icon: Plus, label: "New Session", path: "/app", isNew: true },
-  { icon: MessageSquare, label: "Chat", path: "/app/chat" },
-  { icon: Search, label: "Research", path: "/app/research" },
-  { icon: Brain, label: "Memory", path: "/app/memory" },
-  { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
-  { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
-  { icon: FileText, label: "Documents", path: "/app/documents" },
-  { icon: Image, label: "Images", path: "/app/images" },
-  { icon: Video, label: "Video", path: "/app/video" },
-  { icon: Code, label: "API Playground", path: "/app/api" },
-  { divider: true },
-  { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-  { icon: Key, label: "API Keys", path: "/app/api-keys" },
-  { icon: Settings, label: "Settings", path: "/app/settings" },
-];
 
 interface Notebook {
   id: string;
@@ -109,8 +79,9 @@ const NotebooksPage = () => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [rightPanelTab, setRightPanelTab] = useState<"collaborators" | "comments" | "history">("collaborators");
-  const { user } = useAuth();
+  const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   // Collaboration state (mock data for demo)
   const [collaborators] = useState<Collaborator[]>([
@@ -136,6 +107,11 @@ const NotebooksPage = () => {
   useEffect(() => {
     if (user) fetchNotebooks();
   }, [user]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const fetchNotebooks = async () => {
     setIsLoading(true);
@@ -270,37 +246,25 @@ const NotebooksPage = () => {
         <meta name="description" content="Save, annotate, and organize your research with notebooks." />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex">
+      <div className="h-screen bg-background flex overflow-hidden">
         {/* Sidebar */}
-        <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col transition-all duration-300 flex-shrink-0`}>
-          <div className="h-16 border-b border-sidebar-border flex items-center px-4">
-            <Link to="/"><Logo size="sm" showText={!sidebarCollapsed} /></Link>
-          </div>
-          <nav className="flex-1 py-4 overflow-y-auto">
-            {sidebarItems.map((item, index) => {
-              if ('divider' in item && item.divider) return <div key={index} className="my-4 border-t border-sidebar-border" />;
-              const Icon = item.icon!;
-              const isActive = item.path === "/app/notebooks";
-              return (
-                <Link key={item.path} to={item.path!} className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/50'}`}>
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  {!sidebarCollapsed && <span className="text-sm">{item.label}</span>}
-                </Link>
-              );
-            })}
-          </nav>
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="h-12 border-t border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent/50">
-            {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
-        </aside>
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          user={user}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main */}
         <main className="flex-1 flex overflow-hidden">
           {/* Notebooks List */}
           <div className="w-72 border-r border-border bg-card/50 flex flex-col flex-shrink-0">
-            <div className="h-16 border-b border-border flex items-center justify-between px-4">
-              <h2 className="font-semibold text-foreground">Notebooks</h2>
-              <Button size="sm" onClick={createNotebook} className="bg-primary text-primary-foreground">
+            <div className="h-14 border-b border-border flex items-center justify-between px-4 flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <BookOpen className="h-4 w-4 text-primary" />
+                <h2 className="font-semibold text-foreground text-sm">Notebooks</h2>
+              </div>
+              <Button size="sm" onClick={createNotebook} className="h-8 w-8 p-0">
                 <Plus className="h-4 w-4" />
               </Button>
             </div>
@@ -326,7 +290,7 @@ const NotebooksPage = () => {
                     >
                       <div className="flex items-center justify-between">
                         <span className="font-medium text-foreground text-sm truncate">{nb.title}</span>
-                        {nb.is_favorite && <Star className="h-3 w-3 text-primary fill-primary" />}
+                        {nb.is_favorite && <Star className="h-3 w-3 text-primary fill-primary flex-shrink-0" />}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         {new Date(nb.updated_at).toLocaleDateString()}
@@ -342,7 +306,7 @@ const NotebooksPage = () => {
           <div className="flex-1 flex flex-col overflow-hidden">
             {selectedNotebook ? (
               <>
-                <div className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0">
+                <div className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
                   <div className="flex items-center gap-3">
                     {editingTitle ? (
                       <div className="flex items-center gap-2">
@@ -350,26 +314,26 @@ const NotebooksPage = () => {
                           type="text"
                           value={newTitle}
                           onChange={(e) => setNewTitle(e.target.value)}
-                          className="px-2 py-1 bg-input border border-border rounded text-foreground"
+                          className="px-2 py-1 bg-input border border-border rounded text-foreground text-sm"
                           autoFocus
                         />
-                        <Button size="sm" variant="ghost" onClick={() => {
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => {
                           const updated = { ...selectedNotebook, title: newTitle };
                           setSelectedNotebook(updated);
                           updateNotebook(updated);
                           setEditingTitle(false);
                         }}>
-                          <Save className="h-4 w-4" />
+                          <Save className="h-3.5 w-3.5" />
                         </Button>
-                        <Button size="sm" variant="ghost" onClick={() => setEditingTitle(false)}>
-                          <X className="h-4 w-4" />
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => setEditingTitle(false)}>
+                          <X className="h-3.5 w-3.5" />
                         </Button>
                       </div>
                     ) : (
                       <>
-                        <h1 className="font-semibold text-foreground">{selectedNotebook.title}</h1>
-                        <Button size="sm" variant="ghost" onClick={() => { setNewTitle(selectedNotebook.title); setEditingTitle(true); }}>
-                          <Edit2 className="h-4 w-4" />
+                        <h1 className="font-semibold text-foreground text-sm">{selectedNotebook.title}</h1>
+                        <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={() => { setNewTitle(selectedNotebook.title); setEditingTitle(true); }}>
+                          <Edit2 className="h-3.5 w-3.5" />
                         </Button>
                       </>
                     )}
@@ -388,21 +352,21 @@ const NotebooksPage = () => {
                         </div>
                       ))}
                     </div>
-                    <Button size="sm" variant="ghost">
-                      <Share2 className="h-4 w-4 mr-1" /> Share
+                    <Button size="sm" variant="ghost" className="h-8 gap-1.5">
+                      <Share2 className="h-3.5 w-3.5" /> Share
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => {
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => {
                       const updated = { ...selectedNotebook, is_favorite: !selectedNotebook.is_favorite };
                       setSelectedNotebook(updated);
                       updateNotebook(updated);
                     }}>
-                      <Star className={`h-4 w-4 ${selectedNotebook.is_favorite ? 'fill-primary text-primary' : ''}`} />
+                      <Star className={`h-3.5 w-3.5 ${selectedNotebook.is_favorite ? 'fill-primary text-primary' : ''}`} />
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => updateNotebook(selectedNotebook)} disabled={isSaving}>
-                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={() => updateNotebook(selectedNotebook)} disabled={isSaving}>
+                      {isSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                     </Button>
-                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteNotebook(selectedNotebook.id)}>
-                      <Trash2 className="h-4 w-4" />
+                    <Button size="sm" variant="ghost" className="h-8 w-8 p-0 text-destructive" onClick={() => deleteNotebook(selectedNotebook.id)}>
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 </div>
@@ -430,40 +394,40 @@ const NotebooksPage = () => {
                             value={block.content}
                             onChange={(e) => updateBlock(block.id, e.target.value)}
                             placeholder="Write something..."
-                            className="w-full min-h-[100px] p-4 bg-card border border-border rounded-lg text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                            className="w-full bg-transparent text-foreground resize-none focus:outline-none min-h-[80px] p-3 rounded-lg border border-transparent hover:border-border focus:border-primary transition-colors"
                           />
                         )}
                         {block.type === "code" && (
                           <div className="relative">
-                            <div className="absolute top-2 right-2 text-xs text-muted-foreground">Code</div>
+                            <Badge className="absolute top-2 right-2 bg-secondary text-xs">Code</Badge>
                             <textarea
                               value={block.content}
                               onChange={(e) => updateBlock(block.id, e.target.value)}
-                              placeholder="// Write code here..."
-                              className="w-full min-h-[150px] p-4 bg-card border border-border rounded-lg font-mono text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                              placeholder="// Code block"
+                              className="w-full bg-secondary text-foreground font-mono text-sm resize-none focus:outline-none min-h-[120px] p-4 rounded-lg border border-border focus:border-primary"
                             />
                           </div>
                         )}
                         {block.type === "table" && (
-                          <div className="p-4 bg-card border border-border rounded-lg">
-                            <div className="text-xs text-muted-foreground mb-2">Table (Markdown)</div>
+                          <div className="border border-border rounded-lg p-4">
+                            <Badge className="mb-2 bg-secondary text-xs">Table</Badge>
                             <textarea
                               value={block.content}
                               onChange={(e) => updateBlock(block.id, e.target.value)}
-                              placeholder="| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |"
-                              className="w-full min-h-[100px] p-2 bg-muted/30 rounded font-mono text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none"
+                              placeholder="| Col 1 | Col 2 |"
+                              className="w-full bg-transparent text-foreground font-mono text-sm resize-none focus:outline-none min-h-[80px]"
                             />
                           </div>
                         )}
-                        
+
                         {/* Add comment button */}
                         <button
                           onClick={() => setCommentingOnBlock(commentingOnBlock === block.id ? null : block.id)}
-                          className="absolute -right-6 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                          className="absolute -right-6 top-8 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
                         >
                           <MessageCircle className="h-4 w-4" />
                         </button>
-                        
+
                         {/* Comment input */}
                         {commentingOnBlock === block.id && (
                           <div className="mt-2 flex gap-2">
@@ -472,28 +436,25 @@ const NotebooksPage = () => {
                               value={newComment}
                               onChange={(e) => setNewComment(e.target.value)}
                               placeholder="Add a comment..."
-                              className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground"
+                              className="flex-1 px-3 py-1.5 bg-input border border-border rounded text-sm"
                               autoFocus
-                              onKeyDown={(e) => e.key === 'Enter' && addComment(block.id)}
                             />
-                            <Button size="sm" onClick={() => addComment(block.id)} className="bg-primary text-primary-foreground">
-                              Add
-                            </Button>
+                            <Button size="sm" onClick={() => addComment(block.id)}>Add</Button>
                           </div>
                         )}
                       </div>
                     ))}
 
-                    {/* Add Block Buttons */}
-                    <div className="flex items-center gap-2 pt-4">
-                      <Button size="sm" variant="outline" onClick={() => addBlock("text")} className="border-border">
-                        <Type className="h-4 w-4 mr-1" /> Text
+                    {/* Add block buttons */}
+                    <div className="flex gap-2 justify-center pt-4 opacity-50 hover:opacity-100 transition-opacity">
+                      <Button variant="outline" size="sm" onClick={() => addBlock("text")} className="gap-1.5">
+                        <Type className="h-3.5 w-3.5" /> Text
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => addBlock("code")} className="border-border">
-                        <FileCode className="h-4 w-4 mr-1" /> Code
+                      <Button variant="outline" size="sm" onClick={() => addBlock("code")} className="gap-1.5">
+                        <FileCode className="h-3.5 w-3.5" /> Code
                       </Button>
-                      <Button size="sm" variant="outline" onClick={() => addBlock("table")} className="border-border">
-                        <Table className="h-4 w-4 mr-1" /> Table
+                      <Button variant="outline" size="sm" onClick={() => addBlock("table")} className="gap-1.5">
+                        <Table className="h-3.5 w-3.5" /> Table
                       </Button>
                     </div>
                   </div>
@@ -503,132 +464,97 @@ const NotebooksPage = () => {
               <div className="flex-1 flex items-center justify-center">
                 <div className="text-center">
                   <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                  <h2 className="text-xl font-semibold text-foreground mb-2">Select a Notebook</h2>
-                  <p className="text-muted-foreground mb-4">Choose a notebook from the list or create a new one</p>
-                  <Button onClick={createNotebook} className="bg-primary text-primary-foreground">
-                    <Plus className="h-4 w-4 mr-2" /> New Notebook
+                  <h2 className="text-lg font-semibold text-foreground mb-2">Select a notebook</h2>
+                  <p className="text-sm text-muted-foreground mb-4">Choose from the left or create a new one</p>
+                  <Button onClick={createNotebook} className="gap-2">
+                    <Plus className="h-4 w-4" /> Create Notebook
                   </Button>
                 </div>
               </div>
             )}
           </div>
 
-          {/* Right Panel - Collaboration */}
+          {/* Right Panel */}
           {selectedNotebook && (
-            <div className="w-80 border-l border-border bg-card/50 flex flex-col flex-shrink-0">
-              {/* Tabs */}
-              <div className="h-12 border-b border-border flex items-center px-2">
+            <div className="w-72 border-l border-border bg-card/50 flex flex-col flex-shrink-0 hidden xl:flex">
+              <div className="flex border-b border-border flex-shrink-0">
                 <button
                   onClick={() => setRightPanelTab("collaborators")}
-                  className={`flex-1 flex items-center justify-center gap-1 h-full text-sm transition-colors ${rightPanelTab === "collaborators" ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                  className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-1.5 ${rightPanelTab === "collaborators" ? "text-primary border-b-2 border-primary" : "text-muted-foreground"}`}
                 >
-                  <Users className="h-4 w-4" />
-                  Team
+                  <Users className="h-3.5 w-3.5" /> Team
                 </button>
                 <button
                   onClick={() => setRightPanelTab("comments")}
-                  className={`flex-1 flex items-center justify-center gap-1 h-full text-sm transition-colors ${rightPanelTab === "comments" ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                  className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-1.5 ${rightPanelTab === "comments" ? "text-primary border-b-2 border-primary" : "text-muted-foreground"}`}
                 >
-                  <MessageCircle className="h-4 w-4" />
-                  Comments
-                  {comments.filter(c => !c.resolved).length > 0 && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1">
-                      {comments.filter(c => !c.resolved).length}
-                    </Badge>
-                  )}
+                  <MessageCircle className="h-3.5 w-3.5" /> Comments
                 </button>
                 <button
                   onClick={() => setRightPanelTab("history")}
-                  className={`flex-1 flex items-center justify-center gap-1 h-full text-sm transition-colors ${rightPanelTab === "history" ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                  className={`flex-1 py-3 text-xs font-medium flex items-center justify-center gap-1.5 ${rightPanelTab === "history" ? "text-primary border-b-2 border-primary" : "text-muted-foreground"}`}
                 >
-                  <History className="h-4 w-4" />
-                  History
+                  <History className="h-3.5 w-3.5" /> History
                 </button>
               </div>
 
-              {/* Panel Content */}
               <div className="flex-1 overflow-y-auto p-4">
                 {rightPanelTab === "collaborators" && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="font-medium text-foreground text-sm">Collaborators</h3>
-                      <Button size="sm" variant="outline" className="h-7 text-xs border-border">
-                        <Plus className="h-3 w-3 mr-1" /> Invite
-                      </Button>
-                    </div>
-                    <div className="space-y-2">
-                      {collaborators.map((collab) => (
-                        <div key={collab.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50">
-                          <div className="relative">
-                            <Avatar className="h-8 w-8">
-                              <AvatarFallback style={{ backgroundColor: collab.color }} className="text-xs text-white">
-                                {collab.name.split(' ').map(n => n[0]).join('')}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background ${getStatusColor(collab.status)}`} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-foreground truncate">{collab.name}</p>
-                            <p className="text-xs text-muted-foreground capitalize">{collab.status}</p>
-                          </div>
+                  <div className="space-y-3">
+                    {collaborators.map((collab) => (
+                      <div key={collab.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50">
+                        <div className="relative">
+                          <Avatar className="h-8 w-8">
+                            <AvatarFallback style={{ backgroundColor: collab.color }} className="text-xs text-white">
+                              {collab.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background ${getStatusColor(collab.status)}`} />
                         </div>
-                      ))}
-                    </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-foreground truncate">{collab.name}</p>
+                          <p className="text-xs text-muted-foreground capitalize">{collab.status}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
 
                 {rightPanelTab === "comments" && (
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-foreground text-sm">Comments</h3>
-                    {comments.filter(c => !c.resolved).length === 0 ? (
-                      <div className="text-center py-8">
-                        <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
-                        <p className="text-sm text-muted-foreground">No open comments</p>
+                  <div className="space-y-3">
+                    {comments.filter(c => !c.resolved).map((comment) => (
+                      <div key={comment.id} className="p-3 rounded-lg bg-secondary/50">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-foreground">{comment.userName}</span>
+                          <button
+                            onClick={() => resolveComment(comment.id)}
+                            className="text-xs text-muted-foreground hover:text-primary"
+                          >
+                            Resolve
+                          </button>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{comment.text}</p>
                       </div>
-                    ) : (
-                      <div className="space-y-3">
-                        {comments.filter(c => !c.resolved).map((comment) => (
-                          <div key={comment.id} className="p-3 bg-secondary/30 rounded-lg">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="text-sm font-medium text-foreground">{comment.userName}</span>
-                              <span className="text-[10px] text-muted-foreground">
-                                {comment.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </span>
-                            </div>
-                            <p className="text-sm text-foreground/90">{comment.text}</p>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 text-xs mt-2"
-                              onClick={() => resolveComment(comment.id)}
-                            >
-                              Resolve
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
+                    ))}
+                    {comments.filter(c => !c.resolved).length === 0 && (
+                      <p className="text-sm text-muted-foreground text-center py-4">No open comments</p>
                     )}
                   </div>
                 )}
 
                 {rightPanelTab === "history" && (
-                  <div className="space-y-4">
-                    <h3 className="font-medium text-foreground text-sm">Version History</h3>
-                    <div className="space-y-3">
-                      {versionHistory.map((entry) => (
-                        <div key={entry.id} className="flex gap-3">
-                          <div className="flex-shrink-0 mt-1">
-                            <div className="h-2 w-2 rounded-full bg-primary" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-foreground">{entry.action}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {entry.userName} • {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
+                  <div className="space-y-3">
+                    {versionHistory.map((entry) => (
+                      <div key={entry.id} className="flex items-start gap-3 p-2">
+                        <div className="w-2 h-2 rounded-full bg-primary mt-1.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm text-foreground">{entry.action}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {entry.userName} • {entry.timestamp.toLocaleTimeString()}
+                          </p>
                         </div>
-                      ))}
-                    </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

@@ -256,26 +256,33 @@ export const ChatInput = ({
     // Upload each file to Supabase Storage
     for (const uploadedFile of newFiles) {
       try {
-        const fileName = `${Date.now()}-${uploadedFile.file.name}`;
-        const filePath = `uploads/${fileName}`;
+        const timestamp = Date.now();
+        const sanitizedName = uploadedFile.file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
+        const filePath = `uploads/${timestamp}-${sanitizedName}`;
         
-        // Simulate progress updates
+        // Progress updates
         let progress = 0;
         const progressInterval = setInterval(() => {
-          progress = Math.min(progress + 20, 90);
+          progress = Math.min(progress + 15, 85);
           currentFiles = currentFiles.map((f) =>
             f.id === uploadedFile.id ? { ...f, progress } : f
           );
           onFilesChange?.(currentFiles);
-        }, 200);
+        }, 150);
         
         const { data, error } = await supabase.storage
           .from("proxinex")
-          .upload(filePath, uploadedFile.file);
+          .upload(filePath, uploadedFile.file, {
+            cacheControl: '3600',
+            upsert: false
+          });
         
         clearInterval(progressInterval);
         
-        if (error) throw error;
+        if (error) {
+          console.error("Storage upload error:", error);
+          throw error;
+        }
         
         const { data: urlData } = supabase.storage
           .from("proxinex")
@@ -287,6 +294,11 @@ export const ChatInput = ({
             : f
         );
         onFilesChange?.(currentFiles);
+        
+        toast({
+          title: "File uploaded",
+          description: uploadedFile.file.name,
+        });
       } catch (error) {
         console.error("Upload error:", error);
         currentFiles = currentFiles.map((f) =>
@@ -295,14 +307,11 @@ export const ChatInput = ({
         onFilesChange?.(currentFiles);
         toast({
           title: "Upload failed",
-          description: `Failed to upload ${uploadedFile.file.name}`,
+          description: `${uploadedFile.file.name} - Please try again`,
           variant: "destructive",
         });
       }
     }
-    
-    // Call original handler
-    onFileUpload?.(fileList as FileList);
   }, [uploadedFiles, onFilesChange, onFileUpload]);
 
   const handleRemoveFile = useCallback((id: string) => {

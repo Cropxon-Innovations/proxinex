@@ -1,52 +1,22 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { Logo } from "@/components/Logo";
-import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { SelectToAsk, useSelectToAsk } from "@/components/SelectToAsk";
-import { searchWithTavily, Citation, ResearchResponse } from "@/lib/tavily";
+import { searchWithTavily, ResearchResponse } from "@/lib/tavily";
 import { CitationAnswer } from "@/components/CitationAnswer";
 import { SourceVerificationLoader } from "@/components/SourceVerificationLoader";
 import { useToast } from "@/hooks/use-toast";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { Button } from "@/components/ui/button";
 import { 
-  Plus, 
-  MessageSquare, 
-  Search, 
-  Layers, 
-  BookOpen, 
-  FileText, 
-  Image, 
-  Video, 
-  Code,
-  BarChart3,
-  Key,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
   Send,
-  ExternalLink,
-  Loader2,
   Globe,
   BookMarked,
-  RefreshCw
+  RefreshCw,
+  Loader2,
+  Search
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
-
-const sidebarItems = [
-  { icon: Plus, label: "New Session", path: "/app", isNew: true },
-  { icon: MessageSquare, label: "Chat", path: "/app/chat" },
-  { icon: Search, label: "Research", path: "/app/research" },
-  { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
-  { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
-  { icon: FileText, label: "Documents", path: "/app/documents" },
-  { icon: Image, label: "Images", path: "/app/images" },
-  { icon: Video, label: "Video", path: "/app/video" },
-  { icon: Code, label: "API Playground", path: "/app/api" },
-  { divider: true },
-  { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-  { icon: Key, label: "API Keys", path: "/app/api-keys" },
-  { icon: Settings, label: "Settings", path: "/app/settings" },
-];
 
 interface ResearchMessage {
   role: "user" | "assistant";
@@ -64,11 +34,17 @@ const ResearchPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
   const { selection, handleMouseUp, clearSelection } = useSelectToAsk();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -132,49 +108,30 @@ const ResearchPage = () => {
         <meta name="description" content="Deep research with multi-source search, auto-citations, and cross-question memory." />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex">
+      <div className="h-screen bg-background flex overflow-hidden">
         {/* Sidebar */}
-        <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col transition-all duration-300`}>
-          <div className="h-16 border-b border-sidebar-border flex items-center px-4">
-            <Link to="/"><Logo size="sm" showText={!sidebarCollapsed} /></Link>
-          </div>
-          <nav className="flex-1 py-4 overflow-y-auto">
-            {sidebarItems.map((item, index) => {
-              if ('divider' in item && item.divider) {
-                return <div key={index} className="my-4 border-t border-sidebar-border" />;
-              }
-              const Icon = item.icon!;
-              const isActive = item.path === "/app/research";
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path!}
-                  className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${
-                    isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                  }`}
-                >
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  {!sidebarCollapsed && <span className="text-sm">{item.label}</span>}
-                </Link>
-              );
-            })}
-          </nav>
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="h-12 border-t border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent/50">
-            {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
-        </aside>
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          user={user}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main */}
-        <main className="flex-1 flex flex-col">
-          <header className="h-16 border-b border-border flex items-center justify-between px-6">
-            <div className="flex items-center gap-4">
-              <Search className="h-5 w-5 text-primary" />
-              <h1 className="font-semibold text-foreground">Research Mode</h1>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">Tavily + RAG</span>
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <header className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Search className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-foreground text-sm">Research Mode</h1>
+                <span className="text-xs text-muted-foreground">Tavily + RAG</span>
+              </div>
             </div>
           </header>
 
-          <div className="flex-1 flex">
+          <div className="flex-1 flex overflow-hidden">
             <div className="flex-1 overflow-y-auto p-6" onMouseUp={handleMouseUp}>
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center">
@@ -227,8 +184,8 @@ const ResearchPage = () => {
             </div>
 
             {/* Sources Panel */}
-            <aside className="w-72 border-l border-border bg-card/50 p-4 hidden lg:block overflow-y-auto">
-              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+            <aside className="w-72 border-l border-border bg-card/50 p-4 hidden lg:block overflow-y-auto flex-shrink-0">
+              <h3 className="font-semibold text-foreground mb-4 flex items-center gap-2 text-sm">
                 <BookMarked className="h-4 w-4" />
                 Sources
               </h3>
@@ -281,7 +238,7 @@ const ResearchPage = () => {
             </aside>
           </div>
 
-          <div className="border-t border-border p-4">
+          <div className="border-t border-border p-4 flex-shrink-0 bg-background">
             <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex gap-3">
               <input
                 type="text"
@@ -291,7 +248,7 @@ const ResearchPage = () => {
                 disabled={isLoading}
                 className="flex-1 px-4 py-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
               />
-              <Button type="submit" size="lg" disabled={!query.trim() || isLoading} className="bg-primary text-primary-foreground hover:bg-primary/90 glow">
+              <Button type="submit" size="lg" disabled={!query.trim() || isLoading} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
               </Button>
             </form>
