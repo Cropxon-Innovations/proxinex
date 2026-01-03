@@ -68,27 +68,27 @@ export const VideoShowcase = () => {
   };
 
   return (
-    <section className="py-20 bg-gradient-to-b from-background via-card/30 to-background relative overflow-hidden">
+    <section className="py-12 md:py-16 bg-gradient-to-b from-background via-card/30 to-background relative overflow-hidden">
       {/* Background decorations */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-accent/5 rounded-full blur-3xl" />
       </div>
 
       <div className="container mx-auto px-4 relative z-10">
         {/* Section Header */}
-        <div className="text-center mb-12 max-w-3xl mx-auto">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-full mb-6">
-            <Play className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium text-primary">See It In Action</span>
+        <div className="text-center mb-8 max-w-3xl mx-auto">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-primary/10 border border-primary/20 rounded-full mb-4">
+            <Play className="w-3.5 h-3.5 text-primary" />
+            <span className="text-xs font-medium text-primary">See It In Action</span>
           </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-foreground mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
             Watch How Proxinex{" "}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               Controls Intelligence
             </span>
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Experience the seamless flow from query to verified answer — no black boxes, no guesswork.
           </p>
         </div>
@@ -187,7 +187,7 @@ export const VideoShowcase = () => {
         </div>
 
         {/* Caption */}
-        <p className="text-center text-sm text-muted-foreground mt-6 max-w-2xl mx-auto">
+        <p className="text-center text-xs text-muted-foreground mt-4 max-w-2xl mx-auto">
           From intelligent routing to verified results — see why enterprises trust Proxinex for mission-critical AI.
         </p>
       </div>

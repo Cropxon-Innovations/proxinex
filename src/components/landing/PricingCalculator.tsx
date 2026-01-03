@@ -94,18 +94,18 @@ export const PricingCalculator = () => {
   };
 
   return (
-    <section className="py-24 bg-gradient-to-b from-background to-card/30">
+    <section className="py-12 md:py-16 bg-gradient-to-b from-background to-card/30">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-            <Calculator className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">Cost Calculator</span>
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+            <Calculator className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium text-primary">Cost Calculator</span>
           </div>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
             Estimate Your Savings
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             See how Proxinex's intelligent routing saves you money by using open models when possible.
           </p>
         </div>

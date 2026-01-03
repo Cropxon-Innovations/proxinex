@@ -108,19 +108,19 @@ export const IntelligenceFlow = () => {
   };
 
   return (
-    <section className="py-20 md:py-28 bg-gradient-to-b from-background to-card/20 overflow-hidden">
+    <section className="py-12 md:py-16 bg-gradient-to-b from-background to-card/20 overflow-hidden">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="text-center mb-12 md:mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 mb-6">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium text-primary">How It Works</span>
+        <div className="text-center mb-8 md:mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 mb-4">
+            <Sparkles className="h-3.5 w-3.5 text-primary" />
+            <span className="text-xs font-medium text-primary">How It Works</span>
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold mb-3">
             <span className="text-foreground">Intelligent Routing, </span>
             <span className="text-primary">Transparent Results</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             Proxinex is an AI Intelligence Control Plane—not a single model. It automatically selects the best intelligence for each query.
           </p>
         </div>
@@ -258,21 +258,21 @@ export const IntelligenceFlow = () => {
         </div>
 
         {/* Trust Message */}
-        <div className="mt-10 text-center">
+        <div className="mt-6 text-center">
           <p 
             key={messageIndex}
-            className="text-lg md:text-xl text-muted-foreground italic animate-fade-in"
+            className="text-base text-muted-foreground italic animate-fade-in"
           >
             "{trustMessages[messageIndex]}"
           </p>
         </div>
 
         {/* Tagline */}
-        <div className="mt-12 text-center">
-          <p className="text-2xl md:text-3xl font-bold text-foreground">
+        <div className="mt-8 text-center">
+          <p className="text-xl md:text-2xl font-bold text-foreground">
             Proxinex
           </p>
-          <p className="text-lg bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent font-medium">
+          <p className="text-base bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent font-medium">
             Control Intelligence.
           </p>
         </div>

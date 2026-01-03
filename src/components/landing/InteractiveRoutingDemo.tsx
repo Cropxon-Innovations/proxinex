@@ -1,18 +1,13 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { 
-  Send, 
   Brain, 
   Zap, 
   Shield, 
   CheckCircle, 
   Sparkles,
-  ArrowRight,
-  MessageSquare,
   Cpu,
-  Lock
+  Quote
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 
 interface Stage {
   id: string;
@@ -23,306 +18,258 @@ interface Stage {
   isComplete: boolean;
 }
 
-interface ModelOption {
-  name: string;
-  type: "open" | "premium";
-  confidence: number;
-  selected: boolean;
-}
-
 const sampleQueries = [
-  "What is the capital of France?",
-  "Explain quantum computing in simple terms",
-  "What are the latest AI regulations in EU?",
-  "How do I optimize React performance?",
-  "What's the current stock price of Apple?",
+  {
+    query: "What is the capital of France?",
+    intent: "Knowledge Query",
+    model: "Gemini Pro",
+    verified: false,
+    confidence: 92,
+    response: "Paris is the capital and largest city of France, located in the north-central part of the country."
+  },
+  {
+    query: "Explain quantum computing in simple terms",
+    intent: "Educational Query",
+    model: "GPT-4",
+    verified: false,
+    confidence: 89,
+    response: "Quantum computing uses quantum bits (qubits) that can be 0 and 1 simultaneously, enabling parallel processing for complex calculations."
+  },
+  {
+    query: "What are the latest AI regulations in EU?",
+    intent: "Compliance Query",
+    model: "Claude 3",
+    verified: true,
+    confidence: 96,
+    response: "The EU AI Act (2024) classifies AI systems by risk level, with strict requirements for high-risk applications and bans on certain uses."
+  },
+  {
+    query: "How do I optimize React performance?",
+    intent: "Technical Query",
+    model: "GPT-4",
+    verified: false,
+    confidence: 91,
+    response: "Use React.memo, useMemo, useCallback hooks, code splitting with lazy loading, and avoid unnecessary re-renders."
+  },
+  {
+    query: "What's the current stock price of Apple?",
+    intent: "Real-time Data",
+    model: "Gemini Pro",
+    verified: true,
+    confidence: 98,
+    response: "AAPL is currently trading at $198.50 (+1.2%), with market cap of $3.1T. Data verified via live market feeds."
+  },
+  {
+    query: "Summarize the key points of climate change",
+    intent: "Knowledge Query",
+    model: "Claude 3",
+    verified: false,
+    confidence: 88,
+    response: "Climate change involves rising global temperatures, melting ice caps, extreme weather, and ecosystem disruption from greenhouse gases."
+  },
+  {
+    query: "What's the legal drinking age in Japan?",
+    intent: "Factual Query",
+    model: "Gemini Pro",
+    verified: true,
+    confidence: 97,
+    response: "The legal drinking age in Japan is 20 years old, as established by the Minor Drinking Prohibition Act."
+  },
+  {
+    query: "How does blockchain technology work?",
+    intent: "Technical Query",
+    model: "GPT-4",
+    verified: false,
+    confidence: 90,
+    response: "Blockchain is a decentralized ledger where transactions are recorded in blocks, cryptographically linked in an immutable chain."
+  },
 ];
 
-const getIntentType = (query: string): string => {
-  const lowerQuery = query.toLowerCase();
-  if (lowerQuery.includes("stock") || lowerQuery.includes("price") || lowerQuery.includes("latest") || lowerQuery.includes("current")) {
-    return "Real-time Data";
-  }
-  if (lowerQuery.includes("explain") || lowerQuery.includes("how") || lowerQuery.includes("what is")) {
-    return "Knowledge Query";
-  }
-  if (lowerQuery.includes("code") || lowerQuery.includes("programming") || lowerQuery.includes("react") || lowerQuery.includes("optimize")) {
-    return "Technical Query";
-  }
-  if (lowerQuery.includes("regulation") || lowerQuery.includes("law") || lowerQuery.includes("legal")) {
-    return "Compliance Query";
-  }
-  return "General Query";
-};
-
-const needsVerification = (query: string): boolean => {
-  const lowerQuery = query.toLowerCase();
-  return lowerQuery.includes("stock") || 
-         lowerQuery.includes("regulation") || 
-         lowerQuery.includes("legal") || 
-         lowerQuery.includes("latest") ||
-         lowerQuery.includes("current");
-};
-
 export const InteractiveRoutingDemo = () => {
-  const [query, setQuery] = useState("");
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [currentQueryIndex, setCurrentQueryIndex] = useState(0);
   const [currentStageIndex, setCurrentStageIndex] = useState(-1);
-  const [intentType, setIntentType] = useState("");
-  const [showVerification, setShowVerification] = useState(false);
-  const [confidence, setConfidence] = useState(0);
-  const [selectedModel, setSelectedModel] = useState("");
   const [showResult, setShowResult] = useState(false);
-  const [typingPlaceholder, setTypingPlaceholder] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout[]>([]);
 
-  // Animated placeholder
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTypingPlaceholder(prev => (prev + 1) % sampleQueries.length);
-    }, 3000);
-    return () => clearInterval(interval);
+  const currentQuery = sampleQueries[currentQueryIndex];
+
+  const clearTimeouts = useCallback(() => {
+    timeoutRef.current.forEach(t => clearTimeout(t));
+    timeoutRef.current = [];
   }, []);
 
-  const resetDemo = useCallback(() => {
-    setCurrentStageIndex(-1);
-    setIntentType("");
-    setShowVerification(false);
-    setConfidence(0);
-    setSelectedModel("");
+  const runAnimation = useCallback(() => {
+    clearTimeouts();
+    setIsAnimating(true);
     setShowResult(false);
-    setIsProcessing(false);
-  }, []);
+    setCurrentStageIndex(-1);
 
-  const processQuery = useCallback(async () => {
-    if (!query.trim()) return;
+    // Stage 0: Intent Detection
+    timeoutRef.current.push(setTimeout(() => setCurrentStageIndex(0), 300));
     
-    resetDemo();
-    setIsProcessing(true);
+    // Stage 1: Model Routing
+    timeoutRef.current.push(setTimeout(() => setCurrentStageIndex(1), 1200));
     
-    // Stage 1: Intent Detection
-    setCurrentStageIndex(0);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setIntentType(getIntentType(query));
+    // Stage 2: Processing
+    timeoutRef.current.push(setTimeout(() => setCurrentStageIndex(2), 2100));
     
-    // Stage 2: Model Routing
-    setCurrentStageIndex(1);
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const models = ["Gemini Pro", "GPT-4", "Claude 3", "Llama 3"];
-    setSelectedModel(models[Math.floor(Math.random() * models.length)]);
-    
-    // Stage 3: Processing
-    setCurrentStageIndex(2);
-    await new Promise(resolve => setTimeout(resolve, 900));
-    
-    // Stage 4: Verification (conditional)
-    const requiresVerification = needsVerification(query);
-    setShowVerification(requiresVerification);
-    
-    if (requiresVerification) {
-      setCurrentStageIndex(3);
-      await new Promise(resolve => setTimeout(resolve, 800));
+    // Stage 3: Verification (if needed)
+    const needsVerification = currentQuery.verified;
+    if (needsVerification) {
+      timeoutRef.current.push(setTimeout(() => setCurrentStageIndex(3), 3000));
+      timeoutRef.current.push(setTimeout(() => setCurrentStageIndex(4), 3800));
+    } else {
+      timeoutRef.current.push(setTimeout(() => setCurrentStageIndex(4), 3000));
     }
     
-    // Stage 5: Result
-    setCurrentStageIndex(4);
-    setConfidence(requiresVerification ? 94 + Math.floor(Math.random() * 5) : 85 + Math.floor(Math.random() * 10));
-    
-    await new Promise(resolve => setTimeout(resolve, 500));
-    setShowResult(true);
-    setIsProcessing(false);
-  }, [query, resetDemo]);
+    // Show result
+    timeoutRef.current.push(setTimeout(() => {
+      setShowResult(true);
+      setIsAnimating(false);
+    }, needsVerification ? 4200 : 3400));
+
+    // Move to next query
+    timeoutRef.current.push(setTimeout(() => {
+      setCurrentQueryIndex(prev => (prev + 1) % sampleQueries.length);
+    }, needsVerification ? 7500 : 6700));
+  }, [currentQuery.verified, clearTimeouts]);
+
+  useEffect(() => {
+    runAnimation();
+    return () => clearTimeouts();
+  }, [currentQueryIndex, runAnimation, clearTimeouts]);
 
   const stages: Stage[] = [
     {
       id: "intent",
-      label: "Intent Detection",
-      icon: <Brain className="w-5 h-5" />,
-      description: intentType || "Analyzing query...",
+      label: "Intent",
+      icon: <Brain className="w-4 h-4" />,
+      description: currentQuery.intent,
       isActive: currentStageIndex === 0,
       isComplete: currentStageIndex > 0,
     },
     {
       id: "routing",
-      label: "Smart Routing",
-      icon: <Zap className="w-5 h-5" />,
-      description: selectedModel ? `Selected: ${selectedModel}` : "Finding optimal model...",
+      label: "Routing",
+      icon: <Zap className="w-4 h-4" />,
+      description: currentQuery.model,
       isActive: currentStageIndex === 1,
       isComplete: currentStageIndex > 1,
     },
     {
       id: "processing",
-      label: "Processing",
-      icon: <Cpu className="w-5 h-5" />,
-      description: "Generating response...",
+      label: "Process",
+      icon: <Cpu className="w-4 h-4" />,
+      description: "Generating...",
       isActive: currentStageIndex === 2,
       isComplete: currentStageIndex > 2,
     },
     {
       id: "verification",
-      label: "Verification",
-      icon: <Shield className="w-5 h-5" />,
-      description: "Cross-referencing sources...",
+      label: "Verify",
+      icon: <Shield className="w-4 h-4" />,
+      description: "Sources checked",
       isActive: currentStageIndex === 3,
-      isComplete: currentStageIndex > 3 && showVerification,
+      isComplete: currentStageIndex > 3 && currentQuery.verified,
     },
     {
       id: "result",
       label: "Answer",
-      icon: <CheckCircle className="w-5 h-5" />,
-      description: confidence ? `${confidence}% Confidence` : "Delivering result...",
+      icon: <CheckCircle className="w-4 h-4" />,
+      description: `${currentQuery.confidence}%`,
       isActive: currentStageIndex === 4,
       isComplete: showResult,
     },
   ];
 
   return (
-    <div className="w-full max-w-5xl mx-auto">
-      {/* Demo Container */}
-      <div className="relative bg-card/80 backdrop-blur-xl rounded-2xl border border-border/50 shadow-2xl overflow-hidden">
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="relative bg-card/60 backdrop-blur-xl rounded-xl border border-border/50 shadow-xl overflow-hidden">
         {/* Decorative gradient */}
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-accent/5 pointer-events-none" />
         
         {/* Header */}
-        <div className="relative border-b border-border/50 p-4 flex items-center justify-between">
+        <div className="relative border-b border-border/30 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="flex gap-1.5">
-              <div className="w-3 h-3 rounded-full bg-red-500/80" />
-              <div className="w-3 h-3 rounded-full bg-yellow-500/80" />
-              <div className="w-3 h-3 rounded-full bg-green-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+              <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
             </div>
-            <span className="text-sm font-medium text-muted-foreground">Proxinex Intelligence Router</span>
+            <span className="text-xs font-medium text-muted-foreground hidden sm:block">Intelligence Router</span>
           </div>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-xs text-primary font-medium">Live Demo</span>
+            <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+            <span className="text-xs text-primary font-medium">Live</span>
           </div>
         </div>
 
         {/* Content */}
-        <div className="relative p-6 md:p-8">
-          {/* Input Section */}
-          <div className="mb-8">
-            <label className="block text-sm font-medium text-foreground mb-3">
-              Try it yourself — ask any question
-            </label>
-            <div className="flex gap-3">
-              <div className="relative flex-1">
-                <MessageSquare className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                <Input
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && processQuery()}
-                  placeholder={sampleQueries[typingPlaceholder]}
-                  className="pl-12 pr-4 h-14 bg-background/50 border-border/50 focus:border-primary text-foreground placeholder:text-muted-foreground/50"
-                  disabled={isProcessing}
-                />
-              </div>
-              <Button 
-                onClick={processQuery}
-                disabled={isProcessing || !query.trim()}
-                size="lg"
-                className="h-14 px-6 bg-primary hover:bg-primary/90 text-primary-foreground"
-              >
-                {isProcessing ? (
-                  <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-                ) : (
-                  <>
-                    <Send className="w-5 h-5 mr-2" />
-                    Route
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            {/* Sample queries */}
-            <div className="flex flex-wrap gap-2 mt-4">
-              <span className="text-xs text-muted-foreground">Try:</span>
-              {sampleQueries.slice(0, 3).map((sample, i) => (
-                <button
-                  key={i}
-                  onClick={() => setQuery(sample)}
-                  disabled={isProcessing}
-                  className="text-xs px-3 py-1.5 rounded-full bg-secondary/50 text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors disabled:opacity-50"
-                >
-                  {sample.length > 30 ? sample.slice(0, 30) + "..." : sample}
-                </button>
-              ))}
+        <div className="relative p-4 md:p-6">
+          {/* Query Display */}
+          <div className="mb-5">
+            <div className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border/30">
+              <Quote className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+              <p className="text-sm md:text-base text-foreground font-medium leading-relaxed">
+                {currentQuery.query}
+              </p>
             </div>
           </div>
 
-          {/* Routing Visualization */}
-          <div className="relative">
-            {/* Connection Lines */}
-            <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-border/30 -translate-y-1/2 hidden md:block" />
+          {/* Compact Stages Flow */}
+          <div className="relative mb-5">
+            {/* Connection Line */}
+            <div className="absolute top-5 left-0 right-0 h-px bg-border/40 hidden sm:block" />
             
-            {/* Animated flow line */}
-            {isProcessing && (
-              <div 
-                className="absolute top-1/2 left-0 h-0.5 bg-gradient-to-r from-primary to-accent -translate-y-1/2 hidden md:block transition-all duration-500 ease-out"
-                style={{ 
-                  width: `${Math.min(100, (currentStageIndex + 1) * 25)}%`,
-                }}
-              />
-            )}
+            {/* Progress Line */}
+            <div 
+              className="absolute top-5 left-0 h-px bg-gradient-to-r from-primary to-accent hidden sm:block transition-all duration-500 ease-out"
+              style={{ 
+                width: `${Math.max(0, Math.min(100, (currentStageIndex + 1) * 20))}%`,
+              }}
+            />
 
-            {/* Stages */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 md:gap-2">
+            {/* Stages Grid */}
+            <div className="grid grid-cols-5 gap-1 sm:gap-2">
               {stages.map((stage, index) => {
-                // Hide verification if not needed
-                if (stage.id === "verification" && !showVerification && currentStageIndex >= 3) {
-                  return (
-                    <div key={stage.id} className="hidden md:flex items-center justify-center">
-                      <div className="text-xs text-muted-foreground/50 italic">Skipped</div>
-                    </div>
-                  );
-                }
-
+                const isSkipped = stage.id === "verification" && !currentQuery.verified && currentStageIndex >= 3;
+                
                 return (
                   <div
                     key={stage.id}
-                    className={`relative flex flex-col items-center p-4 rounded-xl transition-all duration-500 ${
-                      stage.isActive
-                        ? "bg-primary/10 border-2 border-primary scale-105 shadow-lg shadow-primary/20"
-                        : stage.isComplete
-                        ? "bg-green-500/10 border border-green-500/30"
-                        : "bg-secondary/30 border border-transparent"
+                    className={`relative flex flex-col items-center text-center transition-all duration-300 ${
+                      isSkipped ? "opacity-30" : ""
                     }`}
                   >
-                    {/* Icon */}
+                    {/* Icon Circle */}
                     <div
-                      className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-all duration-300 ${
+                      className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mb-1.5 transition-all duration-300 relative z-10 ${
                         stage.isActive
-                          ? "bg-primary text-primary-foreground animate-pulse"
+                          ? "bg-primary text-primary-foreground ring-2 ring-primary/30 ring-offset-2 ring-offset-card"
                           : stage.isComplete
                           ? "bg-green-500 text-white"
                           : "bg-secondary text-muted-foreground"
                       }`}
                     >
-                      {stage.isComplete ? <CheckCircle className="w-5 h-5" /> : stage.icon}
+                      {stage.isComplete ? <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : stage.icon}
+                      {stage.isActive && (
+                        <div className="absolute inset-0 rounded-full bg-primary/30 animate-ping" />
+                      )}
                     </div>
 
                     {/* Label */}
-                    <span
-                      className={`text-sm font-medium mb-1 transition-colors ${
-                        stage.isActive || stage.isComplete ? "text-foreground" : "text-muted-foreground"
-                      }`}
-                    >
+                    <span className={`text-[10px] sm:text-xs font-medium transition-colors ${
+                      stage.isActive || stage.isComplete ? "text-foreground" : "text-muted-foreground/60"
+                    }`}>
                       {stage.label}
                     </span>
 
-                    {/* Description */}
-                    <span
-                      className={`text-xs text-center transition-colors ${
-                        stage.isActive ? "text-primary" : stage.isComplete ? "text-green-500" : "text-muted-foreground/50"
-                      }`}
-                    >
-                      {(stage.isActive || stage.isComplete) ? stage.description : "Waiting..."}
-                    </span>
-
-                    {/* Active indicator */}
-                    {stage.isActive && (
-                      <div className="absolute -inset-0.5 rounded-xl bg-primary/20 blur-sm -z-10 animate-pulse" />
+                    {/* Description - only on larger screens */}
+                    {(stage.isActive || stage.isComplete) && !isSkipped && (
+                      <span className="hidden sm:block text-[10px] text-primary mt-0.5 animate-fade-in">
+                        {stage.description}
+                      </span>
                     )}
                   </div>
                 );
@@ -331,47 +278,51 @@ export const InteractiveRoutingDemo = () => {
           </div>
 
           {/* Result Display */}
-          {showResult && (
-            <div className="mt-8 p-6 rounded-xl bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/30 animate-fade-in">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                  <CheckCircle className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h4 className="font-semibold text-foreground">Query Routed Successfully</h4>
-                    <span className="px-2 py-0.5 rounded-full bg-green-500/20 text-green-500 text-xs font-medium">
-                      {confidence}% Confidence
-                    </span>
+          <div className={`transition-all duration-500 ${showResult ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2"}`}>
+            {showResult && (
+              <div className="p-4 rounded-lg bg-gradient-to-br from-green-500/10 to-emerald-500/5 border border-green-500/30">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
+                    <Sparkles className="w-4 h-4 text-white" />
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-                    <div>
-                      <span className="text-muted-foreground">Intent:</span>
-                      <span className="ml-2 text-foreground font-medium">{intentType}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2 mb-2">
+                      <span className="text-xs font-medium text-foreground">{currentQuery.model}</span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/20 text-primary">
+                        {currentQuery.intent}
+                      </span>
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-green-500/20 text-green-500">
+                        {currentQuery.confidence}% Confident
+                      </span>
+                      {currentQuery.verified && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-blue-500/20 text-blue-400">
+                          ✓ Verified
+                        </span>
+                      )}
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Model:</span>
-                      <span className="ml-2 text-foreground font-medium">{selectedModel}</span>
-                    </div>
-                    <div>
-                      <span className="text-muted-foreground">Verified:</span>
-                      <span className="ml-2 text-foreground font-medium">{showVerification ? "Yes" : "Not Required"}</span>
-                    </div>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {currentQuery.response}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
 
-          {/* Initial State */}
-          {currentStageIndex === -1 && !isProcessing && (
-            <div className="mt-8 p-6 rounded-xl bg-secondary/30 border border-dashed border-border/50 text-center">
-              <Sparkles className="w-8 h-8 text-primary/50 mx-auto mb-3" />
-              <p className="text-muted-foreground">
-                Enter a query above to see how Proxinex intelligently routes your request
-              </p>
-            </div>
-          )}
+          {/* Query Indicator Dots */}
+          <div className="flex justify-center gap-1.5 mt-4">
+            {sampleQueries.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => !isAnimating && setCurrentQueryIndex(i)}
+                className={`w-1.5 h-1.5 rounded-full transition-all ${
+                  i === currentQueryIndex 
+                    ? "bg-primary w-4" 
+                    : "bg-border hover:bg-muted-foreground/50"
+                }`}
+              />
+            ))}
+          </div>
         </div>
       </div>
     </div>
