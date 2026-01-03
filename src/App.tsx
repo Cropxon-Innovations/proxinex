@@ -21,6 +21,9 @@ import UsagePage from "./pages/Usage";
 import SettingsPage from "./pages/Settings";
 import VideoPage from "./pages/Video";
 import ImagesPage from "./pages/Images";
+import ProjectMemoryPage from "./pages/ProjectMemory";
+import PersonalizationPage from "./pages/Personalization";
+import HelpCenterPage from "./pages/HelpCenter";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,9 +43,11 @@ const App = () => (
               <Route path="/docs" element={<Docs />} />
               <Route path="/pricing" element={<Pricing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/help" element={<HelpCenterPage />} />
               <Route path="/app" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
               <Route path="/app/chat" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
               <Route path="/app/research" element={<ProtectedRoute><ResearchPage /></ProtectedRoute>} />
+              <Route path="/app/memory" element={<ProtectedRoute><ProjectMemoryPage /></ProtectedRoute>} />
               <Route path="/app/notebooks" element={<ProtectedRoute><NotebooksPage /></ProtectedRoute>} />
               <Route path="/app/api-keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
               <Route path="/app/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
@@ -50,6 +55,8 @@ const App = () => (
               <Route path="/app/video" element={<ProtectedRoute><VideoPage /></ProtectedRoute>} />
               <Route path="/app/usage" element={<ProtectedRoute><UsagePage /></ProtectedRoute>} />
               <Route path="/app/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+              <Route path="/app/personalization" element={<ProtectedRoute><PersonalizationPage /></ProtectedRoute>} />
+              <Route path="/app/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
               <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

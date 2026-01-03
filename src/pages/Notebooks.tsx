@@ -28,14 +28,22 @@ import {
   Loader2,
   FileCode,
   Table,
-  Type
+  Type,
+  Users,
+  MessageCircle,
+  History,
+  Share2,
+  Brain
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
 const sidebarItems = [
   { icon: Plus, label: "New Session", path: "/app", isNew: true },
   { icon: MessageSquare, label: "Chat", path: "/app/chat" },
   { icon: Search, label: "Research", path: "/app/research" },
+  { icon: Brain, label: "Memory", path: "/app/memory" },
   { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
   { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
   { icon: FileText, label: "Documents", path: "/app/documents" },
@@ -44,7 +52,7 @@ const sidebarItems = [
   { icon: Code, label: "API Playground", path: "/app/api" },
   { divider: true },
   { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-  { icon: Key, label: "API Keys", path: "/app/keys" },
+  { icon: Key, label: "API Keys", path: "/app/api-keys" },
   { icon: Settings, label: "Settings", path: "/app/settings" },
 ];
 
@@ -64,6 +72,34 @@ interface ContentBlock {
   content: string;
 }
 
+interface Comment {
+  id: string;
+  blockId: string;
+  userId: string;
+  userName: string;
+  text: string;
+  timestamp: Date;
+  resolved: boolean;
+}
+
+interface VersionEntry {
+  id: string;
+  timestamp: Date;
+  userId: string;
+  userName: string;
+  action: string;
+  blockId?: string;
+}
+
+interface Collaborator {
+  id: string;
+  name: string;
+  email: string;
+  avatar?: string;
+  status: "online" | "offline" | "editing";
+  color: string;
+}
+
 const NotebooksPage = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notebooks, setNotebooks] = useState<Notebook[]>([]);
@@ -72,9 +108,30 @@ const NotebooksPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
-  const [newBlockType, setNewBlockType] = useState<"text" | "code" | "table">("text");
+  const [rightPanelTab, setRightPanelTab] = useState<"collaborators" | "comments" | "history">("collaborators");
   const { user } = useAuth();
   const { toast } = useToast();
+
+  // Collaboration state (mock data for demo)
+  const [collaborators] = useState<Collaborator[]>([
+    { id: "1", name: "You", email: "you@example.com", status: "editing", color: "#10b981" },
+    { id: "2", name: "Alex Chen", email: "alex@example.com", status: "online", color: "#6366f1" },
+    { id: "3", name: "Sarah Miller", email: "sarah@example.com", status: "offline", color: "#f59e0b" },
+  ]);
+
+  const [comments, setComments] = useState<Comment[]>([
+    { id: "1", blockId: "block-1", userId: "2", userName: "Alex Chen", text: "Can we add more details here?", timestamp: new Date(), resolved: false },
+    { id: "2", blockId: "block-2", userId: "3", userName: "Sarah Miller", text: "Great analysis!", timestamp: new Date(Date.now() - 3600000), resolved: true },
+  ]);
+
+  const [versionHistory] = useState<VersionEntry[]>([
+    { id: "1", timestamp: new Date(), userId: "1", userName: "You", action: "Edited text block", blockId: "block-1" },
+    { id: "2", timestamp: new Date(Date.now() - 1800000), userId: "2", userName: "Alex Chen", action: "Added code block" },
+    { id: "3", timestamp: new Date(Date.now() - 3600000), userId: "3", userName: "Sarah Miller", action: "Created notebook" },
+  ]);
+
+  const [newComment, setNewComment] = useState("");
+  const [commentingOnBlock, setCommentingOnBlock] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) fetchNotebooks();
@@ -176,6 +233,36 @@ const NotebooksPage = () => {
     setSelectedNotebook(updated);
   };
 
+  const addComment = (blockId: string) => {
+    if (!newComment.trim()) return;
+    const comment: Comment = {
+      id: crypto.randomUUID(),
+      blockId,
+      userId: "1",
+      userName: "You",
+      text: newComment,
+      timestamp: new Date(),
+      resolved: false
+    };
+    setComments(prev => [...prev, comment]);
+    setNewComment("");
+    setCommentingOnBlock(null);
+    toast({ title: "Comment added" });
+  };
+
+  const resolveComment = (commentId: string) => {
+    setComments(prev => prev.map(c => c.id === commentId ? { ...c, resolved: true } : c));
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "online": return "bg-success";
+      case "editing": return "bg-primary animate-pulse";
+      case "offline": return "bg-muted-foreground";
+      default: return "bg-muted-foreground";
+    }
+  };
+
   return (
     <>
       <Helmet>
@@ -185,7 +272,7 @@ const NotebooksPage = () => {
 
       <div className="min-h-screen bg-background flex">
         {/* Sidebar */}
-        <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col transition-all duration-300`}>
+        <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col transition-all duration-300 flex-shrink-0`}>
           <div className="h-16 border-b border-sidebar-border flex items-center px-4">
             <Link to="/"><Logo size="sm" showText={!sidebarCollapsed} /></Link>
           </div>
@@ -208,9 +295,9 @@ const NotebooksPage = () => {
         </aside>
 
         {/* Main */}
-        <main className="flex-1 flex">
+        <main className="flex-1 flex overflow-hidden">
           {/* Notebooks List */}
-          <div className="w-72 border-r border-border bg-card/50 flex flex-col">
+          <div className="w-72 border-r border-border bg-card/50 flex flex-col flex-shrink-0">
             <div className="h-16 border-b border-border flex items-center justify-between px-4">
               <h2 className="font-semibold text-foreground">Notebooks</h2>
               <Button size="sm" onClick={createNotebook} className="bg-primary text-primary-foreground">
@@ -252,10 +339,10 @@ const NotebooksPage = () => {
           </div>
 
           {/* Editor */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col overflow-hidden">
             {selectedNotebook ? (
               <>
-                <div className="h-16 border-b border-border flex items-center justify-between px-6">
+                <div className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0">
                   <div className="flex items-center gap-3">
                     {editingTitle ? (
                       <div className="flex items-center gap-2">
@@ -288,6 +375,22 @@ const NotebooksPage = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Live collaborators avatars */}
+                    <div className="flex -space-x-2 mr-2">
+                      {collaborators.filter(c => c.status !== "offline").map((collab) => (
+                        <div key={collab.id} className="relative">
+                          <Avatar className="h-7 w-7 border-2 border-background">
+                            <AvatarFallback style={{ backgroundColor: collab.color }} className="text-[10px] text-white">
+                              {collab.name.split(' ').map(n => n[0]).join('')}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background ${getStatusColor(collab.status)}`} />
+                        </div>
+                      ))}
+                    </div>
+                    <Button size="sm" variant="ghost">
+                      <Share2 className="h-4 w-4 mr-1" /> Share
+                    </Button>
                     <Button size="sm" variant="ghost" onClick={() => {
                       const updated = { ...selectedNotebook, is_favorite: !selectedNotebook.is_favorite };
                       setSelectedNotebook(updated);
@@ -314,6 +417,14 @@ const NotebooksPage = () => {
                         >
                           <X className="h-4 w-4" />
                         </button>
+                        
+                        {/* Comment indicator */}
+                        {comments.filter(c => c.blockId === block.id && !c.resolved).length > 0 && (
+                          <div className="absolute -right-6 top-2 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                            {comments.filter(c => c.blockId === block.id && !c.resolved).length}
+                          </div>
+                        )}
+                        
                         {block.type === "text" && (
                           <textarea
                             value={block.content}
@@ -342,6 +453,32 @@ const NotebooksPage = () => {
                               placeholder="| Header 1 | Header 2 |\n|----------|----------|\n| Cell 1   | Cell 2   |"
                               className="w-full min-h-[100px] p-2 bg-muted/30 rounded font-mono text-sm text-foreground placeholder:text-muted-foreground resize-none focus:outline-none"
                             />
+                          </div>
+                        )}
+                        
+                        {/* Add comment button */}
+                        <button
+                          onClick={() => setCommentingOnBlock(commentingOnBlock === block.id ? null : block.id)}
+                          className="absolute -right-6 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground hover:text-primary"
+                        >
+                          <MessageCircle className="h-4 w-4" />
+                        </button>
+                        
+                        {/* Comment input */}
+                        {commentingOnBlock === block.id && (
+                          <div className="mt-2 flex gap-2">
+                            <input
+                              type="text"
+                              value={newComment}
+                              onChange={(e) => setNewComment(e.target.value)}
+                              placeholder="Add a comment..."
+                              className="flex-1 px-3 py-2 bg-input border border-border rounded-lg text-sm text-foreground"
+                              autoFocus
+                              onKeyDown={(e) => e.key === 'Enter' && addComment(block.id)}
+                            />
+                            <Button size="sm" onClick={() => addComment(block.id)} className="bg-primary text-primary-foreground">
+                              Add
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -375,6 +512,128 @@ const NotebooksPage = () => {
               </div>
             )}
           </div>
+
+          {/* Right Panel - Collaboration */}
+          {selectedNotebook && (
+            <div className="w-80 border-l border-border bg-card/50 flex flex-col flex-shrink-0">
+              {/* Tabs */}
+              <div className="h-12 border-b border-border flex items-center px-2">
+                <button
+                  onClick={() => setRightPanelTab("collaborators")}
+                  className={`flex-1 flex items-center justify-center gap-1 h-full text-sm transition-colors ${rightPanelTab === "collaborators" ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                >
+                  <Users className="h-4 w-4" />
+                  Team
+                </button>
+                <button
+                  onClick={() => setRightPanelTab("comments")}
+                  className={`flex-1 flex items-center justify-center gap-1 h-full text-sm transition-colors ${rightPanelTab === "comments" ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                  Comments
+                  {comments.filter(c => !c.resolved).length > 0 && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1">
+                      {comments.filter(c => !c.resolved).length}
+                    </Badge>
+                  )}
+                </button>
+                <button
+                  onClick={() => setRightPanelTab("history")}
+                  className={`flex-1 flex items-center justify-center gap-1 h-full text-sm transition-colors ${rightPanelTab === "history" ? 'text-primary border-b-2 border-primary' : 'text-muted-foreground'}`}
+                >
+                  <History className="h-4 w-4" />
+                  History
+                </button>
+              </div>
+
+              {/* Panel Content */}
+              <div className="flex-1 overflow-y-auto p-4">
+                {rightPanelTab === "collaborators" && (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-medium text-foreground text-sm">Collaborators</h3>
+                      <Button size="sm" variant="outline" className="h-7 text-xs border-border">
+                        <Plus className="h-3 w-3 mr-1" /> Invite
+                      </Button>
+                    </div>
+                    <div className="space-y-2">
+                      {collaborators.map((collab) => (
+                        <div key={collab.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary/50">
+                          <div className="relative">
+                            <Avatar className="h-8 w-8">
+                              <AvatarFallback style={{ backgroundColor: collab.color }} className="text-xs text-white">
+                                {collab.name.split(' ').map(n => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <span className={`absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-background ${getStatusColor(collab.status)}`} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-foreground truncate">{collab.name}</p>
+                            <p className="text-xs text-muted-foreground capitalize">{collab.status}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {rightPanelTab === "comments" && (
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-foreground text-sm">Comments</h3>
+                    {comments.filter(c => !c.resolved).length === 0 ? (
+                      <div className="text-center py-8">
+                        <MessageCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2 opacity-50" />
+                        <p className="text-sm text-muted-foreground">No open comments</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        {comments.filter(c => !c.resolved).map((comment) => (
+                          <div key={comment.id} className="p-3 bg-secondary/30 rounded-lg">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-sm font-medium text-foreground">{comment.userName}</span>
+                              <span className="text-[10px] text-muted-foreground">
+                                {comment.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="text-sm text-foreground/90">{comment.text}</p>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 text-xs mt-2"
+                              onClick={() => resolveComment(comment.id)}
+                            >
+                              Resolve
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {rightPanelTab === "history" && (
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-foreground text-sm">Version History</h3>
+                    <div className="space-y-3">
+                      {versionHistory.map((entry) => (
+                        <div key={entry.id} className="flex gap-3">
+                          <div className="flex-shrink-0 mt-1">
+                            <div className="h-2 w-2 rounded-full bg-primary" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-foreground">{entry.action}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {entry.userName} • {entry.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </>
