@@ -46,6 +46,7 @@ const sidebarItems = [
   { icon: Video, label: "Video", path: "/app/video" },
   { icon: Code, label: "API Playground", path: "/app/api" },
   { divider: true },
+  { icon: Star, label: "Projects", path: "/app/projects" },
   { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
   { icon: Key, label: "API Keys", path: "/app/api-keys" },
   { icon: Settings, label: "Settings", path: "/app/settings" },

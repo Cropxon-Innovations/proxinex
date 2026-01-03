@@ -14,7 +14,8 @@ interface ThemeOption {
   id: Theme;
   name: string;
   primary: string;
-  variables: Record<string, string>;
+  darkVariables: Record<string, string>;
+  lightVariables: Record<string, string>;
 }
 
 const themes: ThemeOption[] = [
@@ -22,78 +23,246 @@ const themes: ThemeOption[] = [
     id: "default", 
     name: "Obsidian", 
     primary: "#00e5ff",
-    variables: {
+    darkVariables: {
       "--primary": "186 100% 50%",
       "--primary-foreground": "222 47% 6%",
       "--accent": "186 70% 40%",
       "--background": "222 47% 6%",
+      "--foreground": "210 40% 96%",
       "--card": "222 47% 9%",
+      "--card-foreground": "210 40% 96%",
+      "--popover": "222 47% 11%",
+      "--popover-foreground": "210 40% 96%",
+      "--secondary": "222 47% 14%",
+      "--secondary-foreground": "210 40% 96%",
+      "--muted": "222 30% 18%",
+      "--muted-foreground": "215 20% 55%",
+      "--border": "222 30% 18%",
+      "--input": "222 30% 14%",
       "--ring": "186 100% 50%",
+    },
+    lightVariables: {
+      "--primary": "186 100% 40%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "186 70% 40%",
+      "--background": "0 0% 100%",
+      "--foreground": "222 47% 11%",
+      "--card": "0 0% 98%",
+      "--card-foreground": "222 47% 11%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "222 47% 11%",
+      "--secondary": "220 14% 96%",
+      "--secondary-foreground": "222 47% 11%",
+      "--muted": "220 14% 96%",
+      "--muted-foreground": "220 9% 46%",
+      "--border": "220 13% 91%",
+      "--input": "220 13% 91%",
+      "--ring": "186 100% 40%",
     }
   },
   { 
     id: "midnight", 
     name: "Midnight", 
     primary: "#818cf8",
-    variables: {
+    darkVariables: {
       "--primary": "239 84% 67%",
       "--primary-foreground": "0 0% 100%",
       "--accent": "239 60% 50%",
       "--background": "240 20% 6%",
+      "--foreground": "210 40% 96%",
       "--card": "240 20% 9%",
+      "--card-foreground": "210 40% 96%",
+      "--popover": "240 20% 11%",
+      "--popover-foreground": "210 40% 96%",
+      "--secondary": "240 20% 14%",
+      "--secondary-foreground": "210 40% 96%",
+      "--muted": "240 20% 18%",
+      "--muted-foreground": "215 20% 55%",
+      "--border": "240 20% 18%",
+      "--input": "240 20% 14%",
       "--ring": "239 84% 67%",
+    },
+    lightVariables: {
+      "--primary": "239 84% 60%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "239 60% 50%",
+      "--background": "0 0% 100%",
+      "--foreground": "240 20% 11%",
+      "--card": "240 10% 98%",
+      "--card-foreground": "240 20% 11%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "240 20% 11%",
+      "--secondary": "240 10% 96%",
+      "--secondary-foreground": "240 20% 11%",
+      "--muted": "240 10% 96%",
+      "--muted-foreground": "240 10% 46%",
+      "--border": "240 10% 91%",
+      "--input": "240 10% 91%",
+      "--ring": "239 84% 60%",
     }
   },
   { 
     id: "ocean", 
     name: "Ocean", 
     primary: "#22d3ee",
-    variables: {
+    darkVariables: {
       "--primary": "188 94% 53%",
       "--primary-foreground": "222 47% 6%",
       "--accent": "188 70% 40%",
       "--background": "210 40% 8%",
+      "--foreground": "210 40% 96%",
       "--card": "210 40% 11%",
+      "--card-foreground": "210 40% 96%",
+      "--popover": "210 40% 13%",
+      "--popover-foreground": "210 40% 96%",
+      "--secondary": "210 40% 16%",
+      "--secondary-foreground": "210 40% 96%",
+      "--muted": "210 30% 20%",
+      "--muted-foreground": "210 20% 55%",
+      "--border": "210 30% 20%",
+      "--input": "210 40% 16%",
       "--ring": "188 94% 53%",
+    },
+    lightVariables: {
+      "--primary": "188 94% 43%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "188 70% 40%",
+      "--background": "0 0% 100%",
+      "--foreground": "210 40% 11%",
+      "--card": "195 10% 98%",
+      "--card-foreground": "210 40% 11%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "210 40% 11%",
+      "--secondary": "195 20% 96%",
+      "--secondary-foreground": "210 40% 11%",
+      "--muted": "195 20% 96%",
+      "--muted-foreground": "195 10% 46%",
+      "--border": "195 15% 91%",
+      "--input": "195 15% 91%",
+      "--ring": "188 94% 43%",
     }
   },
   { 
     id: "forest", 
     name: "Forest", 
     primary: "#4ade80",
-    variables: {
+    darkVariables: {
       "--primary": "142 71% 60%",
       "--primary-foreground": "222 47% 6%",
       "--accent": "142 50% 45%",
       "--background": "150 20% 6%",
+      "--foreground": "150 20% 96%",
       "--card": "150 20% 9%",
+      "--card-foreground": "150 20% 96%",
+      "--popover": "150 20% 11%",
+      "--popover-foreground": "150 20% 96%",
+      "--secondary": "150 20% 14%",
+      "--secondary-foreground": "150 20% 96%",
+      "--muted": "150 15% 18%",
+      "--muted-foreground": "150 10% 55%",
+      "--border": "150 15% 18%",
+      "--input": "150 20% 14%",
       "--ring": "142 71% 60%",
+    },
+    lightVariables: {
+      "--primary": "142 71% 45%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "142 50% 40%",
+      "--background": "0 0% 100%",
+      "--foreground": "150 20% 11%",
+      "--card": "140 10% 98%",
+      "--card-foreground": "150 20% 11%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "150 20% 11%",
+      "--secondary": "140 15% 96%",
+      "--secondary-foreground": "150 20% 11%",
+      "--muted": "140 15% 96%",
+      "--muted-foreground": "140 10% 46%",
+      "--border": "140 10% 91%",
+      "--input": "140 10% 91%",
+      "--ring": "142 71% 45%",
     }
   },
   { 
     id: "sunset", 
     name: "Sunset", 
     primary: "#fb923c",
-    variables: {
+    darkVariables: {
       "--primary": "27 96% 61%",
       "--primary-foreground": "222 47% 6%",
       "--accent": "27 80% 50%",
       "--background": "15 20% 6%",
+      "--foreground": "15 20% 96%",
       "--card": "15 20% 9%",
+      "--card-foreground": "15 20% 96%",
+      "--popover": "15 20% 11%",
+      "--popover-foreground": "15 20% 96%",
+      "--secondary": "15 20% 14%",
+      "--secondary-foreground": "15 20% 96%",
+      "--muted": "15 15% 18%",
+      "--muted-foreground": "15 10% 55%",
+      "--border": "15 15% 18%",
+      "--input": "15 20% 14%",
       "--ring": "27 96% 61%",
+    },
+    lightVariables: {
+      "--primary": "27 96% 50%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "27 80% 45%",
+      "--background": "0 0% 100%",
+      "--foreground": "15 20% 11%",
+      "--card": "30 20% 98%",
+      "--card-foreground": "15 20% 11%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "15 20% 11%",
+      "--secondary": "30 20% 96%",
+      "--secondary-foreground": "15 20% 11%",
+      "--muted": "30 20% 96%",
+      "--muted-foreground": "30 10% 46%",
+      "--border": "30 15% 91%",
+      "--input": "30 15% 91%",
+      "--ring": "27 96% 50%",
     }
   },
   { 
     id: "lavender", 
     name: "Lavender", 
     primary: "#c084fc",
-    variables: {
+    darkVariables: {
       "--primary": "270 91% 75%",
       "--primary-foreground": "222 47% 6%",
       "--accent": "270 60% 60%",
       "--background": "270 20% 6%",
+      "--foreground": "270 20% 96%",
       "--card": "270 20% 9%",
+      "--card-foreground": "270 20% 96%",
+      "--popover": "270 20% 11%",
+      "--popover-foreground": "270 20% 96%",
+      "--secondary": "270 20% 14%",
+      "--secondary-foreground": "270 20% 96%",
+      "--muted": "270 15% 18%",
+      "--muted-foreground": "270 10% 55%",
+      "--border": "270 15% 18%",
+      "--input": "270 20% 14%",
       "--ring": "270 91% 75%",
+    },
+    lightVariables: {
+      "--primary": "270 91% 65%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "270 60% 55%",
+      "--background": "0 0% 100%",
+      "--foreground": "270 20% 11%",
+      "--card": "270 20% 98%",
+      "--card-foreground": "270 20% 11%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "270 20% 11%",
+      "--secondary": "270 15% 96%",
+      "--secondary-foreground": "270 20% 11%",
+      "--muted": "270 15% 96%",
+      "--muted-foreground": "270 10% 46%",
+      "--border": "270 10% 91%",
+      "--input": "270 10% 91%",
+      "--ring": "270 91% 65%",
     }
   },
 ];
@@ -117,30 +286,55 @@ export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelecto
     return "dark";
   });
 
-  // Apply theme on mount and when it changes
+  // Apply theme and color mode
   useEffect(() => {
     const theme = themes.find(t => t.id === selectedTheme);
-    if (theme) {
+    if (!theme) return;
+
+    const root = document.documentElement;
+    
+    // Determine if dark mode
+    let isDark = colorMode === "dark";
+    if (colorMode === "system") {
+      isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    }
+
+    // Apply dark/light class
+    root.classList.toggle("dark", isDark);
+
+    // Apply theme variables based on color mode
+    const variables = isDark ? theme.darkVariables : theme.lightVariables;
+    Object.entries(variables).forEach(([key, value]) => {
+      root.style.setProperty(key, value);
+    });
+
+    root.setAttribute("data-theme", selectedTheme);
+    localStorage.setItem("proxinex-theme", selectedTheme);
+    localStorage.setItem("proxinex-color-mode", colorMode);
+  }, [selectedTheme, colorMode]);
+
+  // Listen for system preference changes
+  useEffect(() => {
+    if (colorMode !== "system") return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const handler = () => {
+      const theme = themes.find(t => t.id === selectedTheme);
+      if (!theme) return;
+      
       const root = document.documentElement;
-      Object.entries(theme.variables).forEach(([key, value]) => {
+      const isDark = mediaQuery.matches;
+      root.classList.toggle("dark", isDark);
+      
+      const variables = isDark ? theme.darkVariables : theme.lightVariables;
+      Object.entries(variables).forEach(([key, value]) => {
         root.style.setProperty(key, value);
       });
-      root.setAttribute("data-theme", selectedTheme);
-      localStorage.setItem("proxinex-theme", selectedTheme);
-    }
-  }, [selectedTheme]);
+    };
 
-  // Apply color mode
-  useEffect(() => {
-    const root = document.documentElement;
-    if (colorMode === "system") {
-      const isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      root.classList.toggle("dark", isDark);
-    } else {
-      root.classList.toggle("dark", colorMode === "dark");
-    }
-    localStorage.setItem("proxinex-color-mode", colorMode);
-  }, [colorMode]);
+    mediaQuery.addEventListener("change", handler);
+    return () => mediaQuery.removeEventListener("change", handler);
+  }, [colorMode, selectedTheme]);
 
   const handleThemeChange = (theme: Theme) => {
     setSelectedTheme(theme);

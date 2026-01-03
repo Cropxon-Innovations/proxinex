@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { CommandPalette } from "@/components/CommandPalette";
 import Index from "./pages/Index";
 import Compare from "./pages/Compare";
 import Sandbox from "./pages/Sandbox";
@@ -37,6 +38,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <CommandPalette />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/compare" element={<Compare />} />
