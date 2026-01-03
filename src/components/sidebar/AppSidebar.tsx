@@ -136,11 +136,9 @@ const orgItems: NavItem[] = [
   { icon: Star, label: "Projects", path: "/app/projects" },
 ];
 
-// Settings section
+// Settings section - Removed Settings (now in email dropdown)
 const settingsItems: NavItem[] = [
   { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-  { icon: Key, label: "API Keys", path: "/app/api-keys" },
-  { icon: Settings, label: "Settings", path: "/app/settings" },
 ];
 
 const planLabels: Record<UserPlan, { label: string; color: string; icon: any }> = {
@@ -745,6 +743,12 @@ export const AppSidebar = ({
                   <Link to="/app/personalization" className="flex items-center">
                     <Sparkles className="h-4 w-4 mr-2" />
                     Personalization
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/app/api-keys" className="flex items-center">
+                    <Key className="h-4 w-4 mr-2" />
+                    API Keys
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
