@@ -68,7 +68,7 @@ export const PullToRefresh = ({
   const showIndicator = pullDistance > 10 || isRefreshing;
 
   return (
-    <div className="relative h-full">
+    <div className="relative flex-1 min-w-0 h-full flex flex-col">
       {/* Pull Indicator */}
       {showIndicator && (
         <div
@@ -90,7 +90,7 @@ export const PullToRefresh = ({
       {/* Content */}
       <div
         ref={containerRef}
-        className="h-full overflow-y-auto"
+        className="flex-1 min-h-0 overflow-y-auto"
         style={{
           transform: pullDistance > 0 ? `translateY(${pullDistance * 0.3}px)` : undefined,
           transition: isPulling.current ? undefined : 'transform 0.2s ease-out',
