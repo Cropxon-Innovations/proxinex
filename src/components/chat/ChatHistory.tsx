@@ -56,6 +56,7 @@ interface ChatHistoryProps {
   onSessionPin?: (sessionId: string) => void;
   onSessionRename?: (sessionId: string, newTitle: string) => void;
   onSessionExport?: (sessionId: string) => void;
+  onNewResearch?: () => void;
 }
 
 export const ChatHistory = ({
@@ -68,6 +69,7 @@ export const ChatHistory = ({
   onSessionPin,
   onSessionRename,
   onSessionExport,
+  onNewResearch,
 }: ChatHistoryProps) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["today", "yesterday"]));
@@ -438,7 +440,18 @@ export const ChatHistory = ({
                           ? "No chat sessions yet"
                           : "No history yet"}
                 </p>
-                {categoryFilter !== "all" && sessions.length > 0 && (
+                {categoryFilter === "research" && onNewResearch && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={onNewResearch}
+                    className="mt-3 text-xs gap-1.5"
+                  >
+                    <Search className="h-3.5 w-3.5" />
+                    New Research
+                  </Button>
+                )}
+                {categoryFilter !== "all" && categoryFilter !== "research" && sessions.length > 0 && (
                   <Button
                     variant="ghost"
                     size="sm"

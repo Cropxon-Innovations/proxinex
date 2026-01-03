@@ -1187,6 +1187,13 @@ const AppDashboard = () => {
                         onSessionPin={handlePinSession}
                         onSessionRename={handleOpenRenameDialog}
                         onSessionExport={handleExportSession}
+                        onNewResearch={() => {
+                          setResearchMode(true);
+                          setMessages([]);
+                          setActiveSessionId(null);
+                          setRightPanelView("sources");
+                          navigate("/app", { replace: true });
+                        }}
                       />
                     )}
                   </div>
