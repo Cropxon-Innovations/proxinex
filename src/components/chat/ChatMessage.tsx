@@ -12,7 +12,7 @@ import { ConfidenceBadge } from "@/components/ConfidenceBadge";
 import { FeedbackActions } from "@/components/chat/FeedbackActions";
 import { SourcesDisplay, Source } from "@/components/chat/SourcesDisplay";
 import ReactMarkdown from "react-markdown";
-import proxinexLogo from "@/assets/proxinex-logo.png";
+import { ProxinexIcon } from "@/components/Logo";
 
 interface ChatMessageProps {
   role: "user" | "assistant";
@@ -92,10 +92,8 @@ export const ChatMessage = ({
         {/* Header with Logo */}
         <div className="flex items-center gap-3 px-5 py-3 border-b border-border bg-secondary/20">
           <div className="relative">
-            <img 
-              src={proxinexLogo} 
-              alt="Proxinex" 
-              className={`w-7 h-7 rounded-lg ${isLoading ? "animate-pulse" : ""}`}
+            <ProxinexIcon 
+              className={`w-7 h-7 ${isLoading ? "animate-pulse" : ""}`}
             />
             {isLoading && (
               <div className="absolute inset-0 rounded-lg border-2 border-primary/50 animate-ping" />
