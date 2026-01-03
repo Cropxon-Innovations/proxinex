@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, ReactNode } from "react";
-import { ExternalLink, Minimize2, Maximize2 } from "lucide-react";
+import { useState, useRef, useCallback, ReactNode, useEffect } from "react";
+import { Minimize2, Maximize2, GripVertical } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface ResizableRightPanelProps {
@@ -16,11 +16,13 @@ export const ResizableRightPanel = ({
   defaultWidth = 320,
 }: ResizableRightPanelProps) => {
   const [width, setWidth] = useState(defaultWidth);
+  const [savedWidth, setSavedWidth] = useState(defaultWidth);
   const [isMinimized, setIsMinimized] = useState(false);
   const isResizing = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  // Resize from left edge (drag left to expand, drag right to shrink)
+  const handleMouseDownLeft = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isResizing.current = true;
     document.body.style.cursor = "col-resize";
@@ -31,7 +33,6 @@ export const ResizableRightPanel = ({
 
     const handleMouseMove = (e: MouseEvent) => {
       if (!isResizing.current) return;
-      // Dragging left increases width (moving handle left = panel gets bigger)
       const delta = startX - e.clientX;
       const newWidth = Math.min(maxWidth, Math.max(minWidth, startWidth + delta));
       setWidth(newWidth);
@@ -50,6 +51,13 @@ export const ResizableRightPanel = ({
   }, [width, minWidth, maxWidth]);
 
   const toggleMinimize = () => {
+    if (isMinimized) {
+      // Restore to saved width
+      setWidth(savedWidth);
+    } else {
+      // Save current width before minimizing
+      setSavedWidth(width);
+    }
     setIsMinimized(!isMinimized);
   };
 
@@ -75,13 +83,13 @@ export const ResizableRightPanel = ({
       className="border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full relative"
       style={{ width: `${width}px` }}
     >
-      {/* Resize Handle */}
+      {/* Resize Handle - Left Edge */}
       <div
-        onMouseDown={handleMouseDown}
-        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-primary/30 transition-colors z-10 group"
+        onMouseDown={handleMouseDownLeft}
+        className="absolute left-0 top-0 bottom-0 w-1.5 cursor-col-resize hover:bg-primary/30 transition-colors z-10 group flex items-center justify-center"
         title="Drag to resize"
       >
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-12 bg-border group-hover:bg-primary/50 rounded-r transition-colors" />
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-16 bg-border group-hover:bg-primary/50 rounded-r transition-colors" />
       </div>
 
       {/* Minimize Button */}
@@ -97,8 +105,8 @@ export const ResizableRightPanel = ({
         </Button>
       </div>
 
-      {/* Panel Content */}
-      <div className="flex-1 overflow-hidden">
+      {/* Panel Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden">
         {children}
       </div>
     </div>

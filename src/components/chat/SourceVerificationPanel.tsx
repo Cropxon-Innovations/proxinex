@@ -16,7 +16,10 @@ import {
   RefreshCw,
   Loader2,
   CheckCircle2,
-  XCircle
+  XCircle,
+  Bookmark,
+  BookmarkCheck,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -33,6 +36,12 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface VerifiedSource {
   id: string;
@@ -46,6 +55,7 @@ export interface VerifiedSource {
   livenessStatus?: "live" | "stale" | "offline" | "checking";
   trustScore?: number;
   citationCount?: number;
+  messageIndex?: number;
 }
 
 interface SourceVerificationPanelProps {
@@ -55,7 +65,28 @@ interface SourceVerificationPanelProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   onClose?: () => void;
+  bookmarkedSources?: string[];
+  onBookmarkSource?: (sourceId: string, url: string) => void;
 }
+
+// Get bookmarked sources from localStorage
+const getBookmarkedSources = (): { id: string; url: string; title: string; bookmarkedAt: string }[] => {
+  try {
+    const stored = localStorage.getItem("proxinex_bookmarked_sources");
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+};
+
+// Save bookmarked sources to localStorage
+const saveBookmarkedSources = (sources: { id: string; url: string; title: string; bookmarkedAt: string }[]) => {
+  try {
+    localStorage.setItem("proxinex_bookmarked_sources", JSON.stringify(sources));
+  } catch {
+    console.error("Failed to save bookmarked sources");
+  }
+};
 
 export const SourceVerificationPanel = ({
   sources: initialSources,
@@ -69,11 +100,18 @@ export const SourceVerificationPanel = ({
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(selectedSourceId || null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationProgress, setVerificationProgress] = useState(0);
+  const [bookmarkedUrls, setBookmarkedUrls] = useState<Set<string>>(new Set());
   
   // Filtering state
   const [livenessFilter, setLivenessFilter] = useState<string>("all");
   const [accuracyThreshold, setAccuracyThreshold] = useState<number>(0);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Load bookmarks on mount
+  useEffect(() => {
+    const bookmarks = getBookmarkedSources();
+    setBookmarkedUrls(new Set(bookmarks.map(b => b.url)));
+  }, []);
 
   // Sync sources when prop changes
   useEffect(() => {
@@ -90,14 +128,10 @@ export const SourceVerificationPanel = ({
   // Real-time URL verification
   const verifyUrl = useCallback(async (url: string): Promise<"live" | "stale" | "offline"> => {
     try {
-      // Use a HEAD request via a proxy or direct fetch with no-cors
-      // Since we can't directly ping URLs due to CORS, we simulate verification
-      // In production, this would call a backend endpoint
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       
       try {
-        // Attempt to fetch with no-cors mode (won't give us status but confirms reachability)
         await fetch(url, {
           method: 'HEAD',
           mode: 'no-cors',
@@ -107,7 +141,6 @@ export const SourceVerificationPanel = ({
         return "live";
       } catch (fetchError) {
         clearTimeout(timeoutId);
-        // Check if it was aborted (timeout)
         if (controller.signal.aborted) {
           return "stale";
         }
@@ -124,7 +157,6 @@ export const SourceVerificationPanel = ({
     setIsVerifying(true);
     setVerificationProgress(0);
     
-    // Set all to checking state
     setSources(prev => prev.map(s => ({ ...s, livenessStatus: "checking" as const })));
     
     const verifiedSources = [...sources];
@@ -139,10 +171,7 @@ export const SourceVerificationPanel = ({
         lastVerified: new Date().toISOString(),
       };
       
-      // Update progress
       setVerificationProgress(Math.round(((i + 1) / verifiedSources.length) * 100));
-      
-      // Update sources incrementally
       setSources([...verifiedSources]);
     }
     
@@ -152,7 +181,6 @@ export const SourceVerificationPanel = ({
   // Auto-verify on mount
   useEffect(() => {
     if (initialSources.length > 0 && !isVerifying) {
-      // Delay to avoid blocking UI
       const timer = setTimeout(() => {
         verifyAllSources();
       }, 1000);
@@ -162,6 +190,32 @@ export const SourceVerificationPanel = ({
 
   const handleOpenExternal = (url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
+  };
+
+  const handleBookmarkSource = (source: VerifiedSource) => {
+    const bookmarks = getBookmarkedSources();
+    const isBookmarked = bookmarkedUrls.has(source.url);
+    
+    if (isBookmarked) {
+      // Remove bookmark
+      const updated = bookmarks.filter(b => b.url !== source.url);
+      saveBookmarkedSources(updated);
+      setBookmarkedUrls(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(source.url);
+        return newSet;
+      });
+    } else {
+      // Add bookmark
+      const newBookmark = {
+        id: source.id,
+        url: source.url,
+        title: source.title,
+        bookmarkedAt: new Date().toISOString(),
+      };
+      saveBookmarkedSources([...bookmarks, newBookmark]);
+      setBookmarkedUrls(prev => new Set([...prev, source.url]));
+    }
   };
 
   const getDomain = (url: string) => {
@@ -218,17 +272,31 @@ export const SourceVerificationPanel = ({
   };
 
   const getScoreColor = (score?: number) => {
-    if (!score) return "text-muted-foreground";
+    if (score === undefined || score === null) return "text-muted-foreground";
     if (score >= 80) return "text-success";
     if (score >= 60) return "text-warning";
     return "text-destructive";
   };
 
   const getProgressColor = (score?: number) => {
-    if (!score) return "bg-muted";
+    if (score === undefined || score === null) return "bg-muted";
     if (score >= 80) return "bg-success";
     if (score >= 60) return "bg-warning";
     return "bg-destructive";
+  };
+
+  // Ensure accuracy score is within 0-100 range
+  const normalizeScore = (score?: number): number => {
+    if (score === undefined || score === null) return 0;
+    // If score appears to be a 4-digit number (like 8500), divide by 100
+    if (score > 100) {
+      return Math.min(100, Math.round(score / 100));
+    }
+    // If score is a decimal (like 0.85), multiply by 100
+    if (score > 0 && score < 1) {
+      return Math.round(score * 100);
+    }
+    return Math.min(100, Math.max(0, Math.round(score)));
   };
 
   const formatDate = (dateString?: string) => {
@@ -266,20 +334,19 @@ export const SourceVerificationPanel = ({
 
   // Filter sources
   const filteredSources = sources.filter(source => {
-    // Liveness filter
     if (livenessFilter !== "all" && source.livenessStatus !== livenessFilter) {
       return false;
     }
-    // Accuracy threshold filter
-    if ((source.accuracyScore || 0) < accuracyThreshold) {
+    const normalizedScore = normalizeScore(source.accuracyScore);
+    if (normalizedScore < accuracyThreshold) {
       return false;
     }
     return true;
   });
 
-  // Calculate overall stats
+  // Calculate overall stats with normalized scores
   const avgAccuracy = sources.length > 0 
-    ? Math.round(sources.reduce((acc, s) => acc + (s.accuracyScore || 0), 0) / sources.length)
+    ? Math.round(sources.reduce((acc, s) => acc + normalizeScore(s.accuracyScore), 0) / sources.length)
     : 0;
   const liveCount = sources.filter(s => s.livenessStatus === "live").length;
   const staleCount = sources.filter(s => s.livenessStatus === "stale").length;
@@ -475,7 +542,7 @@ export const SourceVerificationPanel = ({
             </div>
           )}
 
-          {/* Source List */}
+          {/* Source List - Scrollable */}
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-2 space-y-2">
               {filteredSources.length === 0 ? (
@@ -483,145 +550,194 @@ export const SourceVerificationPanel = ({
                   No sources match your filters
                 </div>
               ) : (
-                filteredSources.map((source) => (
-                  <div
-                    key={source.id}
-                    className={`rounded-lg border overflow-hidden transition-all ${
-                      selectedSourceId === source.id || expandedSourceId === source.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-card/50 hover:border-primary/30"
-                    }`}
-                  >
-                    {/* Source Header */}
-                    <button
-                      onClick={() => handleSourceClick(source)}
-                      className="w-full text-left p-3"
+                filteredSources.map((source) => {
+                  const normalizedAccuracy = normalizeScore(source.accuracyScore);
+                  const normalizedTrust = normalizeScore(source.trustScore);
+                  const isBookmarked = bookmarkedUrls.has(source.url);
+                  
+                  return (
+                    <div
+                      key={source.id}
+                      className={`rounded-lg border overflow-hidden transition-all ${
+                        selectedSourceId === source.id || expandedSourceId === source.id
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card/50 hover:border-primary/30"
+                      }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        {/* Citation Number */}
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold flex items-center justify-center">
-                          {parseInt(source.id) + 1}
-                        </span>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                            <span className="text-xs text-muted-foreground truncate">
-                              {source.domain || getDomain(source.url)}
-                            </span>
-                            {/* Liveness Badge */}
-                            <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${getLivenessColor(source.livenessStatus)}`}>
-                              {getLivenessIcon(source.livenessStatus)}
-                              {getLivenessLabel(source.livenessStatus)}
-                            </span>
-                          </div>
-                          <p className="text-sm font-medium text-foreground line-clamp-2">
-                            {source.title}
-                          </p>
-                        </div>
-                        {expandedSourceId === source.id ? (
-                          <ChevronUp className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        ) : (
-                          <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                        )}
-                      </div>
-
-                      {/* Quick Stats Row */}
-                      <div className="flex items-center gap-3 mt-2 ml-8">
-                        {/* Accuracy Score */}
-                        <div className="flex items-center gap-1.5">
-                          <Shield className="h-3 w-3 text-muted-foreground" />
-                          <span className={`text-xs font-medium ${getScoreColor(source.accuracyScore)}`}>
-                            {source.accuracyScore || 0}%
+                      {/* Source Header */}
+                      <button
+                        onClick={() => handleSourceClick(source)}
+                        className="w-full text-left p-3"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          {/* Citation Number */}
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold flex items-center justify-center">
+                            {parseInt(source.id) + 1}
                           </span>
-                        </div>
-                        {/* Published Date */}
-                        {source.publishedDate && (
-                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                            <Calendar className="h-3 w-3" />
-                            <span>{getRelativeTime(source.publishedDate)}</span>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Globe className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                              <span className="text-xs text-muted-foreground truncate">
+                                {source.domain || getDomain(source.url)}
+                              </span>
+                              {/* Liveness Badge */}
+                              <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${getLivenessColor(source.livenessStatus)}`}>
+                                {getLivenessIcon(source.livenessStatus)}
+                                {getLivenessLabel(source.livenessStatus)}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground line-clamp-2">
+                              {source.title}
+                            </p>
                           </div>
-                        )}
-                      </div>
-                    </button>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            {/* Bookmark Button */}
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleBookmarkSource(source);
+                                    }}
+                                    className={`p-1 rounded hover:bg-secondary transition-colors ${isBookmarked ? "text-primary" : "text-muted-foreground"}`}
+                                  >
+                                    {isBookmarked ? (
+                                      <BookmarkCheck className="h-4 w-4" />
+                                    ) : (
+                                      <Bookmark className="h-4 w-4" />
+                                    )}
+                                  </button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {isBookmarked ? "Remove bookmark" : "Bookmark source"}
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                            {expandedSourceId === source.id ? (
+                              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </div>
 
-                    {/* Expanded Details */}
-                    {expandedSourceId === source.id && (
-                      <div className="px-3 pb-3 pt-0 space-y-3 border-t border-border mt-0">
-                        {/* Accuracy Progress */}
-                        <div className="pt-3">
-                          <div className="flex items-center justify-between mb-1.5">
-                            <span className="text-xs text-muted-foreground">Accuracy Score</span>
-                            <span className={`text-xs font-semibold ${getScoreColor(source.accuracyScore)}`}>
-                              {source.accuracyScore || 0}%
+                        {/* Quick Stats Row */}
+                        <div className="flex items-center gap-3 mt-2 ml-8">
+                          {/* Accuracy Score - Fixed to show proper % */}
+                          <div className="flex items-center gap-1.5">
+                            <Shield className="h-3 w-3 text-muted-foreground" />
+                            <span className={`text-xs font-medium ${getScoreColor(normalizedAccuracy)}`}>
+                              {normalizedAccuracy}%
                             </span>
                           </div>
-                          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
-                            <div 
-                              className={`h-full transition-all ${getProgressColor(source.accuracyScore)}`}
-                              style={{ width: `${source.accuracyScore || 0}%` }}
-                            />
-                          </div>
+                          {/* Published Date */}
+                          {source.publishedDate && (
+                            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                              <Calendar className="h-3 w-3" />
+                              <span>{getRelativeTime(source.publishedDate)}</span>
+                            </div>
+                          )}
                         </div>
+                      </button>
 
-                        {/* Trust Score */}
-                        {source.trustScore !== undefined && (
-                          <div>
+                      {/* Expanded Details */}
+                      {expandedSourceId === source.id && (
+                        <div className="px-3 pb-3 pt-0 space-y-3 border-t border-border mt-0">
+                          {/* Accuracy Progress */}
+                          <div className="pt-3">
                             <div className="flex items-center justify-between mb-1.5">
-                              <span className="text-xs text-muted-foreground">Trust Score</span>
-                              <span className={`text-xs font-semibold ${getScoreColor(source.trustScore)}`}>
-                                {source.trustScore}%
+                              <span className="text-xs text-muted-foreground">Accuracy Score</span>
+                              <span className={`text-xs font-semibold ${getScoreColor(normalizedAccuracy)}`}>
+                                {normalizedAccuracy}%
                               </span>
                             </div>
                             <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
                               <div 
-                                className={`h-full transition-all ${getProgressColor(source.trustScore)}`}
-                                style={{ width: `${source.trustScore}%` }}
+                                className={`h-full transition-all ${getProgressColor(normalizedAccuracy)}`}
+                                style={{ width: `${normalizedAccuracy}%` }}
                               />
                             </div>
                           </div>
-                        )}
 
-                        {/* Date Info */}
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div className="p-2 rounded bg-secondary/50">
-                            <p className="text-muted-foreground mb-0.5">Published</p>
-                            <p className="font-medium text-foreground">
-                              {formatDate(source.publishedDate)}
-                            </p>
+                          {/* Trust Score */}
+                          {source.trustScore !== undefined && (
+                            <div>
+                              <div className="flex items-center justify-between mb-1.5">
+                                <span className="text-xs text-muted-foreground">Trust Score</span>
+                                <span className={`text-xs font-semibold ${getScoreColor(normalizedTrust)}`}>
+                                  {normalizedTrust}%
+                                </span>
+                              </div>
+                              <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+                                <div 
+                                  className={`h-full transition-all ${getProgressColor(normalizedTrust)}`}
+                                  style={{ width: `${normalizedTrust}%` }}
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Date Info */}
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-2 rounded bg-secondary/50">
+                              <p className="text-muted-foreground mb-0.5">Published</p>
+                              <p className="font-medium text-foreground">
+                                {formatDate(source.publishedDate)}
+                              </p>
+                            </div>
+                            <div className="p-2 rounded bg-secondary/50">
+                              <p className="text-muted-foreground mb-0.5">Last Verified</p>
+                              <p className="font-medium text-foreground">
+                                {formatDate(source.lastVerified)}
+                              </p>
+                            </div>
                           </div>
-                          <div className="p-2 rounded bg-secondary/50">
-                            <p className="text-muted-foreground mb-0.5">Last Verified</p>
-                            <p className="font-medium text-foreground">
-                              {formatDate(source.lastVerified)}
+
+                          {/* Snippet */}
+                          {source.snippet && (
+                            <p className="text-xs text-muted-foreground line-clamp-4 bg-secondary/30 p-2 rounded">
+                              {source.snippet}
                             </p>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenExternal(source.url);
+                              }}
+                              className="flex-1 gap-2"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                              Open Source
+                            </Button>
+                            <Button
+                              variant={isBookmarked ? "secondary" : "outline"}
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleBookmarkSource(source);
+                              }}
+                              className="gap-2"
+                            >
+                              {isBookmarked ? (
+                                <BookmarkCheck className="h-3 w-3" />
+                              ) : (
+                                <Bookmark className="h-3 w-3" />
+                              )}
+                              {isBookmarked ? "Saved" : "Save"}
+                            </Button>
                           </div>
                         </div>
-
-                        {/* Snippet */}
-                        {source.snippet && (
-                          <p className="text-xs text-muted-foreground line-clamp-4 bg-secondary/30 p-2 rounded">
-                            {source.snippet}
-                          </p>
-                        )}
-
-                        {/* Open External Button */}
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleOpenExternal(source.url);
-                          }}
-                          className="w-full gap-2"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          Open Source
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                ))
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </ScrollArea>
