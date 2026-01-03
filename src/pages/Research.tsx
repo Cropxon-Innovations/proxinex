@@ -6,6 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SelectToAsk, useSelectToAsk } from "@/components/SelectToAsk";
 import { searchWithTavily, Citation, ResearchResponse } from "@/lib/tavily";
 import { CitationAnswer } from "@/components/CitationAnswer";
+import { SourceVerificationLoader } from "@/components/SourceVerificationLoader";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
@@ -83,10 +84,11 @@ const ResearchPage = () => {
     setQuery("");
     setIsLoading(true);
 
-    // Add loading placeholder
+    // Add loading placeholder with verification state
     setMessages(prev => [...prev, { 
       role: "assistant", 
       content: "", 
+      response: undefined,
       timestamp: new Date() 
     }]);
 
@@ -211,12 +213,10 @@ const ResearchPage = () => {
                             isLoading={isLoading && i === messages.length - 1}
                           />
                         ) : (
-                          <div className="bg-card border border-border rounded-lg p-6">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                              <span>Searching sources...</span>
-                            </div>
-                          </div>
+                          <SourceVerificationLoader 
+                            sources={[]} 
+                            isComplete={false}
+                          />
                         )
                       )}
                     </div>

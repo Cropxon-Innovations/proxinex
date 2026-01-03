@@ -105,14 +105,19 @@ STRICT RULES:
 - Every factual claim MUST include a citation marker (¹, ², ³, etc.)
 - Do NOT invent facts or sources
 - If sources are insufficient for a complete answer, clearly state that
-- Write in natural, readable language
+- Write in natural, readable language with clear structure
+- Use **bold** for key terms and important concepts
+- Use *italic* for emphasis on notable points
+- Use bullet points or numbered lists when listing multiple items
 - Place citation markers immediately after the relevant fact
 - Use superscript notation: ¹ ² ³ ⁴ ⁵ ⁶ ⁷ ⁸
+- Start with a brief summary paragraph
+- Organize information with clear sections if the topic is complex
 
 SOURCES:
 ${sourceContext}
 
-Respond with a well-structured answer using the sources above. Include inline citations.`;
+Respond with a well-structured answer using the sources above. Include inline citations and use formatting for readability.`;
 
     console.log("Generating answer with LLM...");
 
@@ -152,7 +157,7 @@ Respond with a well-structured answer using the sources above. Include inline ci
 
     console.log(`Generated answer with ${confidence}% confidence (${confidence_label})`);
 
-    // Return structured response
+    // Return structured response with snippets
     return new Response(
       JSON.stringify({
         answer,
@@ -164,6 +169,7 @@ Respond with a well-structured answer using the sources above. Include inline ci
           url: c.url,
           published_date: c.published_date,
           score: Math.round(c.score * 100),
+          snippet: c.content.slice(0, 200) + (c.content.length > 200 ? "..." : ""),
         })),
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
