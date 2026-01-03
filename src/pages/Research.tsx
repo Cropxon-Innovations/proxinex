@@ -27,6 +27,14 @@ interface ResearchMessage {
   timestamp: Date;
 }
 
+interface SidebarSession {
+  id: string;
+  title: string;
+  isPinned?: boolean;
+  isResearch?: boolean;
+  pinColor?: "primary" | "red" | "orange" | "yellow" | "green" | "blue" | "purple";
+}
+
 const ResearchPage = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [query, setQuery] = useState("");
@@ -34,6 +42,7 @@ const ResearchPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [researchHistory, setResearchHistory] = useState<string[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const [chatSessions, setChatSessions] = useState<SidebarSession[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -43,6 +52,69 @@ const ResearchPage = () => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    const loadSessions = async () => {
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("chat_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("updated_at", { ascending: false });
+
+      if (error || !data) return;
+
+      const mapped: SidebarSession[] = data.map((session: any) => {
+        const messagesArray = Array.isArray(session.messages) ? (session.messages as any[]) : [];
+        const hasResearchResponse = messagesArray.some((m: any) => m?.researchResponse);
+
+        return {
+          id: session.id,
+          title: session.title,
+          isPinned: session.is_pinned || false,
+          isResearch: hasResearchResponse,
+          pinColor: session.pin_color || "primary",
+        };
+      });
+
+      setChatSessions(mapped);
+    };
+
+    loadSessions();
+  }, [user]);
+
+  const handleSelectSession = async (sessionId: string) => {
+    if (!user) return;
+
+    const { data, error } = await supabase
+      .from("chat_sessions")
+      .select("*")
+      .eq("id", sessionId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (error || !data) return;
+
+    const rawMessages = Array.isArray(data.messages) ? (data.messages as any[]) : [];
+
+    const converted: ResearchMessage[] = rawMessages.map((m: any) => ({
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+      response: m.researchResponse,
+      researchResponse: m.researchResponse,
+    }));
+
+    setMessages(converted);
+    setActiveSessionId(data.id);
+    setResearchHistory(
+      rawMessages
+        .filter((m: any) => m?.role === "user")
+        .map((m: any) => (typeof m?.content === "string" ? m.content : ""))
+        .filter(Boolean)
+    );
+  };
 
   const handleSignOut = async () => {
     await signOut();
@@ -77,6 +149,24 @@ const ResearchPage = () => {
 
     if (data && !error) {
       setActiveSessionId(data.id);
+
+      const updatedSession: SidebarSession = {
+        id: data.id,
+        title: data.title,
+        isPinned: (data as any).is_pinned || false,
+        isResearch: true,
+        pinColor: (data as any).pin_color || "primary",
+      };
+
+      setChatSessions((prev) => {
+        const existingIndex = prev.findIndex((s) => s.id === data.id);
+        if (existingIndex >= 0) {
+          const updated = [...prev];
+          updated[existingIndex] = updatedSession;
+          return updated;
+        }
+        return [updatedSession, ...prev];
+      });
     }
   };
 
@@ -152,6 +242,10 @@ const ResearchPage = () => {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           user={user}
           onSignOut={handleSignOut}
+          chatSessions={chatSessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={handleSelectSession}
+          onNewSession={() => navigate("/app")}
         />
 
         {/* Main */}

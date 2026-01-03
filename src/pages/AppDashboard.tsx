@@ -218,6 +218,9 @@ const AppDashboard = () => {
       setMessages(messagesArray);
       setActiveSessionId(data.id);
 
+      const hasResearchResponse = messagesArray.some((m: any) => (m as any)?.researchResponse);
+      setResearchMode(hasResearchResponse);
+
       const lastAssistantMsg = messagesArray.filter((m) => m.role === "assistant").pop();
       if (lastAssistantMsg?.metrics) {
         setLastMetrics(lastAssistantMsg.metrics);
@@ -288,26 +291,33 @@ const AppDashboard = () => {
 
     // Research mode - use Tavily
     if (researchMode) {
-      // Add placeholder for loading state
-      setMessages(prev => [...prev, { 
-        role: "assistant", 
-        content: "", 
-        timestamp: new Date() 
-      }]);
+      const baseMessages: MessageWithMetrics[] = [...messages, userMessage];
+
+      // Show placeholder while fetching
+      setMessages([
+        ...baseMessages,
+        {
+          role: "assistant",
+          content: "",
+          timestamp: new Date(),
+        },
+      ]);
 
       try {
-        const response = await searchWithTavily(query);
-        
-        setMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1] = {
+        const response = await searchWithTavily(userMessage.content);
+
+        const finalMessages: MessageWithMetrics[] = [
+          ...baseMessages,
+          {
             role: "assistant",
             content: response.answer,
             timestamp: new Date(),
             researchResponse: response,
-          };
-          return updated;
-        });
+          },
+        ];
+
+        setMessages(finalMessages);
+        await saveChatSession(finalMessages);
 
         if (response.error) {
           toast({
@@ -322,10 +332,10 @@ const AppDashboard = () => {
           description: "Failed to perform research",
           variant: "destructive",
         });
-        setMessages(prev => prev.slice(0, -1));
+        // Remove the placeholder assistant message
+        setMessages(baseMessages);
       } finally {
         setIsLoading(false);
-        saveChatSession();
       }
       return;
     }
@@ -384,18 +394,21 @@ const AppDashboard = () => {
     });
   };
 
-  const saveChatSession = async () => {
-    if (!user || messages.length === 0) return;
+  const saveChatSession = async (messagesOverride?: MessageWithMetrics[]) => {
+    if (!user) return;
 
-    const title = messages[0]?.content.slice(0, 50) || "New Chat";
-    
+    const messagesToSave = messagesOverride ?? messages;
+    if (messagesToSave.length === 0) return;
+
+    const title = messagesToSave[0]?.content.slice(0, 50) || "New Chat";
+
     const { data, error } = await supabase
       .from("chat_sessions")
       .upsert({
         id: activeSessionId || undefined,
         user_id: user.id,
         title,
-        messages: messages as any,
+        messages: messagesToSave as any,
         updated_at: new Date().toISOString(),
       })
       .select()
@@ -407,25 +420,28 @@ const AppDashboard = () => {
       if (!activeSessionId) {
         navigate(`/app?chat=${data.id}`, { replace: true });
       }
-      
+
       // Update local chatSessions state with the new/updated session
-      const messagesArray = Array.isArray(data.messages) ? data.messages as any[] : [];
-      const hasResearchResponse = messagesArray.some((m: any) => m?.researchResponse);
-      const contentPreview = messagesArray
+      const persistedMessagesArray = Array.isArray(data.messages)
+        ? (data.messages as any[])
+        : (messagesToSave as any[]);
+
+      const hasResearchResponse = persistedMessagesArray.some((m: any) => m?.researchResponse);
+      const contentPreview = persistedMessagesArray
         .filter((m: any) => m?.role === "assistant")
         .map((m: any) => m?.content || "")
         .join("\n\n");
-      const firstMessage = messagesArray[0];
-      const previewText = typeof firstMessage?.content === 'string' 
-        ? firstMessage.content.slice(0, 50) 
+      const firstMessage = persistedMessagesArray[0];
+      const previewText = typeof firstMessage?.content === "string"
+        ? firstMessage.content.slice(0, 50)
         : "Chat session";
-      
+
       const updatedSession: ChatSessionData = {
         id: data.id,
         title: data.title,
         preview: previewText,
         timestamp: new Date(data.updated_at),
-        messageCount: messagesArray.length,
+        messageCount: persistedMessagesArray.length,
         verified: true,
         citationCount: 0,
         isPinned: (data as any).is_pinned || false,
@@ -435,9 +451,9 @@ const AppDashboard = () => {
         pinColor: (data as any).pin_color || "primary",
         pinOrder: (data as any).pin_order || 0,
       };
-      
-      setChatSessions(prev => {
-        const existingIndex = prev.findIndex(s => s.id === data.id);
+
+      setChatSessions((prev) => {
+        const existingIndex = prev.findIndex((s) => s.id === data.id);
         if (existingIndex >= 0) {
           const updated = [...prev];
           updated[existingIndex] = updatedSession;
@@ -522,6 +538,9 @@ const AppDashboard = () => {
 
     setMessages(messagesArray);
     setActiveSessionId(data.id);
+
+    const hasResearchResponse = messagesArray.some((m: any) => (m as any)?.researchResponse);
+    setResearchMode(hasResearchResponse);
 
     const lastAssistantMsg = messagesArray.filter((m) => m.role === "assistant").pop();
     if (lastAssistantMsg?.metrics) {
