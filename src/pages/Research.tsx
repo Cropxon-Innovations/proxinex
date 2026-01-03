@@ -8,6 +8,7 @@ import { SourceVerificationLoader } from "@/components/SourceVerificationLoader"
 import { useToast } from "@/hooks/use-toast";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { Button } from "@/components/ui/button";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Send,
   Globe,
@@ -22,6 +23,7 @@ interface ResearchMessage {
   role: "user" | "assistant";
   content: string;
   response?: ResearchResponse;
+  researchResponse?: ResearchResponse; // For compatibility with chat_sessions format
   timestamp: Date;
 }
 
@@ -31,6 +33,7 @@ const ResearchPage = () => {
   const [messages, setMessages] = useState<ResearchMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [researchHistory, setResearchHistory] = useState<string[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
@@ -46,6 +49,37 @@ const ResearchPage = () => {
     navigate("/");
   };
 
+  // Save research session to chat_sessions table
+  const saveResearchSession = async (updatedMessages: ResearchMessage[]) => {
+    if (!user || updatedMessages.length === 0) return;
+
+    const title = updatedMessages[0]?.content.slice(0, 50) || "New Research";
+    
+    // Transform messages to include researchResponse for compatibility
+    const messagesForDb = updatedMessages.map(m => ({
+      role: m.role,
+      content: m.content,
+      timestamp: m.timestamp,
+      researchResponse: m.response || m.researchResponse, // Store as researchResponse for history detection
+    }));
+    
+    const { data, error } = await supabase
+      .from("chat_sessions")
+      .upsert({
+        id: activeSessionId || undefined,
+        user_id: user.id,
+        title,
+        messages: messagesForDb as any,
+        updated_at: new Date().toISOString(),
+      })
+      .select()
+      .single();
+
+    if (data && !error) {
+      setActiveSessionId(data.id);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
@@ -55,7 +89,8 @@ const ResearchPage = () => {
       content: query, 
       timestamp: new Date() 
     };
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
     setResearchHistory(prev => [...prev, query]);
     setQuery("");
     setIsLoading(true);
@@ -71,16 +106,18 @@ const ResearchPage = () => {
     try {
       const response = await searchWithTavily(query);
       
-      setMessages(prev => {
-        const updated = [...prev];
-        updated[updated.length - 1] = {
-          role: "assistant",
-          content: response.answer,
-          response,
-          timestamp: new Date(),
-        };
-        return updated;
-      });
+      const finalMessages = [...newMessages, {
+        role: "assistant" as const,
+        content: response.answer,
+        response,
+        researchResponse: response, // For compatibility
+        timestamp: new Date(),
+      }];
+      
+      setMessages(finalMessages);
+      
+      // Save to database
+      await saveResearchSession(finalMessages);
 
       if (response.error) {
         toast({
