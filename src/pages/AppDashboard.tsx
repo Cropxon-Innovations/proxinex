@@ -15,6 +15,7 @@ import { ThemeSelector } from "@/components/chat/ThemeSelector";
 import { NotificationCenter } from "@/components/NotificationCenter";
 import { KeyboardShortcutsButton, KeyboardShortcutsIndicator } from "@/components/KeyboardShortcuts";
 import { ChatExport } from "@/components/chat/ChatExport";
+import { InlineAskExport } from "@/components/chat/InlineAskExport";
 import { TokenCounter } from "@/components/chat/TokenCounter";
 import { PinnedMessages } from "@/components/chat/PinnedMessages";
 import { InlineAskData, InlineAskComment } from "@/components/chat/InlineAskComment";
@@ -40,13 +41,19 @@ import {
   PanelLeftClose,
   PanelLeft,
   Pin,
+  ChevronDown,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 
 const sidebarItems = [
   { icon: Plus, label: "New Session", path: "/app", isNew: true },
-  { icon: MessageSquare, label: "Chat", path: "/app/chat" },
+  { icon: MessageSquare, label: "Chat", path: "/app/chat", hasDropdown: true },
   { icon: Search, label: "Research", path: "/app/research" },
   { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
   { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
@@ -96,6 +103,7 @@ const AppDashboard = () => {
   const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
+  const [chatDropdownOpen, setChatDropdownOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -506,6 +514,60 @@ const AppDashboard = () => {
               const Icon = item.icon!;
               const isActive = location.pathname === item.path;
               const isNewSession = 'isNew' in item && item.isNew;
+              const hasDropdown = 'hasDropdown' in item && item.hasDropdown;
+              
+              // Render Chat item with dropdown
+              if (hasDropdown && !sidebarCollapsed) {
+                return (
+                  <Collapsible
+                    key={item.path}
+                    open={chatDropdownOpen}
+                    onOpenChange={setChatDropdownOpen}
+                    className="mx-2"
+                  >
+                    <CollapsibleTrigger className="w-full">
+                      <div className={`flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors ${
+                        isActive 
+                          ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
+                          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
+                      }`}>
+                        <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} />
+                        <span className="text-sm flex-1 text-left">{item.label}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${chatDropdownOpen ? 'rotate-180' : ''}`} />
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="mt-1 space-y-0.5">
+                      {chatSessions.slice(0, 5).map((session) => (
+                        <button
+                          key={session.id}
+                          onClick={() => handleSelectSession(session.id)}
+                          className={`w-full text-left px-3 py-1.5 text-xs rounded-md truncate transition-colors ${
+                            activeSessionId === session.id
+                              ? 'bg-primary/10 text-primary'
+                              : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
+                          }`}
+                        >
+                          {session.isStarred && <Star className="h-3 w-3 inline mr-1 text-yellow-400 fill-yellow-400" />}
+                          {session.title.slice(0, 25)}{session.title.length > 25 ? '...' : ''}
+                        </button>
+                      ))}
+                      {chatSessions.length > 5 && (
+                        <Link
+                          to="/app/chat"
+                          className="block px-3 py-1.5 text-xs text-primary hover:underline"
+                        >
+                          View all {chatSessions.length} chats →
+                        </Link>
+                      )}
+                      {chatSessions.length === 0 && (
+                        <div className="px-3 py-1.5 text-xs text-muted-foreground">
+                          No chat history yet
+                        </div>
+                      )}
+                    </CollapsibleContent>
+                  </Collapsible>
+                );
+              }
               
               return (
                 <Link
@@ -575,6 +637,7 @@ const AppDashboard = () => {
               <span className="text-sm text-muted-foreground">
                 Session: ₹{currentCost.toFixed(3)}
               </span>
+              <InlineAskExport inlineAsks={inlineAsks} sessionTitle={messages[0]?.content.slice(0, 30) || "Proxinex Ask"} />
               <ChatExport messages={messages} sessionTitle={messages[0]?.content.slice(0, 30) || "Chat"} />
               <KeyboardShortcutsButton />
               <NotificationCenter />
