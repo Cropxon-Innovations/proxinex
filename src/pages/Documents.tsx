@@ -1,10 +1,10 @@
 import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { Link, useNavigate } from "react-router-dom";
-import { Logo } from "@/components/Logo";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import {
   FileText,
   Upload,
@@ -16,14 +16,9 @@ import {
   Search,
   Grid,
   List,
-  ChevronLeft,
-  ChevronRight,
-  Plus,
   Sparkles,
   Clock,
-  FileIcon,
   Loader2,
-  X,
   CheckCircle,
   AlertCircle,
 } from "lucide-react";
@@ -118,6 +113,11 @@ export default function Documents() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
+  };
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -226,61 +226,26 @@ export default function Documents() {
       </Helmet>
 
       <div className="h-screen bg-background flex overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className={`${sidebarCollapsed ? "w-16" : "w-64"} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300`}>
-          <div className="h-16 border-b border-sidebar-border flex items-center px-4 flex-shrink-0">
-            <Link to="/">
-              <Logo size="sm" showText={!sidebarCollapsed} />
-            </Link>
-          </div>
-
-          <nav className="flex-1 py-4 overflow-y-auto">
-            <Link
-              to="/app"
-              className="flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-            >
-              <ChevronLeft className="h-5 w-5" />
-              {!sidebarCollapsed && <span className="text-sm">Back to Chat</span>}
-            </Link>
-            
-            <div className="my-4 border-t border-sidebar-border" />
-            
-            <div className={`px-4 ${sidebarCollapsed ? "hidden" : ""}`}>
-              <h3 className="text-xs font-medium text-muted-foreground mb-2">FOLDERS</h3>
-              <div className="space-y-1">
-                <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-lg">
-                  <Folder className="h-4 w-4 text-primary" />
-                  All Documents
-                  <span className="ml-auto text-xs text-muted-foreground">{documents.length}</span>
-                </button>
-                <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-lg">
-                  <Sparkles className="h-4 w-4 text-accent" />
-                  Recently Analyzed
-                </button>
-                <button className="flex items-center gap-2 w-full px-3 py-2 text-sm text-sidebar-foreground hover:bg-sidebar-accent/50 rounded-lg">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  Recent Uploads
-                </button>
-              </div>
-            </div>
-          </nav>
-
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="h-12 border-t border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors flex-shrink-0"
-          >
-            {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
-        </aside>
+        {/* Sidebar */}
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          user={user}
+          onSignOut={handleSignOut}
+        />
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Header */}
-          <header className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
-            <div className="flex items-center gap-4">
-              <FileText className="h-5 w-5 text-primary" />
-              <h1 className="font-semibold text-foreground">Documents</h1>
-              <span className="text-xs text-muted-foreground">{documents.length} files</span>
+          <header className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <FileText className="h-4 w-4 text-primary" />
+              </div>
+              <div>
+                <h1 className="font-semibold text-foreground text-sm">Documents</h1>
+                <span className="text-xs text-muted-foreground">{documents.length} files</span>
+              </div>
             </div>
             <div className="flex items-center gap-3">
               <div className="relative">
@@ -289,7 +254,7 @@ export default function Documents() {
                   placeholder="Search documents..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9 w-64"
+                  className="pl-9 w-64 h-9"
                 />
               </div>
               <div className="flex items-center border border-border rounded-lg overflow-hidden">
@@ -314,7 +279,7 @@ export default function Documents() {
                   onChange={handleFileSelect}
                   accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv"
                 />
-                <Button className="gap-2 cursor-pointer" asChild>
+                <Button className="gap-2 cursor-pointer h-9" asChild>
                   <span>
                     <Upload className="h-4 w-4" />
                     Upload
@@ -338,14 +303,14 @@ export default function Documents() {
               }`}
             >
               <div className="flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-                  <Upload className="h-8 w-8 text-primary" />
+                <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+                  <Upload className="h-6 w-6 text-primary" />
                 </div>
-                <h3 className="font-semibold text-foreground mb-1">
+                <h3 className="font-semibold text-foreground text-sm mb-1">
                   Drop files here to upload
                 </h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  or click the upload button above. Supports PDF, DOC, XLS, PPT, and more.
+                <p className="text-xs text-muted-foreground mb-3">
+                  Supports PDF, DOC, XLS, PPT, and more
                 </p>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Sparkles className="h-3 w-3 text-primary" />
@@ -463,51 +428,31 @@ export default function Documents() {
                   </thead>
                   <tbody>
                     {filteredDocs.map((doc) => (
-                      <tr key={doc.id} className="border-t border-border hover:bg-secondary/30 transition-colors">
+                      <tr key={doc.id} className="border-t border-border hover:bg-secondary/30">
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
                             <span className="text-xl">{getFileIcon(doc.type)}</span>
-                            <span className="text-sm font-medium text-foreground">{doc.name}</span>
+                            <span className="text-sm font-medium text-foreground truncate max-w-xs">{doc.name}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {formatFileSize(doc.size)}
-                        </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
-                          {doc.uploadedAt.toLocaleDateString()}
-                        </td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{formatFileSize(doc.size)}</td>
+                        <td className="px-4 py-3 text-sm text-muted-foreground">{doc.uploadedAt.toLocaleDateString()}</td>
                         <td className="px-4 py-3">
-                          {doc.status === "ready" && doc.analyzed && (
-                            <span className="inline-flex items-center gap-1 text-xs text-success">
-                              <CheckCircle className="h-3 w-3" />
-                              Analyzed
+                          {doc.status === "ready" && (
+                            <span className="text-xs text-success flex items-center gap-1">
+                              <CheckCircle className="h-3 w-3" /> Ready
                             </span>
                           )}
                           {doc.status === "analyzing" && (
-                            <span className="inline-flex items-center gap-1 text-xs text-primary">
-                              <Sparkles className="h-3 w-3 animate-pulse" />
-                              Analyzing
+                            <span className="text-xs text-primary flex items-center gap-1">
+                              <Sparkles className="h-3 w-3 animate-pulse" /> Analyzing
                             </span>
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <Eye className="h-4 w-4 mr-2" />
-                                View
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => deleteDocument(doc.id)} className="text-destructive">
-                                <Trash2 className="h-4 w-4 mr-2" />
-                                Delete
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => deleteDocument(doc.id)}>
+                            <Trash2 className="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                          </Button>
                         </td>
                       </tr>
                     ))}
