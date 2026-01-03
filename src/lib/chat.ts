@@ -1,3 +1,5 @@
+import { ResearchResponse } from "./tavily";
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/chat`;
 
 export type Message = { 
@@ -6,6 +8,7 @@ export type Message = {
   timestamp?: Date;
   isPinned?: boolean;
   originalIndex?: number;
+  researchResponse?: ResearchResponse;
 };
 
 export interface ChatMetrics {

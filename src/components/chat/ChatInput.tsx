@@ -1,27 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
-  Plus,
   Send,
   Globe,
   Cpu,
   Paperclip,
-  Image as ImageIcon,
-  FileText,
-  Video,
   Sparkles,
   BookOpen,
-  ShoppingCart,
   GraduationCap,
-  MoreHorizontal,
   Loader2,
   Zap,
   Calculator,
-  Briefcase,
   Users,
   MessageSquare,
   Cloud,
   FileCode,
+  FileText,
   Calendar,
   Database,
   ExternalLink,
@@ -83,24 +77,11 @@ const closedSourceModels: Model[] = [
 ];
 
 const searchModes = [
-  { id: "web", label: "Web", icon: Globe, enabled: true },
-  { id: "finance", label: "Finance", icon: Calculator, enabled: false },
-  { id: "academic", label: "Academic", icon: GraduationCap, enabled: false },
-  { id: "social", label: "Social", icon: Users, enabled: false },
-];
-
-const quickActions = [
-  { id: "files", label: "Add photos & files", icon: Paperclip },
-  { id: "create-image", label: "Create image", icon: ImageIcon },
-  { id: "deep-research", label: "Deep research", icon: Sparkles },
-  { id: "shopping", label: "Shopping research", icon: ShoppingCart },
-  { id: "study", label: "Study and learn", icon: GraduationCap },
-];
-
-const moreActions = [
-  { id: "web-search", label: "Web search", icon: Globe },
-  { id: "canvas", label: "Canvas", icon: FileText },
-  { id: "explore", label: "Explore apps", icon: Briefcase },
+  { id: "research", label: "Research", icon: Sparkles, description: "Deep search with citations" },
+  { id: "web", label: "Web", icon: Globe, description: "General web search" },
+  { id: "finance", label: "Finance", icon: Calculator, description: "Financial data & news" },
+  { id: "academic", label: "Academic", icon: GraduationCap, description: "Scholarly articles" },
+  { id: "social", label: "Social", icon: Users, description: "Social media trends" },
 ];
 
 const quickChips = [
@@ -124,6 +105,8 @@ interface ChatInputProps {
   onModelChange: (modelId: string) => void;
   autoMode: boolean;
   onAutoModeChange: (auto: boolean) => void;
+  researchMode: boolean;
+  onResearchModeChange: (enabled: boolean) => void;
 }
 
 export const ChatInput = ({
@@ -141,8 +124,9 @@ export const ChatInput = ({
   onModelChange,
   autoMode,
   onAutoModeChange,
+  researchMode,
+  onResearchModeChange,
 }: ChatInputProps) => {
-  const [showActionsMenu, setShowActionsMenu] = useState(false);
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showSearchModes, setShowSearchModes] = useState(false);
   const [showConnectorMenu, setShowConnectorMenu] = useState(false);
@@ -470,48 +454,35 @@ export const ChatInput = ({
               </div>
             </div>
 
-            {/* Right Actions */}
+            {/* Right Actions - Research Mode Toggle */}
             <div className="flex items-center gap-1">
-              {/* Actions Menu */}
-              <Popover open={showActionsMenu} onOpenChange={setShowActionsMenu}>
-                <PopoverTrigger asChild>
-                  <button type="button" className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                    <Plus className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-56 p-2" align="end">
-                  <div className="grid grid-cols-2 gap-1">
-                    <div className="space-y-1">
-                      {quickActions.map(action => (
-                        <button
-                          key={action.id}
-                          type="button"
-                          onClick={() => {
-                            if (action.id === "files") fileInputRef.current?.click();
-                            setShowActionsMenu(false);
-                          }}
-                          className="w-full flex items-center gap-2 p-2 text-sm hover:bg-secondary rounded transition-colors text-left"
-                        >
-                          <action.icon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs">{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                    <div className="space-y-1">
-                      {moreActions.map(action => (
-                        <button
-                          key={action.id}
-                          type="button"
-                          className="w-full flex items-center gap-2 p-2 text-sm hover:bg-secondary rounded transition-colors text-left"
-                        >
-                          <action.icon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-xs">{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </PopoverContent>
-              </Popover>
+              {/* Research Mode Toggle */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => onResearchModeChange(!researchMode)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+                        researchMode 
+                          ? 'bg-primary/20 text-primary border border-primary/30' 
+                          : 'bg-secondary text-muted-foreground hover:text-foreground'
+                      }`}
+                    >
+                      <Sparkles className={`h-4 w-4 ${researchMode ? 'text-primary' : ''}`} />
+                      <span className="text-xs font-medium">Research</span>
+                      <Switch
+                        checked={researchMode}
+                        onCheckedChange={onResearchModeChange}
+                        className="scale-75"
+                      />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Enable Research Mode for verified citations</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
               {/* File Upload */}
               <button
