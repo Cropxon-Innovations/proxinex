@@ -119,7 +119,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
       // Check for comments
       if (line.slice(i).startsWith('//') || line.slice(i).startsWith('#')) {
         lineElements.push(
-          <span key={`${lineIndex}-comment-${i}`} className="text-emerald-400 italic">
+          <span key={`${lineIndex}-comment-${i}`} className="text-emerald-600 dark:text-emerald-400 italic">
             {line.slice(i)}
           </span>
         );
@@ -135,7 +135,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
         }
         end++;
         lineElements.push(
-          <span key={`${lineIndex}-str-${i}`} className="text-amber-400">
+          <span key={`${lineIndex}-str-${i}`} className="text-amber-600 dark:text-amber-400">
             {line.slice(i, end)}
           </span>
         );
@@ -151,7 +151,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
         }
         end++;
         lineElements.push(
-          <span key={`${lineIndex}-tpl-${i}`} className="text-amber-400">
+          <span key={`${lineIndex}-tpl-${i}`} className="text-amber-600 dark:text-amber-400">
             {line.slice(i, end)}
           </span>
         );
@@ -166,7 +166,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
           end++;
         }
         lineElements.push(
-          <span key={`${lineIndex}-num-${i}`} className="text-purple-400">
+          <span key={`${lineIndex}-num-${i}`} className="text-purple-600 dark:text-purple-400">
             {line.slice(i, end)}
           </span>
         );
@@ -181,7 +181,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
           const nextChar = line[i + keyword.length];
           if (!nextChar || !/\w/.test(nextChar)) {
             lineElements.push(
-              <span key={`${lineIndex}-kw-${i}`} className="text-pink-400 font-semibold">
+              <span key={`${lineIndex}-kw-${i}`} className="text-pink-600 dark:text-pink-400 font-semibold">
                 {line.slice(i, i + keyword.length)}
               </span>
             );
@@ -205,13 +205,13 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
         
         if (isFunction) {
           lineElements.push(
-            <span key={`${lineIndex}-fn-${i}`} className="text-blue-400">
+            <span key={`${lineIndex}-fn-${i}`} className="text-blue-600 dark:text-blue-400">
               {word}
             </span>
           );
         } else if (isType) {
           lineElements.push(
-            <span key={`${lineIndex}-type-${i}`} className="text-cyan-400">
+            <span key={`${lineIndex}-type-${i}`} className="text-cyan-600 dark:text-cyan-400">
               {word}
             </span>
           );
@@ -504,7 +504,7 @@ export const ChatMessage = ({
                 </div>
                 <CodeCopyButton code={codeContent} />
               </div>
-              <pre className="bg-[hsl(240_21%_15%)] dark:bg-[#1e1e2e] border border-t-0 border-border rounded-b-lg p-4 overflow-x-auto text-[hsl(0_0%_95%)]">
+              <pre className="bg-slate-50 dark:bg-[#1e1e2e] border border-t-0 border-border rounded-b-lg p-4 overflow-x-auto text-slate-800 dark:text-slate-200">
                 <code className="text-xs font-mono">
                   {tokenizeCode(codeContent.trim(), codeLanguage)}
                 </code>
