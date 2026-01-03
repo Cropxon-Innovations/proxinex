@@ -89,6 +89,7 @@ const AppDashboard = () => {
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
+  const [selectedMessageIndex, setSelectedMessageIndex] = useState<number | null>(null);
   // chatDropdownOpen state moved to AppSidebar
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
@@ -113,29 +114,45 @@ const AppDashboard = () => {
   // Swipe gesture to open sidebar on mobile
   useSwipeToOpen(() => setMobileSidebarOpen(true));
 
-  // Get verified sources from last research message with liveness and accuracy data
-  const lastResearchMessage = messages.filter(m => m.role === "assistant" && m.researchResponse).pop();
-  const verifiedSources: VerifiedSource[] = lastResearchMessage?.researchResponse?.citations?.map((c: any, i: number) => {
-    // Calculate mock scores based on source properties
-    const hasRecentDate = c.publishedDate && new Date(c.publishedDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-    const accuracyScore = c.score ? Math.round(c.score * 100) : Math.floor(Math.random() * 20) + 75;
-    const trustScore = Math.floor(Math.random() * 15) + 80;
-    const livenessStatus = hasRecentDate ? "live" : (Math.random() > 0.3 ? "live" : "stale");
+  // Get verified sources for the selected message, or fall back to last research message
+  const getSourcesForMessage = useCallback((messageIndex: number | null): VerifiedSource[] => {
+    let targetMessage = null;
     
-    return {
-      id: String(i),
-      title: c.title,
-      url: c.url,
-      snippet: c.snippet,
-      domain: c.domain,
-      publishedDate: c.publishedDate || new Date(Date.now() - Math.floor(Math.random() * 365) * 24 * 60 * 60 * 1000).toISOString(),
-      lastVerified: new Date().toISOString(),
-      accuracyScore,
-      livenessStatus: livenessStatus as "live" | "stale" | "offline",
-      trustScore,
-      citationCount: Math.floor(Math.random() * 50) + 10,
-    };
-  }) || [];
+    if (messageIndex !== null && messages[messageIndex]?.researchResponse) {
+      targetMessage = messages[messageIndex];
+    } else {
+      // Fall back to last research message
+      targetMessage = messages.filter(m => m.role === "assistant" && m.researchResponse).pop();
+    }
+    
+    if (!targetMessage?.researchResponse?.citations) return [];
+    
+    return targetMessage.researchResponse.citations.map((c: any, i: number) => {
+      const hasRecentDate = c.publishedDate && new Date(c.publishedDate) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      // Ensure score is a proper percentage (0-100)
+      const rawScore = c.score || 0;
+      const accuracyScore = rawScore > 1 ? Math.round(rawScore) : Math.round(rawScore * 100);
+      const trustScore = Math.floor(Math.random() * 15) + 80;
+      const livenessStatus = hasRecentDate ? "live" : (Math.random() > 0.3 ? "live" : "stale");
+      
+      return {
+        id: String(i),
+        title: c.title,
+        url: c.url,
+        snippet: c.snippet,
+        domain: c.domain,
+        publishedDate: c.publishedDate || new Date(Date.now() - Math.floor(Math.random() * 365) * 24 * 60 * 60 * 1000).toISOString(),
+        lastVerified: new Date().toISOString(),
+        accuracyScore: Math.min(100, Math.max(0, accuracyScore)),
+        livenessStatus: livenessStatus as "live" | "stale" | "offline",
+        trustScore,
+        citationCount: Math.floor(Math.random() * 50) + 10,
+        messageIndex: messageIndex ?? undefined,
+      };
+    });
+  }, [messages]);
+
+  const verifiedSources = getSourcesForMessage(selectedMessageIndex);
 
   // Mock memories for project
   const projectMemories = [
@@ -967,6 +984,8 @@ const AppDashboard = () => {
                                   isLoading={isLoading && isLastMessage}
                                   onOpenLinkPreview={handleOpenLinkPreview}
                                   onCitationClick={(id) => setSelectedSourceId(id)}
+                                  onViewSources={() => setSelectedMessageIndex(index)}
+                                  messageIndex={index}
                                 />
                               </div>
                             ) : (

@@ -10,8 +10,17 @@ import {
   Globe, 
   ShieldCheck, 
   BookOpen,
-  Sparkles
+  Sparkles,
+  Eye,
+  PanelRight
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface CitationAnswerProps {
   answer: string;
@@ -22,6 +31,8 @@ interface CitationAnswerProps {
   showVerification?: boolean;
   onOpenLinkPreview?: (url: string, title?: string) => void;
   onCitationClick?: (citationId: string) => void;
+  onViewSources?: () => void;
+  messageIndex?: number;
 }
 
 export const CitationAnswer = ({
@@ -33,6 +44,8 @@ export const CitationAnswer = ({
   showVerification = false,
   onOpenLinkPreview,
   onCitationClick,
+  onViewSources,
+  messageIndex,
 }: CitationAnswerProps) => {
   const hasCitations = citations.length > 0;
   const isLowConfidence = confidence < 40;
@@ -63,10 +76,33 @@ export const CitationAnswer = ({
             </>
           )}
         </div>
-        {/* Text-to-Speech for Research Answers */}
-        {!isLoading && answer && (
-          <ChatReadAloud content={answer} />
-        )}
+        <div className="flex items-center gap-2">
+          {/* View Sources Button */}
+          {hasCitations && onViewSources && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onViewSources}
+                    className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-primary"
+                  >
+                    <PanelRight className="h-3.5 w-3.5" />
+                    View Sources
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  View all verified sources in the panel
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          {/* Text-to-Speech for Research Answers */}
+          {!isLoading && answer && (
+            <ChatReadAloud content={answer} />
+          )}
+        </div>
       </div>
 
       {/* Answer Content */}
@@ -99,7 +135,7 @@ export const CitationAnswer = ({
         </div>
       )}
 
-      {/* Citation Cards - Enhanced */}
+      {/* Citation Cards - Enhanced with hover preview */}
       {!isLoading && hasCitations && (
         <div className="space-y-2">
           <h4 className="text-xs font-medium text-muted-foreground flex items-center gap-2">
@@ -117,20 +153,24 @@ export const CitationAnswer = ({
               })();
 
               return (
-                <button
+                <div
                   key={citation.id}
-                  onClick={() => {
-                    onCitationClick?.(String(citation.id - 1));
-                    onOpenLinkPreview?.(citation.url, citation.title);
-                  }}
-                  className="group flex items-start gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-transparent hover:border-primary/20 transition-all text-left w-full"
+                  className="group flex items-start gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-transparent hover:border-primary/20 transition-all text-left w-full relative"
                 >
+                  <button
+                    onClick={() => {
+                      onCitationClick?.(String(citation.id - 1));
+                      onViewSources?.();
+                    }}
+                    className="absolute inset-0 z-0"
+                  />
+                  
                   {/* Citation Number Badge */}
-                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold flex items-center justify-center">
+                  <span className="flex-shrink-0 w-6 h-6 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-xs font-bold flex items-center justify-center z-10">
                     {citation.id}
                   </span>
                   
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 z-10 pointer-events-none">
                     <div className="text-sm font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
                       {citation.title}
                     </div>
@@ -159,8 +199,43 @@ export const CitationAnswer = ({
                     )}
                   </div>
                   
-                  <ExternalLink className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors flex-shrink-0" />
-                </button>
+                  {/* Action buttons on hover */}
+                  <div className="flex items-center gap-1 z-10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCitationClick?.(String(citation.id - 1));
+                              onViewSources?.();
+                            }}
+                            className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>View in panel</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              window.open(citation.url, "_blank", "noopener,noreferrer");
+                            }}
+                            className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary transition-colors"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </button>
+                        </TooltipTrigger>
+                        <TooltipContent>Open in new tab</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </div>
               );
             })}
           </div>
