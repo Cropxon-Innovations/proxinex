@@ -3,8 +3,6 @@ import { Button } from "@/components/ui/button";
 import {
   Plus,
   Send,
-  Mic,
-  MicOff,
   Globe,
   Cpu,
   Paperclip,
@@ -16,8 +14,6 @@ import {
   ShoppingCart,
   GraduationCap,
   MoreHorizontal,
-  ChevronDown,
-  X,
   Loader2,
   Zap,
   Calculator,
@@ -36,6 +32,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { VoiceInput } from "@/components/chat/VoiceInput";
 
 interface Model {
   id: string;
@@ -361,26 +358,11 @@ export const ChatInput = ({
                 <Paperclip className="h-4 w-4 text-muted-foreground" />
               </button>
 
-              {/* Voice */}
-              <button
-                type="button"
-                onClick={isRecording ? onVoiceStop : onVoiceStart}
-                className={`p-2 rounded-lg transition-colors ${isRecording ? "bg-destructive/20 text-destructive" : "hover:bg-secondary"}`}
-              >
-                {isRecording ? (
-                  <MicOff className="h-4 w-4" />
-                ) : (
-                  <Mic className="h-4 w-4 text-muted-foreground" />
-                )}
-              </button>
-
-              {/* Voice Mode */}
-              <button
-                type="button"
-                className="p-2 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-colors"
-              >
-                <Zap className="h-4 w-4" />
-              </button>
+              {/* Voice Input */}
+              <VoiceInput
+                onTranscript={(text) => setQuery(query + " " + text)}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         </div>
