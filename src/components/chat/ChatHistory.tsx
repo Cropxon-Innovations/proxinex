@@ -70,7 +70,7 @@ export const ChatHistory = ({
   onSessionExport,
 }: ChatHistoryProps) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["pinned", "today", "yesterday"]));
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["today", "yesterday"]));
   const [searchQuery, setSearchQuery] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
@@ -114,22 +114,28 @@ export const ChatHistory = ({
     return filtered;
   }, [sessions, searchQuery, dateFilter, categoryFilter, showArchived]);
 
-  // Group sessions by timeline
+  // Group sessions by timeline - NO separate pinned group, just show inline icons
   const groupedSessions = useMemo(() => {
     const groups: Record<string, { label: string; icon: JSX.Element; sessions: ChatSession[]; order: number }> = {};
     
     const baseGroups = {
-      pinned: { label: "Pinned", icon: <Pin className="h-4 w-4 text-primary fill-primary" />, sessions: [] as ChatSession[], order: 0 },
-      starred: { label: "Starred", icon: <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />, sessions: [] as ChatSession[], order: 1 },
-      today: { label: "Today", icon: <Calendar className="h-4 w-4 text-green-400" />, sessions: [] as ChatSession[], order: 2 },
-      yesterday: { label: "Yesterday", icon: <Calendar className="h-4 w-4 text-blue-400" />, sessions: [] as ChatSession[], order: 3 },
-      this_week: { label: "This Week", icon: <CalendarDays className="h-4 w-4 text-purple-400" />, sessions: [] as ChatSession[], order: 4 },
-      this_month: { label: "This Month", icon: <CalendarRange className="h-4 w-4 text-orange-400" />, sessions: [] as ChatSession[], order: 5 },
+      today: { label: "Today", icon: <Calendar className="h-4 w-4 text-green-400" />, sessions: [] as ChatSession[], order: 0 },
+      yesterday: { label: "Yesterday", icon: <Calendar className="h-4 w-4 text-blue-400" />, sessions: [] as ChatSession[], order: 1 },
+      this_week: { label: "This Week", icon: <CalendarDays className="h-4 w-4 text-purple-400" />, sessions: [] as ChatSession[], order: 2 },
+      this_month: { label: "This Month", icon: <CalendarRange className="h-4 w-4 text-orange-400" />, sessions: [] as ChatSession[], order: 3 },
     };
     
     Object.assign(groups, baseGroups);
 
+    // Sort sessions - pinned first within each group, then by date
     const sorted = [...filteredSessions].sort((a, b) => {
+      // Pinned items first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      // Starred items next
+      if (a.isStarred && !b.isStarred) return -1;
+      if (!a.isStarred && b.isStarred) return 1;
+      // Then by date
       const dateA = a.timestamp instanceof Date ? a.timestamp : new Date(a.timestamp);
       const dateB = b.timestamp instanceof Date ? b.timestamp : new Date(b.timestamp);
       return dateB.getTime() - dateA.getTime();
@@ -137,16 +143,6 @@ export const ChatHistory = ({
 
     sorted.forEach(session => {
       const date = session.timestamp instanceof Date ? session.timestamp : new Date(session.timestamp);
-      
-      if (session.isPinned) {
-        groups.pinned.sessions.push(session);
-        return;
-      }
-      
-      if (session.isStarred) {
-        groups.starred.sessions.push(session);
-        return;
-      }
       
       if (isToday(date)) {
         groups.today.sessions.push(session);
