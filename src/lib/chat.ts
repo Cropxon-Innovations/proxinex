@@ -4,6 +4,8 @@ export type Message = {
   role: "user" | "assistant"; 
   content: string;
   timestamp?: Date;
+  isPinned?: boolean;
+  originalIndex?: number;
 };
 
 export interface ChatMetrics {

@@ -1,9 +1,9 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { SelectToAsk, useSelectToAsk } from "@/components/SelectToAsk";
+import { PersistentInlineAsk, usePersistentInlineAsk } from "@/components/PersistentInlineAsk";
 import { streamChat, Message, ChatMetrics } from "@/lib/chat";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/chat/ChatInput";
@@ -16,6 +16,8 @@ import { NotificationCenter } from "@/components/NotificationCenter";
 import { KeyboardShortcutsButton, KeyboardShortcutsIndicator } from "@/components/KeyboardShortcuts";
 import { ChatExport } from "@/components/chat/ChatExport";
 import { TokenCounter } from "@/components/chat/TokenCounter";
+import { PinnedMessages } from "@/components/chat/PinnedMessages";
+import { InlineAskData, InlineAskComment } from "@/components/chat/InlineAskComment";
 import { 
   Plus, 
   MessageSquare, 
@@ -37,6 +39,7 @@ import {
   Star,
   PanelLeftClose,
   PanelLeft,
+  Pin,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
@@ -90,13 +93,17 @@ const AppDashboard = () => {
   const [chatSessions, setChatSessions] = useState<ChatSessionData[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
+  const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
+  const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
+  const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const location = useLocation();
   const navigate = useNavigate();
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { selection, handleMouseUp, clearSelection } = useSelectToAsk();
+  const { selection, handleMouseUp, clearSelection, isMaximized, toggleMaximize } = usePersistentInlineAsk();
 
   // Mock memories for project
   const projectMemories = [
@@ -287,6 +294,34 @@ const AppDashboard = () => {
     setCurrentCost(0);
     setRelatedQueries([]);
     setQuery("");
+    setPinnedMessages([]);
+    setInlineAsks([]);
+  };
+
+  // Pin/Unpin message handlers
+  const handlePinMessage = (index: number) => {
+    const message = messages[index];
+    if (!message) return;
+
+    const isPinned = pinnedMessages.some(m => m.originalIndex === index);
+    
+    if (isPinned) {
+      setPinnedMessages(prev => prev.filter(m => m.originalIndex !== index));
+      toast({ title: "Message unpinned" });
+    } else {
+      setPinnedMessages(prev => [...prev, { ...message, originalIndex: index }]);
+      toast({ title: "Message pinned" });
+    }
+  };
+
+  const handleScrollToMessage = (index: number) => {
+    messageRefs.current[index]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  // Inline Ask save handler
+  const handleSaveInlineAsk = (data: InlineAskData) => {
+    setInlineAsks(prev => [...prev, data]);
+    toast({ title: "Inline Ask saved" });
   };
 
   const handleVoiceStart = () => {
@@ -436,67 +471,85 @@ const AppDashboard = () => {
             {/* Messages Column - Scrollable */}
             <div 
               ref={chatContainerRef}
-              className="flex-1 overflow-y-auto p-6"
-              onMouseUp={(e) => handleMouseUp(e)}
+              className="flex-1 overflow-y-auto"
+              onMouseUp={(e) => handleMouseUp(e, messages.map(m => m.content).join("\n\n"))}
             >
-              {messages.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center">
-                  <div className="text-center max-w-md">
-                    <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                      <MessageSquare className="h-8 w-8 text-primary" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-foreground mb-2">
-                      What can I help you with?
-                    </h2>
-                    <p className="text-muted-foreground mb-6">
-                      Ask anything. Get accurate, cited answers. Highlight text to use Inline Ask™.
-                    </p>
-                    <div className="flex flex-wrap justify-center gap-2">
-                      {[
-                        "Explain quantum computing",
-                        "Compare React vs Vue",
-                        "Latest AI research trends"
-                      ].map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          onClick={() => setQuery(suggestion)}
-                          className="px-3 py-1.5 text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
+              {/* Pinned Messages Section */}
+              {pinnedMessages.length > 0 && (
+                <PinnedMessages
+                  messages={pinnedMessages}
+                  onUnpin={handlePinMessage}
+                  onScrollToMessage={handleScrollToMessage}
+                />
+              )}
+
+              <div className="p-6">
+                {messages.length === 0 ? (
+                  <div className="h-full flex flex-col items-center justify-center">
+                    <div className="text-center max-w-md">
+                      <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                        <MessageSquare className="h-8 w-8 text-primary" />
+                      </div>
+                      <h2 className="text-2xl font-bold text-foreground mb-2">
+                        What can I help you with?
+                      </h2>
+                      <p className="text-muted-foreground mb-6">
+                        Ask anything. Get accurate, cited answers. Highlight text to use Inline Ask™.
+                      </p>
+                      <div className="flex flex-wrap justify-center gap-2">
+                        {[
+                          "Explain quantum computing",
+                          "Compare React vs Vue",
+                          "Latest AI research trends"
+                        ].map((suggestion) => (
+                          <button
+                            key={suggestion}
+                            onClick={() => setQuery(suggestion)}
+                            className="px-3 py-1.5 text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
+                          >
+                            {suggestion}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ) : (
-                <div className="max-w-3xl mx-auto">
-                  {messages.map((message, index) => {
-                    const messageMetrics = message.metrics || (message.role === "assistant" ? lastMetrics : null);
-                    return (
-                      <ChatMessage
-                        key={index}
-                        role={message.role}
-                        content={message.content}
-                        timestamp={message.timestamp}
-                        isLoading={isLoading && index === messages.length - 1 && message.role === "assistant"}
-                        accuracy={messageMetrics?.accuracy || 85}
-                        cost={messageMetrics?.cost || 0.012}
-                        model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
+                ) : (
+                  <div className="max-w-3xl mx-auto">
+                    {messages.map((message, index) => {
+                      const messageMetrics = message.metrics || (message.role === "assistant" ? lastMetrics : null);
+                      const isPinned = pinnedMessages.some(m => m.originalIndex === index);
+                      return (
+                        <div
+                          key={index}
+                          ref={(el) => { messageRefs.current[index] = el; }}
+                        >
+                          <ChatMessage
+                            role={message.role}
+                            content={message.content}
+                            timestamp={message.timestamp}
+                            isLoading={isLoading && index === messages.length - 1 && message.role === "assistant"}
+                            accuracy={messageMetrics?.accuracy || 85}
+                            cost={messageMetrics?.cost || 0.012}
+                            model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
+                            isPinned={isPinned}
+                            onPin={() => handlePinMessage(index)}
+                          />
+                        </div>
+                      );
+                    })}
+
+                    {/* Related Queries */}
+                    {!isLoading && messages.length > 0 && (
+                      <RelatedQueries
+                        queries={relatedQueries}
+                        onQueryClick={handleRelatedQueryClick}
                       />
-                    );
-                  })}
+                    )}
 
-                  {/* Related Queries */}
-                  {!isLoading && messages.length > 0 && (
-                    <RelatedQueries
-                      queries={relatedQueries}
-                      onQueryClick={handleRelatedQueryClick}
-                    />
-                  )}
-
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
+                    <div ref={messagesEndRef} />
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Right Panel - Fixed */}
@@ -613,13 +666,29 @@ const AppDashboard = () => {
         </main>
       </div>
 
-      {/* Select-to-Ask Popup */}
+      {/* Persistent Inline Ask Popup */}
       {selection && (
-        <SelectToAsk
+        <PersistentInlineAsk
           selectedText={selection.text}
           position={selection.position}
           fullContext={messages.map(m => m.content).join("\n\n")}
           onClose={clearSelection}
+          onSaveInlineAsk={handleSaveInlineAsk}
+          hasActivePopup={false}
+          messageIndex={selection.messageIndex}
+          selectionOffset={selection.selectionOffset}
+          isMaximized={isMaximized}
+          onToggleMaximize={toggleMaximize}
+        />
+      )}
+
+      {/* Maximized Inline Ask Comment */}
+      {maximizedInlineAsk && (
+        <InlineAskComment
+          data={maximizedInlineAsk}
+          onMaximize={() => {}}
+          onClose={() => setMaximizedInlineAsk(null)}
+          isMinimized={false}
         />
       )}
     </>
