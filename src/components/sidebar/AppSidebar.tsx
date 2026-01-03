@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Collapsible,
   CollapsibleContent,
@@ -13,7 +14,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Plus,
+  PenLine,
   MessageSquare,
   Search,
   Layers,
@@ -32,10 +33,13 @@ import {
   PanelLeft,
   Pin,
   ChevronDown,
+  ChevronUp,
   Wand2,
   Beaker,
   Lock,
   History,
+  Sparkles,
+  Crown,
 } from "lucide-react";
 import { useUserPlan, UserPlan } from "@/hooks/useUserPlan";
 
@@ -70,7 +74,7 @@ interface NavItem {
 
 // Primary actions - always visible
 const primaryItems: NavItem[] = [
-  { icon: Plus, label: "New Session", path: "/app", isNew: true },
+  { icon: PenLine, label: "New Chat", path: "/app", isNew: true },
   { icon: MessageSquare, label: "Chat", path: "/app/chat", hasDropdown: true, feature: "chat" },
   { icon: Search, label: "Research", path: "/app/research", feature: "research" },
 ];
@@ -102,6 +106,12 @@ const settingsItems: NavItem[] = [
   { icon: Settings, label: "Settings", path: "/app/settings" },
 ];
 
+const planLabels: Record<UserPlan, { label: string; color: string; icon: any }> = {
+  free: { label: "Free", color: "bg-muted text-muted-foreground", icon: null },
+  go: { label: "Go", color: "bg-primary/20 text-primary", icon: Sparkles },
+  pro: { label: "Pro", color: "bg-amber-500/20 text-amber-600 dark:text-amber-400", icon: Crown },
+};
+
 export const AppSidebar = ({
   collapsed,
   onToggleCollapse,
@@ -113,10 +123,14 @@ export const AppSidebar = ({
   onNewSession,
 }: AppSidebarProps) => {
   const location = useLocation();
+  const navigate = useNavigate();
   const [historyOpen, setHistoryOpen] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
-  const { isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
+  const { plan, isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
+
+  const currentPlan = planLabels[plan];
+  const PlanIcon = currentPlan.icon;
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -132,17 +146,17 @@ export const AppSidebar = ({
       <Tooltip key={item.path}>
         <TooltipTrigger asChild>
           <div
-            className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg cursor-not-allowed opacity-60 ${
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-not-allowed opacity-60 ${
               active
                 ? "bg-sidebar-accent/50"
                 : "text-sidebar-foreground"
             }`}
           >
-            <Icon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+            <Icon className="h-4 w-4 flex-shrink-0 text-muted-foreground" />
             {!collapsed && (
               <>
                 <span className="text-sm text-muted-foreground flex-1">{item.label}</span>
-                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+                <Lock className="h-3 w-3 text-muted-foreground" />
               </>
             )}
           </div>
@@ -265,14 +279,14 @@ export const AppSidebar = ({
         key={item.path}
         to={item.path}
         onClick={isNewSession ? onNewSession : undefined}
-        className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${
+        className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
           active
             ? "bg-sidebar-accent text-sidebar-accent-foreground"
             : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-        } ${isNewSession ? "border border-primary/50" : ""}`}
+        } ${isNewSession ? "border border-primary/40 bg-primary/5" : ""}`}
       >
         <Icon
-          className={`h-5 w-5 flex-shrink-0 ${isNewSession ? "text-primary" : active ? "text-primary" : ""}`}
+          className={`h-4 w-4 flex-shrink-0 ${isNewSession ? "text-primary" : active ? "text-primary" : ""}`}
         />
         {!collapsed && <span className="text-sm">{item.label}</span>}
       </Link>
@@ -415,26 +429,30 @@ export const AppSidebar = ({
         </button>
       )}
 
-      <nav className="flex-1 py-4 overflow-y-auto space-y-1">
+      <nav className="flex-1 py-3 overflow-y-auto">
         {/* Primary Actions */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 px-2 mb-3">
           {primaryItems.map((item, index) => renderNavItem(item, index))}
         </div>
 
         {/* Divider */}
-        <div className="my-3 mx-4 border-t border-sidebar-border" />
+        <div className="my-2 mx-3 border-t border-sidebar-border/60" />
 
         {/* Create Section */}
-        {renderCollapsibleSection("Create", Wand2, createItems, createOpen, setCreateOpen)}
+        <div className="px-1 mb-1">
+          {renderCollapsibleSection("Create", Wand2, createItems, createOpen, setCreateOpen)}
+        </div>
 
         {/* Advanced Section */}
-        {renderCollapsibleSection("Advanced", Beaker, advancedItems, advancedOpen, setAdvancedOpen)}
+        <div className="px-1 mb-1">
+          {renderCollapsibleSection("Advanced", Beaker, advancedItems, advancedOpen, setAdvancedOpen)}
+        </div>
 
         {/* Divider */}
-        <div className="my-3 mx-4 border-t border-sidebar-border" />
+        <div className="my-2 mx-3 border-t border-sidebar-border/60" />
 
         {/* Organization */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 px-2 mb-1">
           {orgItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -442,13 +460,13 @@ export const AppSidebar = ({
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                 }`}
               >
-                <Icon className={`h-5 w-5 flex-shrink-0 ${active ? "text-primary" : ""}`} />
+                <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
                 {!collapsed && <span className="text-sm">{item.label}</span>}
               </Link>
             );
@@ -456,10 +474,10 @@ export const AppSidebar = ({
         </div>
 
         {/* Divider */}
-        <div className="my-3 mx-4 border-t border-sidebar-border" />
+        <div className="my-2 mx-3 border-t border-sidebar-border/60" />
 
         {/* Settings */}
-        <div className="space-y-1">
+        <div className="space-y-0.5 px-2">
           {settingsItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
@@ -467,13 +485,13 @@ export const AppSidebar = ({
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
                   active
                     ? "bg-sidebar-accent text-sidebar-accent-foreground"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                 }`}
               >
-                <Icon className={`h-5 w-5 flex-shrink-0 ${active ? "text-primary" : ""}`} />
+                <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
                 {!collapsed && <span className="text-sm">{item.label}</span>}
               </Link>
             );
@@ -483,20 +501,38 @@ export const AppSidebar = ({
 
       {/* User Info */}
       {!collapsed && user && (
-        <div className="p-4 border-t border-sidebar-border flex-shrink-0">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+        <div className="p-3 border-t border-sidebar-border flex-shrink-0 space-y-3">
+          {/* User Profile */}
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
               <User className="h-4 w-4 text-primary" />
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-foreground truncate">{user.email}</p>
+              {/* Plan Badge */}
+              <button
+                onClick={() => navigate('/pricing')}
+                className="flex items-center gap-1.5 mt-1 group"
+              >
+                <Badge variant="secondary" className={`${currentPlan.color} text-xs px-2 py-0.5 font-medium`}>
+                  {PlanIcon && <PlanIcon className="h-3 w-3 mr-1" />}
+                  {currentPlan.label} Plan
+                </Badge>
+                {plan === 'free' && (
+                  <span className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">
+                    Upgrade →
+                  </span>
+                )}
+              </button>
             </div>
           </div>
+          
+          {/* Sign Out */}
           <Button
             variant="ghost"
             size="sm"
             onClick={onSignOut}
-            className="w-full justify-start text-muted-foreground hover:text-foreground"
+            className="w-full justify-start text-muted-foreground hover:text-foreground h-9"
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out

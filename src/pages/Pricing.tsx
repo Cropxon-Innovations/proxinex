@@ -2,10 +2,14 @@ import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Rocket, Building2, IndianRupee, DollarSign } from "lucide-react";
+import { Check, Zap, Rocket, Building2, IndianRupee, DollarSign, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PricingCalculator } from "@/components/landing/PricingCalculator";
+import { useRazorpay } from "@/hooks/useRazorpay";
+import { useAuth } from "@/contexts/AuthContext";
+import { useUserPlan } from "@/hooks/useUserPlan";
+import { useToast } from "@/hooks/use-toast";
 
 type Currency = "INR" | "USD";
 
@@ -108,7 +112,22 @@ const plans: PlanDetails[] = [
 
 const Pricing = () => {
   const [currency, setCurrency] = useState<Currency>("INR");
+  const { initiatePayment, loading } = useRazorpay();
+  const { user } = useAuth();
+  const { plan: currentPlan } = useUserPlan();
+  const { toast } = useToast();
 
+  const handleSubscribe = (planKey: "go" | "pro") => {
+    if (!user) {
+      toast({
+        title: "Sign in required",
+        description: "Please sign in to subscribe to a plan.",
+        variant: "destructive",
+      });
+      return;
+    }
+    initiatePayment(planKey, currency);
+  };
   return (
     <>
       <Helmet>
@@ -205,7 +224,25 @@ const Pricing = () => {
                     ))}
                   </ul>
 
-                  <Link to={plan.planKey === "enterprise" ? "/contact" : "/app"}>
+                  {plan.planKey === "free" ? (
+                    <Link to="/app">
+                      <Button 
+                        className="w-full border-border hover:bg-secondary"
+                        variant="outline"
+                      >
+                        {currentPlan === "free" ? "Current Plan" : "Get Started Free"}
+                      </Button>
+                    </Link>
+                  ) : plan.planKey === "enterprise" ? (
+                    <Link to="/contact">
+                      <Button 
+                        className="w-full border-border hover:bg-secondary"
+                        variant="outline"
+                      >
+                        Contact Sales
+                      </Button>
+                    </Link>
+                  ) : (
                     <Button 
                       className={`w-full ${
                         plan.variant === "default" 
@@ -213,10 +250,21 @@ const Pricing = () => {
                           : 'border-border hover:bg-secondary'
                       }`}
                       variant={plan.variant}
+                      disabled={loading || currentPlan === plan.planKey}
+                      onClick={() => handleSubscribe(plan.planKey as "go" | "pro")}
                     >
-                      {plan.cta}
+                      {loading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Processing...
+                        </>
+                      ) : currentPlan === plan.planKey ? (
+                        "Current Plan"
+                      ) : (
+                        plan.cta
+                      )}
                     </Button>
-                  </Link>
+                  )}
                 </div>
               ))}
             </div>
