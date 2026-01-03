@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Shield, Zap, Eye, Monitor } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { InteractiveRoutingDemo } from "./InteractiveRoutingDemo";
 import heroBg from "@/assets/hero-bg.png";
 
 export const HeroSection = () => {
@@ -18,69 +19,77 @@ export const HeroSection = () => {
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto px-4 py-20">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-border bg-secondary/50 backdrop-blur mb-8 animate-fade-up">
-            <span className="w-2 h-2 rounded-full bg-primary animate-pulse-glow" />
-            <span className="text-sm text-muted-foreground">AI Intelligence Control Plane</span>
+      <div className="relative z-10 container mx-auto px-4 py-12 md:py-16">
+        <div className="max-w-5xl mx-auto">
+          {/* Text Content */}
+          <div className="text-center mb-8 md:mb-10">
+            {/* Badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-border bg-secondary/50 backdrop-blur mb-5 animate-fade-up">
+              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse-glow" />
+              <span className="text-xs text-muted-foreground">AI Intelligence Control Plane</span>
+            </div>
+
+            {/* Main Headline */}
+            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold tracking-tight mb-4 animate-fade-up" style={{ animationDelay: "0.1s" }}>
+              <span className="text-foreground">Control</span>{" "}
+              <span className="text-gradient">Intelligence.</span>
+            </h1>
+
+            {/* Subheadline */}
+            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 animate-fade-up" style={{ animationDelay: "0.2s" }}>
+              Route queries to the best AI models. See exactly what you're paying. 
+              Verify every answer. All in one platform.
+            </p>
+
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-4 animate-fade-up" style={{ animationDelay: "0.3s" }}>
+              <Link to="/app">
+                <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 glow group px-6">
+                  Start Free
+                  <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </Link>
+              <Link to="/sandbox">
+                <Button size="lg" variant="outline" className="border-border hover:bg-secondary">
+                  Try Sandbox
+                </Button>
+              </Link>
+            </div>
+
+            {/* Desktop Client Badge */}
+            <div className="flex justify-center mb-6 animate-fade-up" style={{ animationDelay: "0.35s" }}>
+              <Badge variant="outline" className="px-3 py-1.5 text-xs border-amber-500/30 bg-amber-500/10 text-amber-400">
+                <Monitor className="w-3.5 h-3.5 mr-1.5" />
+                Desktop Client — Coming Soon
+              </Badge>
+            </div>
           </div>
 
-          {/* Main Headline */}
-          <h1 className="text-5xl md:text-7xl font-bold tracking-tight mb-6 animate-fade-up" style={{ animationDelay: "0.1s" }}>
-            <span className="text-foreground">Control</span>{" "}
-            <span className="text-gradient">Intelligence.</span>
-          </h1>
-
-          {/* Subheadline */}
-          <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto mb-8 animate-fade-up" style={{ animationDelay: "0.2s" }}>
-            Route queries to the best AI models. See exactly what you're paying. 
-            Verify every answer. All in one platform.
-          </p>
-
-          {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-up" style={{ animationDelay: "0.3s" }}>
-            <Link to="/app">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 glow group px-8">
-                Start Free
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </Link>
-            <Link to="/sandbox">
-              <Button size="lg" variant="outline" className="border-border hover:bg-secondary">
-                Try Sandbox
-              </Button>
-            </Link>
-          </div>
-
-          {/* Desktop Client Badge */}
-          <div className="flex justify-center mb-12 animate-fade-up" style={{ animationDelay: "0.35s" }}>
-            <Badge variant="outline" className="px-4 py-2 text-sm border-amber-500/30 bg-amber-500/10 text-amber-400">
-              <Monitor className="w-4 h-4 mr-2" />
-              Proxinex Desktop Client — Coming Soon
-            </Badge>
+          {/* Interactive Routing Demo */}
+          <div className="animate-fade-up" style={{ animationDelay: "0.4s" }}>
+            <InteractiveRoutingDemo />
           </div>
 
           {/* Trust Indicators */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto animate-fade-up" style={{ animationDelay: "0.4s" }}>
-            <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-card/50 border border-border backdrop-blur">
-              <Shield className="h-5 w-5 text-primary" />
-              <span className="text-sm text-foreground">Accuracy Scoring</span>
+          <div className="grid grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto mt-8 animate-fade-up" style={{ animationDelay: "0.5s" }}>
+            <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-card/50 border border-border backdrop-blur">
+              <Shield className="h-4 w-4 text-primary" />
+              <span className="text-xs md:text-sm text-foreground">Accuracy Scoring</span>
             </div>
-            <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-card/50 border border-border backdrop-blur">
-              <Zap className="h-5 w-5 text-primary" />
-              <span className="text-sm text-foreground">Multi-Model Routing</span>
+            <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-card/50 border border-border backdrop-blur">
+              <Zap className="h-4 w-4 text-primary" />
+              <span className="text-xs md:text-sm text-foreground">Multi-Model Routing</span>
             </div>
-            <div className="flex items-center justify-center gap-3 p-4 rounded-lg bg-card/50 border border-border backdrop-blur">
-              <Eye className="h-5 w-5 text-primary" />
-              <span className="text-sm text-foreground">Full Cost Transparency</span>
+            <div className="flex items-center justify-center gap-2 p-3 rounded-lg bg-card/50 border border-border backdrop-blur">
+              <Eye className="h-4 w-4 text-primary" />
+              <span className="text-xs md:text-sm text-foreground">Cost Transparency</span>
             </div>
           </div>
         </div>
       </div>
 
       {/* Bottom Gradient */}
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-background to-transparent z-10" />
+      <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-background to-transparent z-10" />
     </section>
   );
 };

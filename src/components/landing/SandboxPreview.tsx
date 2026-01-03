@@ -31,14 +31,14 @@ const mockResults = [
 
 export const SandboxPreview = () => {
   return (
-    <section className="py-24 bg-card/30">
+    <section className="py-12 md:py-16 bg-card/30">
       <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center mb-12">
-          <span className="text-sm text-primary font-medium">Sandbox</span>
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mt-2 mb-4">
+        <div className="max-w-3xl mx-auto text-center mb-8">
+          <span className="text-xs text-primary font-medium">Sandbox</span>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mt-2 mb-3">
             Compare AI Models Side by Side
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             See how different models answer the same question. Compare accuracy, speed, and cost.
           </p>
         </div>
@@ -100,11 +100,11 @@ export const SandboxPreview = () => {
           </div>
 
           {/* CTA */}
-          <div className="text-center mt-8">
+          <div className="text-center mt-6">
             <Link to="/sandbox">
-              <Button variant="outline" className="border-border hover:bg-secondary group">
+              <Button variant="outline" size="sm" className="border-border hover:bg-secondary group">
                 Try Sandbox
-                <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                <ArrowRight className="ml-2 h-3.5 w-3.5 group-hover:translate-x-1 transition-transform" />
               </Button>
             </Link>
           </div>

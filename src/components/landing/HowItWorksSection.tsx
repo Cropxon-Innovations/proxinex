@@ -119,27 +119,27 @@ export const HowItWorksSection = () => {
     }, 4000);
     return () => clearInterval(interval);
   }, []);
-  return <section className="py-24 bg-background relative overflow-hidden">
+  return <section className="py-12 md:py-16 bg-background relative overflow-hidden">
       {/* Background gradient effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" style={{
+        <div className="absolute top-1/4 left-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-72 h-72 bg-primary/5 rounded-full blur-3xl animate-pulse" style={{
         animationDelay: "1s"
       }} />
       </div>
 
       <div className="container mx-auto px-4 relative">
         {/* Header */}
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm mb-6">
-            <Sparkles className="h-4 w-4" />
+        <div className="max-w-3xl mx-auto text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 text-primary text-xs mb-4">
+            <Sparkles className="h-3.5 w-3.5" />
             <span>How It Works</span>
           </div>
-          <h2 className="text-3xl md:text-5xl font-bold text-foreground mb-4">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
             Intelligent Routing,{" "}
             <span className="text-primary">Transparent Results</span>
           </h2>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-base text-muted-foreground max-w-2xl mx-auto">
             Proxinex is an AI Intelligence Control Plane—not a single model. 
             It automatically selects the best intelligence for each query.
           </p>
@@ -160,34 +160,34 @@ export const HowItWorksSection = () => {
         </div>
 
         {/* Trust Points */}
-        <div className="max-w-4xl mx-auto mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="text-center p-6 rounded-xl bg-card/50 border border-border">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Brain className="h-6 w-6 text-primary" />
+        <div className="max-w-3xl mx-auto mt-8 grid grid-cols-3 gap-3">
+          <div className="text-center p-4 rounded-lg bg-card/50 border border-border">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+              <Brain className="h-5 w-5 text-primary" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Intelligent</h3>
-            <p className="text-sm text-muted-foreground">
-              Automatically selects the best model for each query type
+            <h3 className="font-semibold text-foreground text-sm mb-1">Intelligent</h3>
+            <p className="text-xs text-muted-foreground">
+              Best model for each query
             </p>
           </div>
           
-          <div className="text-center p-6 rounded-xl bg-card/50 border border-border">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Shield className="h-6 w-6 text-primary" />
+          <div className="text-center p-4 rounded-lg bg-card/50 border border-border">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+              <Shield className="h-5 w-5 text-primary" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Transparent</h3>
-            <p className="text-sm text-muted-foreground">
-              Every answer shows confidence scores and verified sources
+            <h3 className="font-semibold text-foreground text-sm mb-1">Transparent</h3>
+            <p className="text-xs text-muted-foreground">
+              Confidence & verified sources
             </p>
           </div>
           
-          <div className="text-center p-6 rounded-xl bg-card/50 border border-border">
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-              <Zap className="h-6 w-6 text-primary" />
+          <div className="text-center p-4 rounded-lg bg-card/50 border border-border">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+              <Zap className="h-5 w-5 text-primary" />
             </div>
-            <h3 className="font-semibold text-foreground mb-2">Cost-Efficient</h3>
-            <p className="text-sm text-muted-foreground">
-              Open models first, premium only when truly needed
+            <h3 className="font-semibold text-foreground text-sm mb-1">Cost-Efficient</h3>
+            <p className="text-xs text-muted-foreground">
+              Open first, premium when needed
             </p>
           </div>
         </div>

@@ -25,31 +25,31 @@ const problems = [
 
 export const ProblemSection = () => {
   return (
-    <section className="py-24 bg-background">
+    <section className="py-12 md:py-16 bg-background">
       <div className="container mx-auto px-4">
-        <div className="max-w-3xl mx-auto text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+        <div className="max-w-3xl mx-auto text-center mb-10">
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
             The Problem with AI Today
           </h2>
-          <p className="text-lg text-muted-foreground">
+          <p className="text-base text-muted-foreground">
             Every AI tool asks you to trust blindly. Proxinex gives you control.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-4xl mx-auto">
           {problems.map((problem, index) => (
             <div
               key={problem.title}
-              className="p-6 rounded-lg bg-card border border-border hover:border-primary/30 transition-all group animate-fade-up"
+              className="p-4 rounded-lg bg-card border border-border hover:border-primary/30 transition-all group animate-fade-up"
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <div className="flex items-start gap-4">
+              <div className="flex items-start gap-3">
                 <div className="p-2 rounded-lg bg-destructive/10 text-destructive">
-                  <problem.icon className="h-5 w-5" />
+                  <problem.icon className="h-4 w-4" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-foreground mb-2">{problem.title}</h3>
-                  <p className="text-sm text-muted-foreground">{problem.description}</p>
+                  <h3 className="font-semibold text-foreground text-sm mb-1">{problem.title}</h3>
+                  <p className="text-xs text-muted-foreground">{problem.description}</p>
                 </div>
               </div>
             </div>
