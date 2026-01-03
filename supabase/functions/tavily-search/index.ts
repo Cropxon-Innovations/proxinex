@@ -28,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, include_answer = false } = await req.json();
+    const { query, include_answer = false, max_sources = 15, is_deep_research = false } = await req.json();
     const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -53,10 +53,10 @@ serve(async (req) => {
       body: JSON.stringify({
         api_key: TAVILY_API_KEY,
         query: query,
-        search_depth: "advanced",
+        search_depth: is_deep_research ? "advanced" : "advanced",
         include_answer: false,
         include_raw_content: false,
-        max_results: 8,
+        max_results: Math.min(max_sources, 20), // Dynamic limit, max 20 from Tavily
       }),
     });
 

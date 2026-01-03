@@ -52,7 +52,6 @@ export const SourceVerificationLoader = ({
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [foundSources, setFoundSources] = useState<string[]>([]);
-  const [logoRotation, setLogoRotation] = useState(0);
 
   const verificationSteps = isDeepResearch ? deepResearchSteps : basicSteps;
 
@@ -61,11 +60,6 @@ export const SourceVerificationLoader = ({
       setCompletedSteps(verificationSteps.map((_, i) => i));
       return;
     }
-
-    // Logo rotation animation
-    const rotationInterval = setInterval(() => {
-      setLogoRotation(prev => prev + 1);
-    }, 50);
 
     const stepInterval = setInterval(() => {
       setCurrentStep((prev) => {
@@ -80,7 +74,6 @@ export const SourceVerificationLoader = ({
 
     return () => {
       clearInterval(stepInterval);
-      clearInterval(rotationInterval);
     };
   }, [isComplete, verificationSteps.length, isDeepResearch]);
 
@@ -113,10 +106,9 @@ export const SourceVerificationLoader = ({
             <img 
               src={proxinexLogo} 
               alt="Proxinex" 
-              className="w-12 h-12 object-contain relative z-10"
+              className={`w-12 h-12 object-contain relative z-10 ${isComplete ? '' : 'animate-spin'}`}
               style={{ 
-                transform: isComplete ? 'rotate(0deg)' : `rotate(${logoRotation}deg)`,
-                transition: isComplete ? 'transform 0.5s ease-out' : 'none'
+                animationDuration: '2s',
               }}
             />
           </div>

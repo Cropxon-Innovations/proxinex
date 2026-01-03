@@ -55,7 +55,7 @@ export const CitationAnswer = ({
   if (isLoading && !answer) {
     return (
       <SourceVerificationLoader 
-        sources={citations.map(c => c.title).slice(0, 5)} 
+        sources={citations.map(c => c.title)} 
         isComplete={false}
       />
     );
