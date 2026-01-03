@@ -24,6 +24,7 @@ import { CitationAnswer } from "@/components/CitationAnswer";
 import { CodeThemeSelector } from "@/components/chat/CodeThemeSelector";
 import { PinColorSelector } from "@/components/chat/PinColorSelector";
 import { ThinkingAnimation } from "@/components/chat/ThinkingAnimation";
+import { LinkPreviewPanel } from "@/components/LinkPreviewPanel";
 import { 
   ChevronLeft,
   ChevronRight,
@@ -55,6 +56,7 @@ interface ChatSessionData {
   isPinned?: boolean;
   isResearch?: boolean;
   content?: string; // For read aloud
+  pinColor?: "primary" | "red" | "orange" | "yellow" | "green" | "blue" | "purple";
 }
 
 interface MessageWithMetrics extends Message {
@@ -81,6 +83,8 @@ const AppDashboard = () => {
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
   // chatDropdownOpen state moved to AppSidebar
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
+  const [linkPreviewTitle, setLinkPreviewTitle] = useState<string | undefined>(undefined);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -462,6 +466,25 @@ const AppDashboard = () => {
     navigate("/");
   };
 
+  // Handle link preview from citations
+  const handleOpenLinkPreview = useCallback((url: string, title?: string) => {
+    setLinkPreviewUrl(url);
+    setLinkPreviewTitle(title);
+  }, []);
+
+  const handleCloseLinkPreview = useCallback(() => {
+    setLinkPreviewUrl(null);
+    setLinkPreviewTitle(undefined);
+  }, []);
+
+  // Handle reordering pinned sessions
+  const handleReorderPinnedSessions = useCallback((reorderedSessions: ChatSessionData[]) => {
+    setChatSessions(prev => {
+      const unpinned = prev.filter(s => !s.isPinned);
+      return [...reorderedSessions, ...unpinned];
+    });
+  }, []);
+
   // Handle new session - save current chat first
   const handleNewSession = async () => {
     if (messages.length > 0) {
@@ -642,6 +665,7 @@ const AppDashboard = () => {
             navigator.clipboard.writeText(shareUrl);
             toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
           }}
+          onReorderPinnedSessions={handleReorderPinnedSessions}
         />
 
         {/* Main Content */}
@@ -787,6 +811,7 @@ const AppDashboard = () => {
                                 confidence_label={message.researchResponse!.confidence_label}
                                 citations={message.researchResponse!.citations}
                                 isLoading={isLoading && isLastMessage}
+                                onOpenLinkPreview={handleOpenLinkPreview}
                               />
                             </div>
                           ) : (
@@ -820,8 +845,14 @@ const AppDashboard = () => {
               </div>
             </div>
 
-            {/* Right Panel - Fixed */}
-            {messages.length > 0 && (
+            {/* Right Panel - Link Preview or Chat History */}
+            {linkPreviewUrl ? (
+              <LinkPreviewPanel
+                url={linkPreviewUrl}
+                title={linkPreviewTitle}
+                onClose={handleCloseLinkPreview}
+              />
+            ) : messages.length > 0 && (
               <aside className="w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">

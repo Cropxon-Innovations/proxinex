@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,21 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
 import {
   PenLine,
   MessageSquare,
@@ -55,6 +70,8 @@ import {
   Download,
 } from "lucide-react";
 import { useUserPlan, UserPlan } from "@/hooks/useUserPlan";
+import { pinColors, PinColor } from "@/components/chat/PinColorSelector";
+import { DraggablePinnedSession } from "./DraggablePinnedSession";
 
 interface ChatSession {
   id: string;
@@ -62,6 +79,7 @@ interface ChatSession {
   isStarred?: boolean;
   isPinned?: boolean;
   isResearch?: boolean;
+  pinColor?: PinColor;
 }
 
 interface AppSidebarProps {
@@ -78,6 +96,7 @@ interface AppSidebarProps {
   onPinSession?: (sessionId: string) => void;
   onArchiveSession?: (sessionId: string) => void;
   onShareSession?: (sessionId: string) => void;
+  onReorderPinnedSessions?: (sessions: ChatSession[]) => void;
 }
 
 type FeatureKey = "chat" | "research" | "documents" | "notebooks" | "images" | "video" | "sandbox" | "apiPlayground";
@@ -145,6 +164,7 @@ export const AppSidebar = ({
   onPinSession,
   onArchiveSession,
   onShareSession,
+  onReorderPinnedSessions,
 }: AppSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -158,79 +178,118 @@ export const AppSidebar = ({
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Separate chat and research sessions, sort by pinned first
-  const sortSessions = (sessions: ChatSession[]) => {
-    return [...sessions].sort((a, b) => {
-      if (a.isPinned && !b.isPinned) return -1;
-      if (!a.isPinned && b.isPinned) return 1;
-      if (a.isStarred && !b.isStarred) return -1;
-      if (!a.isStarred && b.isStarred) return 1;
-      return 0;
-    });
+  // Separate pinned and regular sessions
+  const pinnedSessions = chatSessions.filter(s => s.isPinned);
+  const regularSessions = chatSessions.filter(s => !s.isPinned);
+  
+  // Sort regular sessions by starred first
+  const sortedRegularSessions = [...regularSessions].sort((a, b) => {
+    if (a.isStarred && !b.isStarred) return -1;
+    if (!a.isStarred && b.isStarred) return 1;
+    return 0;
+  });
+  
+  const chatOnlySessions = sortedRegularSessions.filter(s => !s.isResearch);
+  const researchSessions = sortedRegularSessions.filter(s => s.isResearch);
+
+  // DnD sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    
+    if (over && active.id !== over.id) {
+      const oldIndex = pinnedSessions.findIndex((s) => s.id === active.id);
+      const newIndex = pinnedSessions.findIndex((s) => s.id === over.id);
+      const reordered = arrayMove(pinnedSessions, oldIndex, newIndex);
+      onReorderPinnedSessions?.(reordered);
+    }
+  }, [pinnedSessions, onReorderPinnedSessions]);
+
+  const getPinColorConfig = (color?: PinColor) => {
+    return pinColors.find((c) => c.id === (color || "primary")) || pinColors[0];
   };
   
-  const chatOnlySessions = sortSessions(chatSessions.filter(s => !s.isResearch));
-  const researchSessions = sortSessions(chatSessions.filter(s => s.isResearch));
-  
-  const renderSessionItem = (session: ChatSession, isResearch: boolean) => (
-    <div
-      key={session.id}
-      className={`group flex items-center gap-1 w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
-        activeSessionId === session.id
-          ? "bg-primary/10 text-primary"
-          : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-      }`}
-    >
-      <button
-        onClick={() => onSelectSession?.(session.id)}
-        className="flex items-center gap-2 flex-1 min-w-0"
+  const renderSessionItem = (session: ChatSession, isResearch: boolean) => {
+    const colorConfig = getPinColorConfig(session.pinColor);
+    
+    return (
+      <div
+        key={session.id}
+        className={`group flex items-center gap-2 w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
+          activeSessionId === session.id
+            ? "bg-primary/10 text-primary"
+            : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+        }`}
       >
-        {isResearch ? (
-          <Search className="h-3 w-3 flex-shrink-0" />
-        ) : (
-          <MessageSquare className="h-3 w-3 flex-shrink-0" />
+        <button
+          onClick={() => onSelectSession?.(session.id)}
+          className="flex items-center gap-2 flex-1 min-w-0"
+        >
+          {isResearch ? (
+            <Search className="h-3 w-3 flex-shrink-0" />
+          ) : (
+            <MessageSquare className="h-3 w-3 flex-shrink-0" />
+          )}
+          <span className="truncate flex-1">{session.title.slice(0, 18)}{session.title.length > 18 ? "..." : ""}</span>
+        </button>
+        
+        {/* Colored Pin Icon - Right Side */}
+        {session.isPinned && (
+          <Pin className={`h-3 w-3 flex-shrink-0 ${colorConfig.text} ${colorConfig.fill}`} />
         )}
-        {session.isPinned && <Pin className="h-2.5 w-2.5 text-primary fill-primary flex-shrink-0" />}
-        {session.isStarred && <Star className="h-2.5 w-2.5 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
-        <span className="truncate flex-1">{session.title.slice(0, 18)}{session.title.length > 18 ? "..." : ""}</span>
-      </button>
-      
-      {/* Actions Menu */}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary rounded transition-opacity">
-            <MoreHorizontal className="h-3 w-3" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-36">
-          <DropdownMenuItem onClick={() => onRenameSession?.(session.id, session.title)}>
-            <Pencil className="h-3 w-3 mr-2" />
-            Rename
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onPinSession?.(session.id)}>
-            <Pin className={`h-3 w-3 mr-2 ${session.isPinned ? "fill-primary text-primary" : ""}`} />
-            {session.isPinned ? "Unpin" : "Pin"}
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onShareSession?.(session.id)}>
-            <Share2 className="h-3 w-3 mr-2" />
-            Share
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => onArchiveSession?.(session.id)}>
-            <Archive className="h-3 w-3 mr-2" />
-            Archive
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem 
-            onClick={() => onDeleteSession?.(session.id)}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="h-3 w-3 mr-2" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
+        
+        {/* Star Icon */}
+        {session.isStarred && !session.isPinned && (
+          <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />
+        )}
+        
+        {/* Actions Menu */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary rounded transition-opacity">
+              <MoreHorizontal className="h-3 w-3" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-36">
+            <DropdownMenuItem onClick={() => onRenameSession?.(session.id, session.title)}>
+              <Pencil className="h-3 w-3 mr-2" />
+              Rename
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onPinSession?.(session.id)}>
+              <Pin className={`h-3 w-3 mr-2 ${session.isPinned ? colorConfig.fill + " " + colorConfig.text : ""}`} />
+              {session.isPinned ? "Unpin" : "Pin"}
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onShareSession?.(session.id)}>
+              <Share2 className="h-3 w-3 mr-2" />
+              Share
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onArchiveSession?.(session.id)}>
+              <Archive className="h-3 w-3 mr-2" />
+              Archive
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem 
+              onClick={() => onDeleteSession?.(session.id)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="h-3 w-3 mr-2" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    );
+  };
 
   const renderLockedItem = (item: NavItem, Icon: any, active: boolean) => {
     const requiredPlan = getRequiredPlan(item.feature!);
@@ -304,6 +363,40 @@ export const AppSidebar = ({
             </div>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-1 space-y-1 px-1">
+            {/* Pinned Sessions with Drag & Drop */}
+            {pinnedSessions.length > 0 && (
+              <div className="mb-3">
+                <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Pin className="h-3 w-3" />
+                  Pinned
+                </div>
+                <DndContext
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext
+                    items={pinnedSessions.map(s => s.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {pinnedSessions.map((session) => (
+                      <DraggablePinnedSession
+                        key={session.id}
+                        session={session}
+                        isActive={activeSessionId === session.id}
+                        onSelect={onSelectSession || (() => {})}
+                        onRename={onRenameSession}
+                        onPin={onPinSession}
+                        onShare={onShareSession}
+                        onArchive={onArchiveSession}
+                        onDelete={onDeleteSession}
+                      />
+                    ))}
+                  </SortableContext>
+                </DndContext>
+              </div>
+            )}
+
             {/* Chat Sessions */}
             {chatOnlySessions.length > 0 && (
               <div className="mb-2">
@@ -501,33 +594,48 @@ export const AppSidebar = ({
         </button>
       )}
 
-      <nav className="flex-1 py-3 overflow-y-auto">
-        {/* Primary Actions */}
-        <div className="space-y-0.5 px-2 mb-3">
-          {primaryItems.map((item, index) => renderNavItem(item, index))}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-3 space-y-1">
+        {/* Primary Items */}
+        <div className="space-y-1 px-2">
+          {primaryItems.map(renderNavItem)}
         </div>
 
         {/* Divider */}
-        <div className="my-2 mx-3 border-t border-sidebar-border/60" />
+        <div className="h-px bg-sidebar-border mx-4 my-3" />
 
         {/* Create Section */}
-        <div className="px-1 mb-1">
-          {renderCollapsibleSection("Create", Wand2, createItems, createOpen, setCreateOpen)}
-        </div>
+        {renderCollapsibleSection("Create", Wand2, createItems, createOpen, setCreateOpen)}
 
         {/* Advanced Section */}
-        <div className="px-1 mb-1">
-          {renderCollapsibleSection("Advanced", Beaker, advancedItems, advancedOpen, setAdvancedOpen)}
-        </div>
+        {renderCollapsibleSection("Advanced", Beaker, advancedItems, advancedOpen, setAdvancedOpen)}
 
         {/* Divider */}
-        <div className="my-2 mx-3 border-t border-sidebar-border/60" />
+        <div className="h-px bg-sidebar-border mx-4 my-3" />
 
         {/* Organization */}
-        <div className="space-y-0.5 px-2 mb-1">
+        <div className="space-y-1 px-2">
           {orgItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
+            
+            if (collapsed) {
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center justify-center py-2.5 mx-2 rounded-lg transition-colors ${
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
+                  title={item.label}
+                >
+                  <Icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
+                </Link>
+              );
+            }
+            
             return (
               <Link
                 key={item.path}
@@ -539,20 +647,38 @@ export const AppSidebar = ({
                 }`}
               >
                 <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
-                {!collapsed && <span className="text-sm">{item.label}</span>}
+                <span className="text-sm">{item.label}</span>
               </Link>
             );
           })}
         </div>
 
         {/* Divider */}
-        <div className="my-2 mx-3 border-t border-sidebar-border/60" />
+        <div className="h-px bg-sidebar-border mx-4 my-3" />
 
         {/* Settings */}
-        <div className="space-y-0.5 px-2">
+        <div className="space-y-1 px-2">
           {settingsItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path);
+            
+            if (collapsed) {
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center justify-center py-2.5 mx-2 rounded-lg transition-colors ${
+                    active
+                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                  }`}
+                  title={item.label}
+                >
+                  <Icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
+                </Link>
+              );
+            }
+            
             return (
               <Link
                 key={item.path}
@@ -564,53 +690,82 @@ export const AppSidebar = ({
                 }`}
               >
                 <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
-                {!collapsed && <span className="text-sm">{item.label}</span>}
+                <span className="text-sm">{item.label}</span>
               </Link>
             );
           })}
         </div>
       </nav>
 
-      {/* User Info */}
-      {!collapsed && user && (
-        <div className="p-3 border-t border-sidebar-border flex-shrink-0 space-y-3">
-          {/* User Profile */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
-              <User className="h-4 w-4 text-primary" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{user.email}</p>
-              {/* Plan Badge */}
-              <button
-                onClick={() => navigate('/pricing')}
-                className="flex items-center gap-1.5 mt-1 group"
+      {/* User Section */}
+      <div className="border-t border-sidebar-border p-3 flex-shrink-0">
+        {user ? (
+          <div className="space-y-2">
+            {/* Plan Badge & Upgrade */}
+            {!collapsed && (
+              <Link
+                to="/pricing"
+                className={`flex items-center justify-between px-2 py-1.5 rounded-md ${currentPlan.color} hover:opacity-90 transition-opacity`}
               >
-                <Badge variant="secondary" className={`${currentPlan.color} text-xs px-2 py-0.5 font-medium`}>
-                  {PlanIcon && <PlanIcon className="h-3 w-3 mr-1" />}
-                  {currentPlan.label} Plan
-                </Badge>
-                {plan === 'free' && (
-                  <span className="text-[10px] text-primary opacity-0 group-hover:opacity-100 transition-opacity">
-                    Upgrade →
-                  </span>
+                <div className="flex items-center gap-2">
+                  {PlanIcon && <PlanIcon className="h-3.5 w-3.5" />}
+                  <span className="text-xs font-medium">{currentPlan.label} Plan</span>
+                </div>
+                {plan === "free" && (
+                  <span className="text-[10px] font-medium">Upgrade →</span>
                 )}
-              </button>
-            </div>
+              </Link>
+            )}
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors ${collapsed ? "justify-center" : ""}`}>
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                  {!collapsed && (
+                    <div className="flex-1 min-w-0 text-left">
+                      <div className="text-sm font-medium text-sidebar-foreground truncate">
+                        {user.email?.split("@")[0]}
+                      </div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {user.email}
+                      </div>
+                    </div>
+                  )}
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to="/app/settings" className="flex items-center gap-2">
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/app/personalization" className="flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Personalization
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onSignOut} className="text-destructive focus:text-destructive">
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-          
-          {/* Sign Out */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onSignOut}
-            className="w-full justify-start text-muted-foreground hover:text-foreground h-9"
+        ) : (
+          <Link
+            to="/auth"
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50 ${collapsed ? "justify-center" : ""}`}
           >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sign Out
-          </Button>
-        </div>
-      )}
+            <User className="h-4 w-4 flex-shrink-0" />
+            {!collapsed && <span className="text-sm">Sign In</span>}
+          </Link>
+        )}
+      </div>
     </aside>
   );
 };
