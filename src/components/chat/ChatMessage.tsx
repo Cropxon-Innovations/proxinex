@@ -19,6 +19,21 @@ import {
   Zap,
   FileText,
   Pin,
+  Rocket,
+  Target,
+  Puzzle,
+  GraduationCap,
+  Globe,
+  Shield,
+  TrendingUp,
+  Settings,
+  Database,
+  Brain,
+  MessageCircle,
+  HelpCircle,
+  Wrench,
+  Terminal,
+  Layers,
 } from "lucide-react";
 import { ConfidenceBadge } from "@/components/ConfidenceBadge";
 import { FeedbackActions } from "@/components/chat/FeedbackActions";
@@ -241,18 +256,74 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
   return elements;
 }
 
-// Get icon for section header
+// Get icon for section header - multiple icons based on intent
 function getSectionIcon(headerText: string): JSX.Element | null {
   const text = headerText.toLowerCase();
-  if (text.includes('overview') || text.includes('summary')) return <Lightbulb className="h-4 w-4 text-yellow-400" />;
-  if (text.includes('comparison') || text.includes('compare') || text.includes('vs')) return <BarChart3 className="h-4 w-4 text-blue-400" />;
-  if (text.includes('code') || text.includes('example') || text.includes('implementation')) return <Code className="h-4 w-4 text-green-400" />;
-  if (text.includes('feature') || text.includes('benefit')) return <Zap className="h-4 w-4 text-purple-400" />;
-  if (text.includes('source') || text.includes('reference')) return <BookOpen className="h-4 w-4 text-orange-400" />;
-  if (text.includes('note') || text.includes('important') || text.includes('warning')) return <AlertCircle className="h-4 w-4 text-red-400" />;
-  if (text.includes('list') || text.includes('step')) return <List className="h-4 w-4 text-cyan-400" />;
-  if (text.includes('table') || text.includes('data')) return <Table className="h-4 w-4 text-indigo-400" />;
-  if (text.includes('conclusion') || text.includes('result')) return <FileText className="h-4 w-4 text-teal-400" />;
+  
+  // Knowledge & Learning
+  if (text.includes('overview') || text.includes('summary') || text.includes('introduction')) 
+    return <Lightbulb className="h-4 w-4 text-yellow-400" />;
+  if (text.includes('explanation') || text.includes('explain') || text.includes('understanding')) 
+    return <GraduationCap className="h-4 w-4 text-indigo-400" />;
+  if (text.includes('learn') || text.includes('education') || text.includes('tutorial')) 
+    return <BookOpen className="h-4 w-4 text-orange-400" />;
+  
+  // Analysis & Comparison
+  if (text.includes('comparison') || text.includes('compare') || text.includes('vs') || text.includes('versus')) 
+    return <BarChart3 className="h-4 w-4 text-blue-400" />;
+  if (text.includes('analysis') || text.includes('analyze') || text.includes('breakdown')) 
+    return <TrendingUp className="h-4 w-4 text-emerald-400" />;
+  if (text.includes('insight') || text.includes('finding')) 
+    return <Brain className="h-4 w-4 text-purple-400" />;
+  
+  // Technical & Code
+  if (text.includes('code') || text.includes('implementation') || text.includes('syntax')) 
+    return <Code className="h-4 w-4 text-green-400" />;
+  if (text.includes('example') || text.includes('demo') || text.includes('sample')) 
+    return <Terminal className="h-4 w-4 text-cyan-400" />;
+  if (text.includes('api') || text.includes('endpoint') || text.includes('request')) 
+    return <Globe className="h-4 w-4 text-sky-400" />;
+  if (text.includes('database') || text.includes('storage') || text.includes('data model')) 
+    return <Database className="h-4 w-4 text-rose-400" />;
+  if (text.includes('config') || text.includes('setup') || text.includes('installation')) 
+    return <Settings className="h-4 w-4 text-slate-400" />;
+  
+  // Features & Benefits
+  if (text.includes('feature') || text.includes('capability') || text.includes('function')) 
+    return <Puzzle className="h-4 w-4 text-violet-400" />;
+  if (text.includes('benefit') || text.includes('advantage') || text.includes('pro')) 
+    return <Zap className="h-4 w-4 text-amber-400" />;
+  if (text.includes('getting started') || text.includes('quick start') || text.includes('begin')) 
+    return <Rocket className="h-4 w-4 text-pink-400" />;
+  
+  // Structure & Organization
+  if (text.includes('step') || text.includes('process') || text.includes('workflow')) 
+    return <Layers className="h-4 w-4 text-teal-400" />;
+  if (text.includes('list') || text.includes('item') || text.includes('option')) 
+    return <List className="h-4 w-4 text-lime-400" />;
+  if (text.includes('table') || text.includes('data') || text.includes('metric')) 
+    return <Table className="h-4 w-4 text-indigo-400" />;
+  
+  // Warnings & Notes
+  if (text.includes('note') || text.includes('tip') || text.includes('hint')) 
+    return <MessageCircle className="h-4 w-4 text-blue-400" />;
+  if (text.includes('important') || text.includes('warning') || text.includes('caution')) 
+    return <AlertCircle className="h-4 w-4 text-red-400" />;
+  if (text.includes('security') || text.includes('protect') || text.includes('safe')) 
+    return <Shield className="h-4 w-4 text-green-500" />;
+  
+  // Results & Solutions
+  if (text.includes('conclusion') || text.includes('result') || text.includes('outcome')) 
+    return <Target className="h-4 w-4 text-emerald-400" />;
+  if (text.includes('solution') || text.includes('fix') || text.includes('resolve')) 
+    return <Wrench className="h-4 w-4 text-orange-400" />;
+  if (text.includes('faq') || text.includes('question') || text.includes('answer')) 
+    return <HelpCircle className="h-4 w-4 text-purple-400" />;
+  
+  // Sources & References
+  if (text.includes('source') || text.includes('reference') || text.includes('citation')) 
+    return <BookOpen className="h-4 w-4 text-orange-400" />;
+  
   return <Sparkles className="h-4 w-4 text-primary" />;
 }
 
@@ -432,7 +503,7 @@ export const ChatMessage = ({
                 </div>
                 <CodeCopyButton code={codeContent} />
               </div>
-              <pre className="bg-[#1e1e2e] border border-t-0 border-border rounded-b-lg p-4 overflow-x-auto">
+              <pre className="bg-[hsl(240_21%_15%)] dark:bg-[#1e1e2e] border border-t-0 border-border rounded-b-lg p-4 overflow-x-auto text-[hsl(0_0%_95%)]">
                 <code className="text-xs font-mono">
                   {tokenizeCode(codeContent.trim(), codeLanguage)}
                 </code>
