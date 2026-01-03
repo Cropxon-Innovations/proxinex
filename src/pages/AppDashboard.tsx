@@ -37,7 +37,9 @@ import {
   Sparkles,
   History,
   Menu,
+  FileText,
 } from "lucide-react";
+import { ScrollToBottomButton } from "@/components/chat/ScrollToBottomButton";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { UploadedFile } from "@/components/chat/FileUploadPreview";
 import { Helmet } from "react-helmet-async";
@@ -72,6 +74,8 @@ const AppDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [rightPanelView, setRightPanelView] = useState<"sources" | "history">("sources");
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<MessageWithMetrics[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ChatMetrics | null>(null);
@@ -163,18 +167,25 @@ const AppDashboard = () => {
   ];
 
   // Track whether the user is near the bottom so streaming updates don't force-scroll
+  // Also show/hide scroll-to-bottom button
   useEffect(() => {
     const el = messagesScrollRef.current;
     if (!el) return;
 
     const threshold = 140;
     const handleScroll = () => {
-      isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+      const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+      isAtBottomRef.current = distanceFromBottom < threshold;
+      setShowScrollButton(distanceFromBottom > 300);
     };
 
     handleScroll();
     el.addEventListener("scroll", handleScroll, { passive: true } as AddEventListenerOptions);
     return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, []);
 
   useEffect(() => {
@@ -1041,6 +1052,13 @@ const AppDashboard = () => {
                 </div>
               </PullToRefresh>
 
+              {/* Scroll to Bottom Button */}
+              <ScrollToBottomButton
+                visible={showScrollButton && messages.length > 0}
+                onClick={scrollToBottom}
+                className="bottom-28 left-1/2 -translate-x-1/2"
+              />
+
               {/* Input Area - Fixed at bottom of messages column */}
               <ChatInput
                 query={query}
@@ -1064,7 +1082,7 @@ const AppDashboard = () => {
               />
             </div>
 
-            {/* Right Panel - Fixed, Link Preview, Citations, or Chat History */}
+            {/* Right Panel - Fixed, Link Preview, or Sources/History */}
             {linkPreviewUrl ? (
               <ResizableRightPanel defaultWidth={320} minWidth={280} maxWidth={500}>
                 <LinkPreviewPanel
@@ -1073,40 +1091,66 @@ const AppDashboard = () => {
                   onClose={handleCloseLinkPreview}
                 />
               </ResizableRightPanel>
-            ) : verifiedSources.length > 0 ? (
-              <ResizableRightPanel defaultWidth={320} minWidth={240} maxWidth={500}>
-                <SourceVerificationPanel
-                  sources={verifiedSources}
-                  selectedSourceId={selectedSourceId}
-                  onSelectSource={(source) => setSelectedSourceId(source.id)}
-                  isCollapsed={rightPanelCollapsed}
-                  onToggleCollapse={() => setRightPanelCollapsed(!rightPanelCollapsed)}
-                />
-              </ResizableRightPanel>
             ) : messages.length > 0 && (
               <ResizableRightPanel defaultWidth={320} minWidth={240} maxWidth={500}>
                 <div className="flex flex-col h-full">
-                  {/* Header */}
-                  <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <History className="h-4 w-4 text-primary" />
-                      <span className="text-sm font-medium">Chat History</span>
-                    </div>
+                  {/* Toggle Header */}
+                  <div className="flex items-center gap-1 p-2 border-b border-border flex-shrink-0 bg-muted/30">
+                    <Button
+                      variant={rightPanelView === "sources" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setRightPanelView("sources")}
+                      className="flex-1 h-8 text-xs gap-1.5"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      Sources {verifiedSources.length > 0 && `(${verifiedSources.length})`}
+                    </Button>
+                    <Button
+                      variant={rightPanelView === "history" ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setRightPanelView("history")}
+                      className="flex-1 h-8 text-xs gap-1.5"
+                    >
+                      <History className="h-3.5 w-3.5" />
+                      History
+                    </Button>
                   </div>
 
                   {/* Panel Content - Scrollable */}
                   <div className="flex-1 overflow-y-auto min-h-0">
-                    <ChatHistory
-                      sessions={chatSessions}
-                      activeSessionId={activeSessionId || undefined}
-                      onSessionSelect={handleSelectSession}
-                      onSessionDelete={handleOpenDeleteDialog}
-                      onSessionStar={handleStarSession}
-                      onSessionArchive={handleArchiveSession}
-                      onSessionPin={handlePinSession}
-                      onSessionRename={handleOpenRenameDialog}
-                      onSessionExport={handleExportSession}
-                    />
+                    {rightPanelView === "sources" ? (
+                      verifiedSources.length > 0 ? (
+                        <SourceVerificationPanel
+                          sources={verifiedSources}
+                          selectedSourceId={selectedSourceId}
+                          onSelectSource={(source) => setSelectedSourceId(source.id)}
+                          isCollapsed={false}
+                          onToggleCollapse={() => {}}
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-center p-6">
+                          <FileText className="h-10 w-10 text-muted-foreground/50 mb-3" />
+                          <p className="text-sm text-muted-foreground">
+                            No verified sources yet
+                          </p>
+                          <p className="text-xs text-muted-foreground/70 mt-1">
+                            Sources will appear when you use Research Mode
+                          </p>
+                        </div>
+                      )
+                    ) : (
+                      <ChatHistory
+                        sessions={chatSessions}
+                        activeSessionId={activeSessionId || undefined}
+                        onSessionSelect={handleSelectSession}
+                        onSessionDelete={handleOpenDeleteDialog}
+                        onSessionStar={handleStarSession}
+                        onSessionArchive={handleArchiveSession}
+                        onSessionPin={handlePinSession}
+                        onSessionRename={handleOpenRenameDialog}
+                        onSessionExport={handleExportSession}
+                      />
+                    )}
                   </div>
                 </div>
               </ResizableRightPanel>
