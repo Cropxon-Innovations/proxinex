@@ -14,25 +14,22 @@ import { RelatedQueries } from "@/components/chat/RelatedQueries";
 import { ProjectMemory } from "@/components/chat/ProjectMemory";
 import { ThemeSelector } from "@/components/chat/ThemeSelector";
 import { NotificationCenter } from "@/components/NotificationCenter";
-import { KeyboardShortcutsButton, KeyboardShortcutsIndicator } from "@/components/KeyboardShortcuts";
+import { KeyboardShortcutsButton } from "@/components/KeyboardShortcuts";
 import { ChatExport } from "@/components/chat/ChatExport";
 import { InlineAskExport } from "@/components/chat/InlineAskExport";
 import { TokenCounter } from "@/components/chat/TokenCounter";
 import { PinnedMessages } from "@/components/chat/PinnedMessages";
 import { InlineAskData, InlineAskComment } from "@/components/chat/InlineAskComment";
 import { CitationAnswer } from "@/components/CitationAnswer";
-import { CodeThemeSelector } from "@/components/chat/CodeThemeSelector";
-import { PinColorSelector, PinColor } from "@/components/chat/PinColorSelector";
+import { PinColor } from "@/components/chat/PinColorSelector";
+import { RenameSessionDialog } from "@/components/chat/RenameSessionDialog";
 import { PinColorPickerDialog } from "@/components/chat/PinColorPickerDialog";
 import { ThinkingAnimation } from "@/components/chat/ThinkingAnimation";
 import { LinkPreviewPanel } from "@/components/LinkPreviewPanel";
 import { 
-  ChevronLeft,
-  ChevronRight,
-  History,
-  Sparkles,
-  Share2,
   MessageSquare,
+  Sparkles,
+  History,
 } from "lucide-react";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { UploadedFile } from "@/components/chat/FileUploadPreview";
@@ -89,6 +86,9 @@ const AppDashboard = () => {
   const [linkPreviewTitle, setLinkPreviewTitle] = useState<string | undefined>(undefined);
   const [pinColorPickerOpen, setPinColorPickerOpen] = useState(false);
   const [pendingPinSessionId, setPendingPinSessionId] = useState<string | null>(null);
+  const [renameDialogOpen, setRenameDialogOpen] = useState(false);
+  const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
+  const [renameSessionTitle, setRenameSessionTitle] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -477,9 +477,17 @@ const AppDashboard = () => {
     setPendingPinSessionId(null);
   };
 
-  const handleRenameSession = async (sessionId: string, newTitle: string) => {
+  const handleOpenRenameDialog = (sessionId: string, currentTitle: string) => {
+    setRenameSessionId(sessionId);
+    setRenameSessionTitle(currentTitle);
+    setRenameDialogOpen(true);
+  };
+
+  const handleRenameSession = async (newTitle: string) => {
+    if (!renameSessionId) return;
+    
     setChatSessions(prev => prev.map(s => 
-      s.id === sessionId ? { ...s, title: newTitle } : s
+      s.id === renameSessionId ? { ...s, title: newTitle } : s
     ));
     
     // Persist to database
@@ -487,11 +495,12 @@ const AppDashboard = () => {
       await supabase
         .from("chat_sessions")
         .update({ title: newTitle })
-        .eq("id", sessionId)
+        .eq("id", renameSessionId)
         .eq("user_id", user.id);
     }
     
     toast({ title: "Session renamed" });
+    setRenameSessionId(null);
   };
 
   const handleExportSession = (sessionId: string) => {
@@ -704,7 +713,7 @@ const AppDashboard = () => {
           onSelectSession={handleSelectSession}
           onNewSession={handleNewSession}
           onDeleteSession={handleDeleteSession}
-          onRenameSession={handleRenameSession}
+          onRenameSession={handleOpenRenameDialog}
           onPinSession={handlePinSession}
           onArchiveSession={handleArchiveSession}
           onShareSession={(sessionId) => {
@@ -742,36 +751,13 @@ const AppDashboard = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
-              {/* Share Button */}
-              {activeSessionId && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    // Use proxinex.com for production, current origin for dev
-                    const baseUrl = window.location.hostname === 'localhost' 
-                      ? window.location.origin 
-                      : 'https://proxinex.com';
-                    const shareUrl = `${baseUrl}/app?chat=${activeSessionId}`;
-                    navigator.clipboard.writeText(shareUrl);
-                    toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
-                  }}
-                  className="gap-1.5"
-                >
-                  <Share2 className="h-4 w-4" />
-                  Share
-                </Button>
-              )}
               {/* Token Counter */}
               {query && <TokenCounter text={query} model={selectedModel} />}
-              <KeyboardShortcutsIndicator />
               <span className="text-sm text-muted-foreground">
                 Session: ₹{currentCost.toFixed(3)}
               </span>
               <InlineAskExport inlineAsks={inlineAsks} sessionTitle={messages[0]?.content.slice(0, 30) || "Proxinex Ask"} />
               <ChatExport messages={messages} sessionTitle={messages[0]?.content.slice(0, 30) || "Chat"} />
-              <CodeThemeSelector />
-              <PinColorSelector />
               <KeyboardShortcutsButton />
               <NotificationCenter />
               <ThemeSelector />
@@ -922,7 +908,7 @@ const AppDashboard = () => {
                     onSessionStar={handleStarSession}
                     onSessionArchive={handleArchiveSession}
                     onSessionPin={handlePinSession}
-                    onSessionRename={handleRenameSession}
+                    onSessionRename={handleOpenRenameDialog}
                     onSessionExport={handleExportSession}
                   />
                 </div>
@@ -988,6 +974,14 @@ const AppDashboard = () => {
         onOpenChange={setPinColorPickerOpen}
         onSelectColor={handlePinWithColor}
         currentColor="primary"
+      />
+
+      {/* Rename Session Dialog */}
+      <RenameSessionDialog
+        open={renameDialogOpen}
+        onOpenChange={setRenameDialogOpen}
+        currentTitle={renameSessionTitle}
+        onRename={handleRenameSession}
       />
     </>
   );
