@@ -630,6 +630,18 @@ const AppDashboard = () => {
           activeSessionId={activeSessionId}
           onSelectSession={handleSelectSession}
           onNewSession={handleNewSession}
+          onDeleteSession={handleDeleteSession}
+          onRenameSession={handleRenameSession}
+          onPinSession={handlePinSession}
+          onArchiveSession={handleArchiveSession}
+          onShareSession={(sessionId) => {
+            const baseUrl = window.location.hostname === 'localhost' 
+              ? window.location.origin 
+              : 'https://proxinex.com';
+            const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
+            navigator.clipboard.writeText(shareUrl);
+            toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
+          }}
         />
 
         {/* Main Content */}

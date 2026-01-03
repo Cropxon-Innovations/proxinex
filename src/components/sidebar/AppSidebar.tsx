@@ -14,6 +14,13 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   PenLine,
   MessageSquare,
   Search,
@@ -40,6 +47,12 @@ import {
   History,
   Sparkles,
   Crown,
+  MoreHorizontal,
+  Pencil,
+  Trash2,
+  Archive,
+  Share2,
+  Download,
 } from "lucide-react";
 import { useUserPlan, UserPlan } from "@/hooks/useUserPlan";
 
@@ -47,6 +60,7 @@ interface ChatSession {
   id: string;
   title: string;
   isStarred?: boolean;
+  isPinned?: boolean;
   isResearch?: boolean;
 }
 
@@ -59,6 +73,11 @@ interface AppSidebarProps {
   activeSessionId?: string | null;
   onSelectSession?: (sessionId: string) => void;
   onNewSession?: () => void;
+  onDeleteSession?: (sessionId: string) => void;
+  onRenameSession?: (sessionId: string, newTitle: string) => void;
+  onPinSession?: (sessionId: string) => void;
+  onArchiveSession?: (sessionId: string) => void;
+  onShareSession?: (sessionId: string) => void;
 }
 
 type FeatureKey = "chat" | "research" | "documents" | "notebooks" | "images" | "video" | "sandbox" | "apiPlayground";
@@ -121,6 +140,11 @@ export const AppSidebar = ({
   activeSessionId,
   onSelectSession,
   onNewSession,
+  onDeleteSession,
+  onRenameSession,
+  onPinSession,
+  onArchiveSession,
+  onShareSession,
 }: AppSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -134,9 +158,79 @@ export const AppSidebar = ({
 
   const isActive = (path: string) => location.pathname === path;
 
-  // Separate chat and research sessions
-  const chatOnlySessions = chatSessions.filter(s => !s.isResearch);
-  const researchSessions = chatSessions.filter(s => s.isResearch);
+  // Separate chat and research sessions, sort by pinned first
+  const sortSessions = (sessions: ChatSession[]) => {
+    return [...sessions].sort((a, b) => {
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      if (a.isStarred && !b.isStarred) return -1;
+      if (!a.isStarred && b.isStarred) return 1;
+      return 0;
+    });
+  };
+  
+  const chatOnlySessions = sortSessions(chatSessions.filter(s => !s.isResearch));
+  const researchSessions = sortSessions(chatSessions.filter(s => s.isResearch));
+  
+  const renderSessionItem = (session: ChatSession, isResearch: boolean) => (
+    <div
+      key={session.id}
+      className={`group flex items-center gap-1 w-full text-left px-2 py-1.5 text-xs rounded-md transition-colors ${
+        activeSessionId === session.id
+          ? "bg-primary/10 text-primary"
+          : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+      }`}
+    >
+      <button
+        onClick={() => onSelectSession?.(session.id)}
+        className="flex items-center gap-2 flex-1 min-w-0"
+      >
+        {isResearch ? (
+          <Search className="h-3 w-3 flex-shrink-0" />
+        ) : (
+          <MessageSquare className="h-3 w-3 flex-shrink-0" />
+        )}
+        {session.isPinned && <Pin className="h-2.5 w-2.5 text-primary fill-primary flex-shrink-0" />}
+        {session.isStarred && <Star className="h-2.5 w-2.5 text-yellow-400 fill-yellow-400 flex-shrink-0" />}
+        <span className="truncate flex-1">{session.title.slice(0, 18)}{session.title.length > 18 ? "..." : ""}</span>
+      </button>
+      
+      {/* Actions Menu */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary rounded transition-opacity">
+            <MoreHorizontal className="h-3 w-3" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-36">
+          <DropdownMenuItem onClick={() => onRenameSession?.(session.id, session.title)}>
+            <Pencil className="h-3 w-3 mr-2" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onPinSession?.(session.id)}>
+            <Pin className={`h-3 w-3 mr-2 ${session.isPinned ? "fill-primary text-primary" : ""}`} />
+            {session.isPinned ? "Unpin" : "Pin"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onShareSession?.(session.id)}>
+            <Share2 className="h-3 w-3 mr-2" />
+            Share
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => onArchiveSession?.(session.id)}>
+            <Archive className="h-3 w-3 mr-2" />
+            Archive
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem 
+            onClick={() => onDeleteSession?.(session.id)}
+            className="text-destructive focus:text-destructive"
+          >
+            <Trash2 className="h-3 w-3 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
 
   const renderLockedItem = (item: NavItem, Icon: any, active: boolean) => {
     const requiredPlan = getRequiredPlan(item.feature!);
@@ -209,65 +303,39 @@ export const AppSidebar = ({
               />
             </div>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-1 space-y-1">
+          <CollapsibleContent className="mt-1 space-y-1 px-1">
             {/* Chat Sessions */}
             {chatOnlySessions.length > 0 && (
               <div className="mb-2">
-                <div className="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <MessageSquare className="h-3 w-3" />
                   Chat
                 </div>
-                {chatOnlySessions.slice(0, 3).map((session) => (
-                  <button
-                    key={session.id}
-                    onClick={() => onSelectSession?.(session.id)}
-                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md truncate transition-colors flex items-center gap-2 ${
-                      activeSessionId === session.id
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                    }`}
-                  >
-                    <MessageSquare className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate">{session.title.slice(0, 20)}{session.title.length > 20 ? "..." : ""}</span>
-                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Chat</span>
-                  </button>
-                ))}
+                {chatOnlySessions.slice(0, 4).map((session) => renderSessionItem(session, false))}
               </div>
             )}
             
             {/* Research Sessions */}
             {researchSessions.length > 0 && (
               <div className="mb-2">
-                <div className="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+                  <Search className="h-3 w-3" />
                   Research
                 </div>
-                {researchSessions.slice(0, 3).map((session) => (
-                  <button
-                    key={session.id}
-                    onClick={() => onSelectSession?.(session.id)}
-                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md truncate transition-colors flex items-center gap-2 ${
-                      activeSessionId === session.id
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                    }`}
-                  >
-                    <Search className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate">{session.title.slice(0, 20)}{session.title.length > 20 ? "..." : ""}</span>
-                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">Research</span>
-                  </button>
-                ))}
+                {researchSessions.slice(0, 4).map((session) => renderSessionItem(session, true))}
               </div>
             )}
             
-            {chatSessions.length > 6 && (
+            {chatSessions.length > 8 && (
               <Link
                 to="/app/chat"
-                className="block px-3 py-1.5 text-xs text-primary hover:underline"
+                className="block px-2 py-1.5 text-xs text-primary hover:underline"
               >
                 View all {chatSessions.length} sessions →
               </Link>
             )}
             {chatSessions.length === 0 && (
-              <div className="px-3 py-1.5 text-xs text-muted-foreground">No history yet</div>
+              <div className="px-2 py-1.5 text-xs text-muted-foreground">No history yet</div>
             )}
           </CollapsibleContent>
         </Collapsible>
@@ -404,11 +472,15 @@ export const AppSidebar = ({
     <aside
       className={`${collapsed ? "w-16" : "w-64"} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300`}
     >
-      {/* Header with Logo */}
+      {/* Header with Logo - Click to start new chat */}
       <div className="h-14 border-b border-sidebar-border flex items-center justify-between px-3 flex-shrink-0">
-        <Link to="/" className={collapsed ? "mx-auto" : ""}>
+        <button 
+          onClick={onNewSession}
+          className={`${collapsed ? "mx-auto" : ""} hover:opacity-80 transition-opacity`}
+          title="New Chat"
+        >
           <Logo size="sm" showText={!collapsed} />
-        </Link>
+        </button>
         <button
           onClick={onToggleCollapse}
           className={`p-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors ${collapsed ? "hidden" : ""}`}
