@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 export type UserPlan = "free" | "go" | "pro";
 
@@ -50,14 +51,40 @@ const planFeatures: Record<UserPlan, PlanFeatures> = {
 export const useUserPlan = () => {
   const { user } = useAuth();
   const [plan, setPlan] = useState<UserPlan>("free");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // In a real app, this would fetch from database/API
-    // For now, default to free plan
-    if (user) {
-      // Could check user metadata or a subscription table
-      setPlan("free");
-    }
+    const fetchPlan = async () => {
+      if (!user) {
+        setPlan("free");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("plan")
+          .eq("id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching user plan:", error);
+          setPlan("free");
+        } else if (data?.plan && ["free", "go", "pro"].includes(data.plan)) {
+          setPlan(data.plan as UserPlan);
+        } else {
+          setPlan("free");
+        }
+      } catch (error) {
+        console.error("Error fetching user plan:", error);
+        setPlan("free");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPlan();
   }, [user]);
 
   const features = planFeatures[plan];
@@ -82,6 +109,7 @@ export const useUserPlan = () => {
 
   return {
     plan,
+    loading,
     features,
     isFeatureAvailable,
     getRequiredPlan,
