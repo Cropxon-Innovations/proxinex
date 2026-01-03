@@ -25,7 +25,8 @@ import {
   Calendar,
   Database,
   ExternalLink,
-  AtSign
+  AtSign,
+  Wand2
 } from "lucide-react";
 import {
   Popover,
@@ -42,6 +43,7 @@ import {
 import { VoiceInput } from "@/components/chat/VoiceInput";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
+import { toast } from "@/hooks/use-toast";
 
 interface Model {
   id: string;
@@ -145,6 +147,7 @@ export const ChatInput = ({
   const [showSearchModes, setShowSearchModes] = useState(false);
   const [showConnectorMenu, setShowConnectorMenu] = useState(false);
   const [activeModes, setActiveModes] = useState<Record<string, boolean>>({ web: true });
+  const [isEnhancing, setIsEnhancing] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +186,54 @@ export const ChatInput = ({
 
   const handleModeToggle = (modeId: string) => {
     setActiveModes(prev => ({ ...prev, [modeId]: !prev[modeId] }));
+  };
+
+  const handleEnhancePrompt = async () => {
+    if (!query.trim() || isEnhancing) return;
+
+    setIsEnhancing(true);
+    try {
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/enhance-prompt`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: JSON.stringify({ text: query }),
+        }
+      );
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to enhance prompt");
+      }
+
+      const data = await response.json();
+      
+      if (data.changed && data.enhanced) {
+        setQuery(data.enhanced);
+        toast({
+          title: "Prompt Enhanced",
+          description: "Your text has been improved with better grammar and clarity.",
+        });
+      } else {
+        toast({
+          title: "Already Perfect",
+          description: "Your text looks great! No changes needed.",
+        });
+      }
+    } catch (error) {
+      console.error("Failed to enhance prompt:", error);
+      toast({
+        title: "Enhancement Failed",
+        description: error instanceof Error ? error.message : "Could not enhance the prompt",
+        variant: "destructive",
+      });
+    } finally {
+      setIsEnhancing(false);
+    }
   };
 
   return (
@@ -393,9 +444,29 @@ export const ChatInput = ({
 
                 <div className="w-px h-5 bg-border" />
 
-                <button type="button" className="p-2 hover:bg-secondary transition-colors">
-                  <Sparkles className="h-4 w-4 text-muted-foreground" />
-                </button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button 
+                        type="button" 
+                        onClick={handleEnhancePrompt}
+                        disabled={!query.trim() || isEnhancing}
+                        className={`p-2 hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isEnhancing ? 'animate-pulse' : ''
+                        }`}
+                      >
+                        {isEnhancing ? (
+                          <Loader2 className="h-4 w-4 text-primary animate-spin" />
+                        ) : (
+                          <Wand2 className="h-4 w-4 text-muted-foreground hover:text-primary transition-colors" />
+                        )}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Enhance prompt with better grammar</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </div>
             </div>
 

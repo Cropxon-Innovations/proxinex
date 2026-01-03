@@ -27,6 +27,7 @@ import ProjectMemoryPage from "./pages/ProjectMemory";
 import PersonalizationPage from "./pages/Personalization";
 import HelpCenterPage from "./pages/HelpCenter";
 import ProjectsPage from "./pages/Projects";
+import PinnedContentPage from "./pages/PinnedContent";
 import NotFound from "./pages/NotFound";
 import ProductOverview from "./pages/ProductOverview";
 import ProductInlineAsk from "./pages/ProductInlineAsk";
@@ -99,6 +100,7 @@ const App = () => (
                 <Route path="/app/personalization" element={<ProtectedRoute><PersonalizationPage /></ProtectedRoute>} />
                 <Route path="/app/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
                 <Route path="/app/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
+                <Route path="/app/pinned" element={<ProtectedRoute><PinnedContentPage /></ProtectedRoute>} />
                 <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
