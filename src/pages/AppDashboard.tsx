@@ -48,7 +48,9 @@ import {
   Pin,
   ChevronDown,
   Sparkles,
+  Share2,
 } from "lucide-react";
+import { UploadedFile } from "@/components/chat/FileUploadPreview";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -114,6 +116,7 @@ const AppDashboard = () => {
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
   const [chatDropdownOpen, setChatDropdownOpen] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -339,6 +342,10 @@ const AppDashboard = () => {
 
     if (data && !error) {
       setActiveSessionId(data.id);
+      // Update URL with new session ID so refresh/share works
+      if (!activeSessionId) {
+        navigate(`/app?chat=${data.id}`, { replace: true });
+      }
     }
   };
 
@@ -502,6 +509,9 @@ const AppDashboard = () => {
     setQuery("");
     setPinnedMessages([]);
     setInlineAsks([]);
+    setUploadedFiles([]);
+    // Clear URL param
+    navigate("/app", { replace: true });
   };
 
   // Pin/Unpin message handlers
@@ -803,6 +813,22 @@ const AppDashboard = () => {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {/* Share Button */}
+              {activeSessionId && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const shareUrl = `${window.location.origin}/app?chat=${activeSessionId}`;
+                    navigator.clipboard.writeText(shareUrl);
+                    toast({ title: "Link copied", description: "Chat link copied to clipboard" });
+                  }}
+                  className="gap-1.5"
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+              )}
               {/* Token Counter */}
               {query && <TokenCounter text={query} model={selectedModel} />}
               <KeyboardShortcutsIndicator />
@@ -982,6 +1008,8 @@ const AppDashboard = () => {
             onAutoModeChange={setAutoMode}
             researchMode={researchMode}
             onResearchModeChange={setResearchMode}
+            uploadedFiles={uploadedFiles}
+            onFilesChange={setUploadedFiles}
           />
         </main>
       </div>

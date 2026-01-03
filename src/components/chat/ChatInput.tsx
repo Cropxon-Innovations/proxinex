@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Send,
@@ -20,9 +20,11 @@ import {
   Database,
   ExternalLink,
   AtSign,
-  Wand2
+  Wand2,
+  Upload,
 } from "lucide-react";
 import { PromptEnhanceDialog } from "./PromptEnhanceDialog";
+import { FileUploadPreview, UploadedFile } from "./FileUploadPreview";
 import {
   Popover,
   PopoverContent,
@@ -39,6 +41,7 @@ import { VoiceInput } from "@/components/chat/VoiceInput";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Model {
   id: string;
@@ -108,7 +111,12 @@ interface ChatInputProps {
   onAutoModeChange: (auto: boolean) => void;
   researchMode: boolean;
   onResearchModeChange: (enabled: boolean) => void;
+  uploadedFiles?: UploadedFile[];
+  onFilesChange?: (files: UploadedFile[]) => void;
 }
+
+const MAX_FILES = 10;
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 
 export const ChatInput = ({
   query,
@@ -127,6 +135,8 @@ export const ChatInput = ({
   onAutoModeChange,
   researchMode,
   onResearchModeChange,
+  uploadedFiles = [],
+  onFilesChange,
 }: ChatInputProps) => {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showSearchModes, setShowSearchModes] = useState(false);
@@ -136,10 +146,12 @@ export const ChatInput = ({
   const [enhanceDialogOpen, setEnhanceDialogOpen] = useState(false);
   const [originalPrompt, setOriginalPrompt] = useState("");
   const [enhancedPrompt, setEnhancedPrompt] = useState("");
+  const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const dropZoneRef = useRef<HTMLDivElement>(null);
 
   const selectedModelInfo = [...openSourceModels, ...closedSourceModels].find(m => m.id === selectedModel);
 
@@ -183,6 +195,154 @@ export const ChatInput = ({
   useEffect(() => {
     setActiveModes(prev => ({ ...prev, research: researchMode }));
   }, [researchMode]);
+
+  // Handle file processing
+  const processFiles = useCallback(async (fileList: FileList | File[]) => {
+    const files = Array.from(fileList);
+    const currentCount = uploadedFiles.length;
+    const availableSlots = MAX_FILES - currentCount;
+    
+    if (availableSlots <= 0) {
+      toast({
+        title: "Maximum files reached",
+        description: `You can only upload up to ${MAX_FILES} files.`,
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    const filesToProcess = files.slice(0, availableSlots);
+    
+    if (files.length > availableSlots) {
+      toast({
+        title: "Some files skipped",
+        description: `Only ${availableSlots} more file(s) can be added.`,
+      });
+    }
+    
+    const newFiles: UploadedFile[] = filesToProcess.map((file) => {
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        toast({
+          title: "File too large",
+          description: `${file.name} exceeds the 20MB limit.`,
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      const id = crypto.randomUUID();
+      let preview: string | undefined;
+      
+      if (file.type.startsWith("image/")) {
+        preview = URL.createObjectURL(file);
+      }
+      
+      return {
+        id,
+        file,
+        preview,
+        progress: 0,
+        status: "uploading" as const,
+      };
+    }).filter(Boolean) as UploadedFile[];
+    
+    if (newFiles.length === 0) return;
+    
+    // Add files to state immediately
+    let currentFiles = [...uploadedFiles, ...newFiles];
+    onFilesChange?.(currentFiles);
+    
+    // Upload each file to Supabase Storage
+    for (const uploadedFile of newFiles) {
+      try {
+        const fileName = `${Date.now()}-${uploadedFile.file.name}`;
+        const filePath = `uploads/${fileName}`;
+        
+        // Simulate progress updates
+        let progress = 0;
+        const progressInterval = setInterval(() => {
+          progress = Math.min(progress + 20, 90);
+          currentFiles = currentFiles.map((f) =>
+            f.id === uploadedFile.id ? { ...f, progress } : f
+          );
+          onFilesChange?.(currentFiles);
+        }, 200);
+        
+        const { data, error } = await supabase.storage
+          .from("proxinex")
+          .upload(filePath, uploadedFile.file);
+        
+        clearInterval(progressInterval);
+        
+        if (error) throw error;
+        
+        const { data: urlData } = supabase.storage
+          .from("proxinex")
+          .getPublicUrl(filePath);
+        
+        currentFiles = currentFiles.map((f) =>
+          f.id === uploadedFile.id
+            ? { ...f, progress: 100, status: "complete" as const, url: urlData.publicUrl }
+            : f
+        );
+        onFilesChange?.(currentFiles);
+      } catch (error) {
+        console.error("Upload error:", error);
+        currentFiles = currentFiles.map((f) =>
+          f.id === uploadedFile.id ? { ...f, status: "error" as const } : f
+        );
+        onFilesChange?.(currentFiles);
+        toast({
+          title: "Upload failed",
+          description: `Failed to upload ${uploadedFile.file.name}`,
+          variant: "destructive",
+        });
+      }
+    }
+    
+    // Call original handler
+    onFileUpload?.(fileList as FileList);
+  }, [uploadedFiles, onFilesChange, onFileUpload]);
+
+  const handleRemoveFile = useCallback((id: string) => {
+    const file = uploadedFiles.find((f) => f.id === id);
+    if (file?.preview) {
+      URL.revokeObjectURL(file.preview);
+    }
+    onFilesChange?.(uploadedFiles.filter((f) => f.id !== id));
+  }, [uploadedFiles, onFilesChange]);
+
+  // Drag and drop handlers
+  const handleDragEnter = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.currentTarget === e.target) {
+      setIsDragging(false);
+    }
+  }, []);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+    
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      processFiles(files);
+    }
+  }, [processFiles]);
 
   const handleEnhancePrompt = async () => {
     if (!query.trim() || isEnhancing) return;
@@ -250,7 +410,25 @@ export const ChatInput = ({
   };
 
   return (
-    <div className="border-t border-border bg-background p-4">
+    <div 
+      className="border-t border-border bg-background p-4"
+      ref={dropZoneRef}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}
+      onDragOver={handleDragOver}
+      onDrop={handleDrop}
+    >
+      {/* Drag Overlay */}
+      {isDragging && (
+        <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center pointer-events-none">
+          <div className="bg-primary/10 border-2 border-dashed border-primary rounded-2xl p-12 text-center">
+            <Upload className="h-12 w-12 text-primary mx-auto mb-4" />
+            <p className="text-lg font-medium text-foreground">Drop files here</p>
+            <p className="text-sm text-muted-foreground mt-1">Maximum {MAX_FILES} files, 20MB each</p>
+          </div>
+        </div>
+      )}
+
       <form onSubmit={onSubmit} className="max-w-3xl mx-auto relative">
         {/* Connector Menu Popover */}
         {showConnectorMenu && (
@@ -304,8 +482,19 @@ export const ChatInput = ({
           </div>
         )}
 
+        {/* File Upload Preview */}
+        {uploadedFiles.length > 0 && (
+          <FileUploadPreview
+            files={uploadedFiles}
+            onRemove={handleRemoveFile}
+            maxFiles={MAX_FILES}
+          />
+        )}
+
         {/* Main Input Container */}
-        <div className="bg-input border border-border rounded-xl overflow-hidden">
+        <div className={`bg-input border rounded-xl overflow-hidden transition-colors ${
+          isDragging ? 'border-primary border-2' : 'border-border'
+        }`}>
           {/* Input Row */}
           <div className="flex items-center gap-2 p-3">
             <input
@@ -558,7 +747,7 @@ export const ChatInput = ({
           type="file"
           multiple
           className="hidden"
-          onChange={(e) => e.target.files && onFileUpload?.(e.target.files)}
+          onChange={(e) => e.target.files && processFiles(e.target.files)}
         />
         <input
           ref={imageInputRef}
