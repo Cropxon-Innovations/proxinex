@@ -6,8 +6,12 @@ import {
   X,
   CheckCircle,
   AlertTriangle,
-  MessageCircle
+  MessageCircle,
+  Trash2,
+  Edit3,
+  Save
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface ConversationEntry {
   role: "user" | "assistant";
@@ -32,6 +36,8 @@ interface InlineAskCommentProps {
   data: InlineAskData;
   onMaximize: (data: InlineAskData) => void;
   onClose?: () => void;
+  onDelete?: (id: string) => void;
+  onEdit?: (id: string, updatedData: Partial<InlineAskData>) => void;
   isMinimized?: boolean;
 }
 
@@ -39,9 +45,14 @@ export const InlineAskComment = ({
   data, 
   onMaximize, 
   onClose,
+  onDelete,
+  onEdit,
   isMinimized = true 
 }: InlineAskCommentProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedQuestion, setEditedQuestion] = useState(data.question);
+  const [editedAnswer, setEditedAnswer] = useState(data.answer);
 
   const getConfidenceColor = () => {
     if (data.confidence >= 80) return "text-green-500";
@@ -52,6 +63,23 @@ export const InlineAskComment = ({
   const exchangeCount = data.conversationHistory 
     ? Math.floor(data.conversationHistory.length / 2)
     : 1;
+
+  const handleSaveEdit = () => {
+    if (onEdit) {
+      onEdit(data.id, {
+        question: editedQuestion,
+        answer: editedAnswer
+      });
+    }
+    setIsEditing(false);
+  };
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(data.id);
+    }
+  };
 
   if (isMinimized) {
     // Show as inline highlight marker
@@ -69,19 +97,31 @@ export const InlineAskComment = ({
         {/* Hover Preview Tooltip */}
         {isHovered && (
           <div className="absolute z-50 left-0 top-full mt-1 w-72 p-3 bg-card border border-border rounded-lg shadow-xl animate-scale-in">
-            <div className="flex items-center gap-2 mb-2">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-foreground">Inline Ask</span>
-              <span className={`text-xs ${getConfidenceColor()}`}>
-                {data.confidence}%
-              </span>
-              {exchangeCount > 1 && (
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <MessageCircle className="h-3 w-3" />
-                  {exchangeCount} exchanges
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-xs font-medium text-foreground">Inline Ask</span>
+                <span className={`text-xs ${getConfidenceColor()}`}>
+                  {data.confidence}%
                 </span>
+              </div>
+              {onDelete && (
+                <button
+                  onClick={handleDelete}
+                  className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                  title="Delete inline ask"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
               )}
             </div>
+            
+            {exchangeCount > 1 && (
+              <div className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+                <MessageCircle className="h-3 w-3" />
+                {exchangeCount} exchanges
+              </div>
+            )}
             
             {/* Selected text preview */}
             <div className="text-xs text-muted-foreground mb-2 p-1.5 bg-yellow-500/10 rounded border border-yellow-500/30 line-clamp-1 italic">
@@ -135,6 +175,24 @@ export const InlineAskComment = ({
             }`}>
               {data.confidence}% confidence
             </span>
+            {onEdit && !isEditing && (
+              <button
+                onClick={() => setIsEditing(true)}
+                className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                title="Edit inline ask"
+              >
+                <Edit3 className="h-4 w-4" />
+              </button>
+            )}
+            {onDelete && (
+              <button
+                onClick={handleDelete}
+                className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                title="Delete inline ask"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
             {onClose && (
               <button
                 onClick={onClose}
@@ -174,6 +232,53 @@ export const InlineAskComment = ({
               </div>
             ))}
           </div>
+        ) : isEditing ? (
+          <>
+            {/* Editable Question */}
+            <div className="p-4 border-b border-border">
+              <div className="text-xs text-muted-foreground mb-1">Your Question</div>
+              <textarea
+                value={editedQuestion}
+                onChange={(e) => setEditedQuestion(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-input border border-border rounded-lg text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                rows={2}
+              />
+            </div>
+
+            {/* Editable Answer */}
+            <div className="p-4">
+              <div className="text-xs text-muted-foreground mb-1">Answer</div>
+              <textarea
+                value={editedAnswer}
+                onChange={(e) => setEditedAnswer(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-input border border-border rounded-lg text-foreground resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                rows={6}
+              />
+            </div>
+
+            {/* Save/Cancel Buttons */}
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border bg-secondary/20">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsEditing(false);
+                  setEditedQuestion(data.question);
+                  setEditedAnswer(data.answer);
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                size="sm"
+                onClick={handleSaveEdit}
+                className="bg-primary text-primary-foreground"
+              >
+                <Save className="h-4 w-4 mr-1" />
+                Save Changes
+              </Button>
+            </div>
+          </>
         ) : (
           <>
             {/* Question */}
@@ -189,28 +294,28 @@ export const InlineAskComment = ({
                 {data.answer}
               </p>
             </div>
+
+            {/* Footer */}
+            <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-secondary/20 text-xs text-muted-foreground">
+              <span>
+                {data.timestamp.toLocaleString()}
+              </span>
+              <span className="flex items-center gap-1">
+                {data.confidence >= 80 ? (
+                  <>
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                    High confidence
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="h-3 w-3 text-yellow-500" />
+                    Review recommended
+                  </>
+                )}
+              </span>
+            </div>
           </>
         )}
-
-        {/* Footer */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-secondary/20 text-xs text-muted-foreground">
-          <span>
-            {data.timestamp.toLocaleString()}
-          </span>
-          <span className="flex items-center gap-1">
-            {data.confidence >= 80 ? (
-              <>
-                <CheckCircle className="h-3 w-3 text-green-500" />
-                High confidence
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="h-3 w-3 text-yellow-500" />
-                Review recommended
-              </>
-            )}
-          </span>
-        </div>
       </div>
     </div>
   );
@@ -221,9 +326,10 @@ interface HighlightedTextProps {
   text: string;
   inlineAsks: InlineAskData[];
   onInlineAskClick: (data: InlineAskData) => void;
+  onDelete?: (id: string) => void;
 }
 
-export const HighlightedText = ({ text, inlineAsks, onInlineAskClick }: HighlightedTextProps) => {
+export const HighlightedText = ({ text, inlineAsks, onInlineAskClick, onDelete }: HighlightedTextProps) => {
   if (inlineAsks.length === 0) {
     return <>{text}</>;
   }
@@ -249,6 +355,7 @@ export const HighlightedText = ({ text, inlineAsks, onInlineAskClick }: Highligh
         text={ask.selectedText}
         data={ask}
         onClick={() => onInlineAskClick(ask)}
+        onDelete={onDelete}
       />
     );
 
@@ -269,9 +376,10 @@ interface HighlightedSegmentProps {
   text: string;
   data: InlineAskData;
   onClick: () => void;
+  onDelete?: (id: string) => void;
 }
 
-const HighlightedSegment = ({ text, data, onClick }: HighlightedSegmentProps) => {
+const HighlightedSegment = ({ text, data, onClick, onDelete }: HighlightedSegmentProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
   const getConfidenceColor = () => {
@@ -283,6 +391,13 @@ const HighlightedSegment = ({ text, data, onClick }: HighlightedSegmentProps) =>
   const exchangeCount = data.conversationHistory 
     ? Math.floor(data.conversationHistory.length / 2)
     : 1;
+
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(data.id);
+    }
+  };
 
   return (
     <span
@@ -297,19 +412,30 @@ const HighlightedSegment = ({ text, data, onClick }: HighlightedSegmentProps) =>
       {/* Tooltip on hover */}
       {isHovered && (
         <div className="absolute z-50 left-0 top-full mt-1 w-72 p-3 bg-card border border-border rounded-lg shadow-xl animate-scale-in">
-          <div className="flex items-center gap-2 mb-2">
-            <Sparkles className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium text-foreground">Inline Ask</span>
-            <span className={`text-xs ${getConfidenceColor()}`}>
-              {data.confidence}%
-            </span>
-            {exchangeCount > 1 && (
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <MessageCircle className="h-3 w-3" />
-                {exchangeCount}
+          <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-xs font-medium text-foreground">Inline Ask</span>
+              <span className={`text-xs ${getConfidenceColor()}`}>
+                {data.confidence}%
               </span>
+            </div>
+            {onDelete && (
+              <button
+                onClick={handleDelete}
+                className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
             )}
           </div>
+          {exchangeCount > 1 && (
+            <div className="text-xs text-muted-foreground flex items-center gap-1 mb-2">
+              <MessageCircle className="h-3 w-3" />
+              {exchangeCount} exchanges
+            </div>
+          )}
           <p className="text-xs text-muted-foreground mb-1 italic">
             Q: {data.question}
           </p>
