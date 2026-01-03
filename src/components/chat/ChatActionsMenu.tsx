@@ -9,6 +9,7 @@ import {
   MoreVertical,
   Copy,
   Download,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -35,12 +36,14 @@ interface ChatActionsMenuProps {
   sessionTitle: string;
   isPinned?: boolean;
   isArchived?: boolean;
+  isResearch?: boolean;
   onRename: (sessionId: string, newTitle: string) => void;
   onPin: (sessionId: string) => void;
   onArchive: (sessionId: string) => void;
   onDelete: (sessionId: string) => void;
   onShare?: (sessionId: string) => void;
   onExport?: (sessionId: string) => void;
+  onContinueInChat?: (sessionId: string) => void;
 }
 
 export const ChatActionsMenu = ({
@@ -48,12 +51,14 @@ export const ChatActionsMenu = ({
   sessionTitle,
   isPinned = false,
   isArchived = false,
+  isResearch = false,
   onRename,
   onPin,
   onArchive,
   onDelete,
   onShare,
   onExport,
+  onContinueInChat,
 }: ChatActionsMenuProps) => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -117,6 +122,14 @@ export const ChatActionsMenu = ({
             <Download className="h-4 w-4 mr-2" />
             Export
           </DropdownMenuItem>
+
+          {/* Continue in Chat - only for research sessions */}
+          {isResearch && onContinueInChat && (
+            <DropdownMenuItem onClick={() => onContinueInChat(sessionId)}>
+              <MessageSquare className="h-4 w-4 mr-2" />
+              Continue in Chat
+            </DropdownMenuItem>
+          )}
 
           <DropdownMenuSeparator />
 

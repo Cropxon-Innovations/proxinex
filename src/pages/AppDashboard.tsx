@@ -1213,6 +1213,12 @@ const AppDashboard = () => {
                           setRightPanelView("sources");
                           navigate("/app", { replace: true });
                         }}
+                        onContinueInChat={async (sessionId) => {
+                          // Load the research session and open in /app with sources panel
+                          await handleSelectSession(sessionId);
+                          setRightPanelView("sources");
+                          setRightPanelCollapsed(false);
+                        }}
                       />
                     )}
                   </div>
