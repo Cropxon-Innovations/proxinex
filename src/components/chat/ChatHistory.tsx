@@ -57,6 +57,7 @@ interface ChatHistoryProps {
   onSessionRename?: (sessionId: string, newTitle: string) => void;
   onSessionExport?: (sessionId: string) => void;
   onNewResearch?: () => void;
+  onContinueInChat?: (sessionId: string) => void;
 }
 
 export const ChatHistory = ({
@@ -70,6 +71,7 @@ export const ChatHistory = ({
   onSessionRename,
   onSessionExport,
   onNewResearch,
+  onContinueInChat,
 }: ChatHistoryProps) => {
   const [isHistoryOpen, setIsHistoryOpen] = useState(true);
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set(["today", "yesterday"]));
@@ -411,11 +413,13 @@ export const ChatHistory = ({
                               sessionTitle={session.title}
                               isPinned={session.isPinned}
                               isArchived={session.isArchived}
+                              isResearch={session.isResearch}
                               onRename={(id, newTitle) => onSessionRename?.(id, newTitle)}
                               onPin={(id) => onSessionPin?.(id)}
                               onArchive={(id) => onSessionArchive?.(id)}
                               onDelete={(id) => onSessionDelete(id)}
                               onExport={(id) => onSessionExport?.(id)}
+                              onContinueInChat={session.isResearch ? onContinueInChat : undefined}
                             />
                           </div>
                         </div>

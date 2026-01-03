@@ -9,9 +9,15 @@ import {
   Loader2,
   BookOpen,
   Target,
-  Lightbulb
+  Lightbulb,
+  Shield,
+  Database,
+  Network,
+  Layers,
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import proxinexLogo from "@/assets/proxinex-logo.png";
 
 interface ThinkingStep {
   id: string;
@@ -105,18 +111,31 @@ export const ThinkingAnimation = ({
   return (
     <div className={cn("py-4", className)}>
       <div className="bg-card/50 border border-border rounded-xl p-4">
-        {/* Header */}
-        <div className="flex items-center gap-2 mb-4">
+        {/* Header with Animated Proxinex Logo */}
+        <div className="flex items-center gap-3 mb-4">
           <div className="relative">
-            <Brain className="h-5 w-5 text-primary" />
-            <span className="absolute -top-1 -right-1 flex h-2 w-2">
+            <div className="w-10 h-10 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/30 to-primary/30 blur-md animate-pulse" />
+              <img 
+                src={proxinexLogo} 
+                alt="Proxinex" 
+                className="w-8 h-8 object-contain relative z-10 animate-spin"
+                style={{ animationDuration: '3s' }}
+              />
+            </div>
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
             </span>
           </div>
-          <span className="text-sm font-medium text-foreground">
-            {isResearchMode ? "Researching with verified sources..." : "Thinking..."}
-          </span>
+          <div>
+            <span className="text-sm font-medium text-foreground block">
+              {isResearchMode ? "Deep Research Mode" : "Thinking..."}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {isResearchMode ? "Extended analysis with verified sources" : "Processing your request"}
+            </span>
+          </div>
         </div>
 
         {/* Steps */}
