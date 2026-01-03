@@ -85,6 +85,7 @@ export type Database = {
       inline_asks: {
         Row: {
           answer: string | null
+          conversation_history: Json | null
           created_at: string
           highlighted_text: string
           id: string
@@ -96,6 +97,7 @@ export type Database = {
         }
         Insert: {
           answer?: string | null
+          conversation_history?: Json | null
           created_at?: string
           highlighted_text: string
           id?: string
@@ -107,6 +109,7 @@ export type Database = {
         }
         Update: {
           answer?: string | null
+          conversation_history?: Json | null
           created_at?: string
           highlighted_text?: string
           id?: string
