@@ -72,7 +72,6 @@ const AppDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<"history" | "citations">("history");
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<MessageWithMetrics[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ChatMetrics | null>(null);
@@ -103,6 +102,8 @@ const AppDashboard = () => {
   const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null);
   const [deleteSessionTitle, setDeleteSessionTitle] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesScrollRef = useRef<HTMLDivElement | null>(null);
+  const isAtBottomRef = useRef(true);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
   const location = useLocation();
@@ -161,10 +162,25 @@ const AppDashboard = () => {
     { id: "3", type: "summary" as const, content: "India's AI funding grew 47% in 2024 driven by govt initiatives", timestamp: new Date(), verified: true, sources: 5 },
   ];
 
+  // Track whether the user is near the bottom so streaming updates don't force-scroll
   useEffect(() => {
+    const el = messagesScrollRef.current;
+    if (!el) return;
+
+    const threshold = 140;
+    const handleScroll = () => {
+      isAtBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < threshold;
+    };
+
+    handleScroll();
+    el.addEventListener("scroll", handleScroll, { passive: true } as AddEventListenerOptions);
+    return () => el.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    if (!isAtBottomRef.current) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
   // Load chat sessions from database
   // Load chat from URL parameter
   useEffect(() => {
@@ -884,8 +900,9 @@ const AppDashboard = () => {
             {/* Messages + Input Column */}
             <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
               {/* Messages Column - Scrollable with Pull to Refresh */}
-              <PullToRefresh
-                onRefresh={async () => {
+               <PullToRefresh
+                 scrollContainerRef={messagesScrollRef}
+                 onRefresh={async () => {
                   if (activeSessionId && user) {
                     const { data, error } = await supabase
                       .from("chat_sessions")
@@ -986,8 +1003,10 @@ const AppDashboard = () => {
                                     isLoading={isLoading && isLastMessage}
                                     onOpenLinkPreview={handleOpenLinkPreview}
                                     onCitationClick={(id) => setSelectedSourceId(id)}
-                                    onViewSources={() => setSelectedMessageIndex(index)}
-                                    messageIndex={index}
+                                    onViewSources={() => {
+                                      setSelectedMessageIndex(index);
+                                      setRightPanelCollapsed(false);
+                                    }}
                                   />
                                 </div>
                               ) : (
@@ -1062,7 +1081,6 @@ const AppDashboard = () => {
                   onSelectSource={(source) => setSelectedSourceId(source.id)}
                   isCollapsed={rightPanelCollapsed}
                   onToggleCollapse={() => setRightPanelCollapsed(!rightPanelCollapsed)}
-                  onClose={() => setRightPanelTab("history")}
                 />
               </ResizableRightPanel>
             ) : messages.length > 0 && (

@@ -1,17 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
-import { 
-  ExternalLink, 
-  Globe, 
-  Shield, 
-  ShieldCheck, 
-  ShieldAlert, 
-  TrendingUp, 
+import {
+  ExternalLink,
+  Globe,
+  Shield,
+  ShieldCheck,
+  ShieldAlert,
+  TrendingUp,
   AlertCircle,
   Activity,
   Calendar,
   ChevronDown,
   ChevronUp,
-  X,
   Filter,
   RefreshCw,
   Loader2,
@@ -19,7 +18,7 @@ import {
   XCircle,
   Bookmark,
   BookmarkCheck,
-  Eye
+  Eye,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,7 +63,6 @@ interface SourceVerificationPanelProps {
   onSelectSource?: (source: VerifiedSource) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
-  onClose?: () => void;
   bookmarkedSources?: string[];
   onBookmarkSource?: (sourceId: string, url: string) => void;
 }
@@ -94,7 +92,6 @@ export const SourceVerificationPanel = ({
   onSelectSource,
   isCollapsed = false,
   onToggleCollapse,
-  onClose,
 }: SourceVerificationPanelProps) => {
   const [sources, setSources] = useState<VerifiedSource[]>(initialSources);
   const [expandedSourceId, setExpandedSourceId] = useState<string | null>(selectedSourceId || null);
@@ -364,7 +361,11 @@ export const SourceVerificationPanel = ({
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <Collapsible open={!isCollapsed} onOpenChange={() => onToggleCollapse?.()}>
+      <Collapsible
+        open={!isCollapsed}
+        onOpenChange={() => onToggleCollapse?.()}
+        className="flex flex-col flex-1 min-h-0"
+      >
         <CollapsibleTrigger className="w-full">
           <div className="flex items-center justify-between p-3 border-b border-border hover:bg-secondary/30 transition-colors">
             <div className="flex items-center gap-2">
@@ -375,19 +376,6 @@ export const SourceVerificationPanel = ({
               </span>
             </div>
             <div className="flex items-center gap-1">
-              {onClose && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onClose();
-                  }}
-                  className="h-6 w-6 p-0"
-                >
-                  <X className="h-3 w-3" />
-                </Button>
-              )}
               {isCollapsed ? (
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               ) : (
@@ -397,7 +385,7 @@ export const SourceVerificationPanel = ({
           </div>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="flex-1 flex flex-col overflow-hidden">
+        <CollapsibleContent className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {/* Verification Progress */}
           {isVerifying && (
             <div className="px-3 py-2 border-b border-border bg-primary/5">
