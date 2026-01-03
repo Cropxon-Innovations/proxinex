@@ -4,7 +4,7 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { SelectToAsk, useSelectToAsk } from "@/components/SelectToAsk";
-import { streamChat, Message } from "@/lib/chat";
+import { streamChat, Message, ChatMetrics } from "@/lib/chat";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessage } from "@/components/chat/ChatMessage";
@@ -64,13 +64,20 @@ interface ChatSessionData {
   citationCount: number;
   projectId?: string;
   projectName?: string;
+  isArchived?: boolean;
+  isStarred?: boolean;
+}
+
+interface MessageWithMetrics extends Message {
+  metrics?: ChatMetrics;
 }
 
 const AppDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [rightPanelTab, setRightPanelTab] = useState<"details" | "history">("details");
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<MessageWithMetrics[]>([]);
+  const [lastMetrics, setLastMetrics] = useState<ChatMetrics | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [currentCost, setCurrentCost] = useState(0);
@@ -160,9 +167,22 @@ const AppDashboard = () => {
       messages: [...messages, userMessage],
       type: "chat",
       onDelta: updateAssistant,
-      onDone: () => {
+      onDone: (metrics) => {
         setIsLoading(false);
-        setCurrentCost(prev => prev + 0.018);
+        if (metrics) {
+          setLastMetrics(metrics);
+          setCurrentCost(prev => prev + metrics.cost);
+          // Update the last assistant message with metrics
+          setMessages(prev => {
+            const lastMsg = prev[prev.length - 1];
+            if (lastMsg?.role === "assistant") {
+              return prev.map((m, i) => 
+                i === prev.length - 1 ? { ...m, metrics } : m
+              );
+            }
+            return prev;
+          });
+        }
         // Save session to history
         saveChatSession();
       },
@@ -222,9 +242,30 @@ const AppDashboard = () => {
       .single();
 
     if (data && !error && Array.isArray(data.messages)) {
-      setMessages(data.messages as unknown as Message[]);
+      setMessages(data.messages as unknown as MessageWithMetrics[]);
       setActiveSessionId(sessionId);
+      // Reset metrics to last message's metrics if available
+      const lastAssistantMsg = (data.messages as unknown as MessageWithMetrics[])
+        .filter(m => m.role === "assistant")
+        .pop();
+      if (lastAssistantMsg?.metrics) {
+        setLastMetrics(lastAssistantMsg.metrics);
+      }
     }
+  };
+
+  const handleStarSession = (sessionId: string) => {
+    setChatSessions(prev => prev.map(s => 
+      s.id === sessionId ? { ...s, isStarred: !s.isStarred } : s
+    ));
+    toast({ title: "Session starred" });
+  };
+
+  const handleArchiveSession = (sessionId: string) => {
+    setChatSessions(prev => prev.map(s => 
+      s.id === sessionId ? { ...s, isArchived: !s.isArchived } : s
+    ));
+    toast({ title: "Session archived" });
   };
 
   const handleSignOut = async () => {
@@ -396,18 +437,21 @@ const AppDashboard = () => {
                 </div>
               ) : (
                 <div className="max-w-3xl mx-auto">
-                  {messages.map((message, index) => (
-                    <ChatMessage
-                      key={index}
-                      role={message.role}
-                      content={message.content}
-                      timestamp={message.timestamp}
-                      isLoading={isLoading && index === messages.length - 1 && message.role === "assistant"}
-                      accuracy={94}
-                      cost={0.018}
-                      model={autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel}
-                    />
-                  ))}
+                  {messages.map((message, index) => {
+                    const messageMetrics = message.metrics || (message.role === "assistant" ? lastMetrics : null);
+                    return (
+                      <ChatMessage
+                        key={index}
+                        role={message.role}
+                        content={message.content}
+                        timestamp={message.timestamp}
+                        isLoading={isLoading && index === messages.length - 1 && message.role === "assistant"}
+                        accuracy={messageMetrics?.accuracy || 85}
+                        cost={messageMetrics?.cost || 0.012}
+                        model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
+                      />
+                    );
+                  })}
 
                   {/* Related Queries */}
                   {!isLoading && messages.length > 0 && (
@@ -462,20 +506,25 @@ const AppDashboard = () => {
                           <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
                             <div className="h-full bg-primary rounded-full" style={{ width: "94%" }} />
                           </div>
-                          <span className="text-sm font-medium text-foreground">94%</span>
+                          <span className="text-sm font-medium text-foreground">{lastMetrics?.accuracy || 85}%</span>
                         </div>
                       </div>
 
                       <div className="p-4 rounded-lg bg-secondary/50 border border-border">
                         <div className="text-xs text-muted-foreground mb-1">Model</div>
                         <div className="text-sm text-foreground">
-                          {autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel}
+                          {lastMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
                         </div>
+                        {lastMetrics && (
+                          <div className="text-[10px] text-muted-foreground mt-1">
+                            {lastMetrics.inputTokens} in / {lastMetrics.outputTokens} out tokens
+                          </div>
+                        )}
                       </div>
 
                       <div className="p-4 rounded-lg bg-secondary/50 border border-border">
                         <div className="text-xs text-muted-foreground mb-1">Query Cost</div>
-                        <div className="text-lg font-semibold text-foreground">₹0.018</div>
+                        <div className="text-lg font-semibold text-foreground">₹{(lastMetrics?.cost || 0.012).toFixed(3)}</div>
                       </div>
 
                       {/* Project Memory */}
@@ -502,6 +551,8 @@ const AppDashboard = () => {
                       activeSessionId={activeSessionId || undefined}
                       onSessionSelect={handleSelectSession}
                       onSessionDelete={handleDeleteSession}
+                      onSessionStar={handleStarSession}
+                      onSessionArchive={handleArchiveSession}
                     />
                   )}
                 </div>

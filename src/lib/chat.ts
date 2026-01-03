@@ -6,11 +6,19 @@ export type Message = {
   timestamp?: Date;
 };
 
+export interface ChatMetrics {
+  cost: number;
+  accuracy: number;
+  inputTokens: number;
+  outputTokens: number;
+  model: string;
+}
+
 interface StreamChatOptions {
   messages: Message[];
   type?: "chat" | "research" | "inline_ask";
   onDelta: (deltaText: string) => void;
-  onDone: () => void;
+  onDone: (metrics?: ChatMetrics) => void;
   onError?: (error: string) => void;
 }
 
@@ -50,6 +58,7 @@ export async function streamChat({
     const decoder = new TextDecoder();
     let textBuffer = "";
     let streamDone = false;
+    let metrics: ChatMetrics | undefined;
 
     while (!streamDone) {
       const { done, value } = await reader.read();
@@ -73,6 +82,13 @@ export async function streamChat({
 
         try {
           const parsed = JSON.parse(jsonStr);
+          
+          // Check for metadata event
+          if (parsed.type === "metadata" && parsed.metrics) {
+            metrics = parsed.metrics;
+            continue;
+          }
+          
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) onDelta(content);
         } catch {
@@ -93,13 +109,19 @@ export async function streamChat({
         if (jsonStr === "[DONE]") continue;
         try {
           const parsed = JSON.parse(jsonStr);
+          
+          if (parsed.type === "metadata" && parsed.metrics) {
+            metrics = parsed.metrics;
+            continue;
+          }
+          
           const content = parsed.choices?.[0]?.delta?.content as string | undefined;
           if (content) onDelta(content);
         } catch { /* ignore */ }
       }
     }
 
-    onDone();
+    onDone(metrics);
   } catch (error) {
     console.error("Stream chat error:", error);
     onError?.(error instanceof Error ? error.message : "Failed to connect to AI service");
