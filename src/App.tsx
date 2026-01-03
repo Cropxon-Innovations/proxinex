@@ -18,6 +18,9 @@ import NotebooksPage from "./pages/Notebooks";
 import ApiKeysPage from "./pages/ApiKeys";
 import DocumentsPage from "./pages/Documents";
 import UsagePage from "./pages/Usage";
+import SettingsPage from "./pages/Settings";
+import VideoPage from "./pages/Video";
+import ImagesPage from "./pages/Images";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -43,7 +46,10 @@ const App = () => (
               <Route path="/app/notebooks" element={<ProtectedRoute><NotebooksPage /></ProtectedRoute>} />
               <Route path="/app/api-keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
               <Route path="/app/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
+              <Route path="/app/images" element={<ProtectedRoute><ImagesPage /></ProtectedRoute>} />
+              <Route path="/app/video" element={<ProtectedRoute><VideoPage /></ProtectedRoute>} />
               <Route path="/app/usage" element={<ProtectedRoute><UsagePage /></ProtectedRoute>} />
+              <Route path="/app/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
               <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
