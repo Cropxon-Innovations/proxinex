@@ -138,40 +138,38 @@ const AppDashboard = () => {
   // Load chat from URL parameter
   useEffect(() => {
     const searchParams = new URLSearchParams(location.search);
-    const chatId = searchParams.get('chat');
-    
-    if (chatId && user && chatId !== activeSessionId) {
-      // Load the specific chat session
-      const loadChatFromUrl = async () => {
-        const { data, error } = await supabase
-          .from("chat_sessions")
-          .select("*")
-          .eq("id", chatId)
-          .eq("user_id", user.id)
-          .single();
+    const chatId = searchParams.get("chat");
 
-        if (data && !error) {
-          const messagesArray = Array.isArray(data.messages) 
-            ? data.messages as unknown as MessageWithMetrics[]
-            : [];
-          setMessages(messagesArray);
-          setActiveSessionId(data.id);
-          
-          // Reset metrics to last message's metrics if available
-          const lastAssistantMsg = messagesArray
-            .filter(m => m.role === "assistant")
-            .pop();
-          if (lastAssistantMsg?.metrics) {
-            setLastMetrics(lastAssistantMsg.metrics);
-          }
-          
-          // Load inline asks for this session
-          await loadInlineAsks(data.id);
-        }
-      };
-      loadChatFromUrl();
-    }
-  }, [location.search, user, activeSessionId]);
+    if (!chatId || !user) return;
+    if (chatId === activeSessionId) return;
+
+    const loadChatFromUrl = async () => {
+      const { data, error } = await supabase
+        .from("chat_sessions")
+        .select("*")
+        .eq("id", chatId)
+        .eq("user_id", user.id)
+        .single();
+
+      if (error || !data) return;
+
+      const messagesArray = Array.isArray(data.messages)
+        ? (data.messages as unknown as MessageWithMetrics[])
+        : [];
+
+      setMessages(messagesArray);
+      setActiveSessionId(data.id);
+
+      const lastAssistantMsg = messagesArray.filter((m) => m.role === "assistant").pop();
+      if (lastAssistantMsg?.metrics) {
+        setLastMetrics(lastAssistantMsg.metrics);
+      }
+
+      await loadInlineAsks(data.id);
+    };
+
+    loadChatFromUrl();
+  }, [location.search, user]);
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -386,29 +384,33 @@ const AppDashboard = () => {
   };
 
   const handleSelectSession = async (sessionId: string) => {
-    const session = chatSessions.find(s => s.id === sessionId);
-    if (!session) return;
+    if (!user) return;
+
+    // Keep URL in sync so the "load from URL" effect doesn't overwrite the selection.
+    navigate(`/app?chat=${sessionId}`);
 
     const { data, error } = await supabase
       .from("chat_sessions")
-      .select("messages")
+      .select("*")
       .eq("id", sessionId)
+      .eq("user_id", user.id)
       .single();
 
-    if (data && !error && Array.isArray(data.messages)) {
-      setMessages(data.messages as unknown as MessageWithMetrics[]);
-      setActiveSessionId(sessionId);
-      // Reset metrics to last message's metrics if available
-      const lastAssistantMsg = (data.messages as unknown as MessageWithMetrics[])
-        .filter(m => m.role === "assistant")
-        .pop();
-      if (lastAssistantMsg?.metrics) {
-        setLastMetrics(lastAssistantMsg.metrics);
-      }
-      
-      // Load inline asks for this session
-      await loadInlineAsks(sessionId);
+    if (error || !data) return;
+
+    const messagesArray = Array.isArray(data.messages)
+      ? (data.messages as unknown as MessageWithMetrics[])
+      : [];
+
+    setMessages(messagesArray);
+    setActiveSessionId(data.id);
+
+    const lastAssistantMsg = messagesArray.filter((m) => m.role === "assistant").pop();
+    if (lastAssistantMsg?.metrics) {
+      setLastMetrics(lastAssistantMsg.metrics);
     }
+
+    await loadInlineAsks(data.id);
   };
 
   const handleStarSession = (sessionId: string) => {
