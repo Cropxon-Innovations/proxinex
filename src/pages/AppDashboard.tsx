@@ -80,6 +80,8 @@ interface ChatSessionData {
   projectName?: string;
   isArchived?: boolean;
   isStarred?: boolean;
+  isPinned?: boolean;
+  content?: string; // For read aloud
 }
 
 interface MessageWithMetrics extends Message {
@@ -136,15 +138,31 @@ const AppDashboard = () => {
         .order("updated_at", { ascending: false });
 
       if (data && !error) {
-        setChatSessions(data.map(session => ({
-          id: session.id,
-          title: session.title,
-          preview: "Chat session",
-          timestamp: new Date(session.updated_at),
-          messageCount: Array.isArray(session.messages) ? session.messages.length : 0,
-          verified: true,
-          citationCount: 0,
-        })));
+        setChatSessions(data.map(session => {
+          const messagesArray = Array.isArray(session.messages) ? session.messages as any[] : [];
+          const contentPreview = messagesArray
+            .filter((m) => m?.role === "assistant")
+            .map((m) => m?.content || "")
+            .join("\n\n");
+          
+          const firstMessage = messagesArray[0];
+          const previewText = typeof firstMessage?.content === 'string' 
+            ? firstMessage.content.slice(0, 50) 
+            : "Chat session";
+          
+          return {
+            id: session.id,
+            title: session.title,
+            preview: previewText,
+            timestamp: new Date(session.updated_at),
+            messageCount: messagesArray.length,
+            verified: true,
+            citationCount: 0,
+            isPinned: (session as any).is_pinned || false,
+            isArchived: (session as any).is_archived || false,
+            content: contentPreview, // For read aloud
+          };
+        }));
       }
     };
 
@@ -309,11 +327,66 @@ const AppDashboard = () => {
     toast({ title: "Session starred" });
   };
 
-  const handleArchiveSession = (sessionId: string) => {
+  const handleArchiveSession = async (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    const newArchived = !session?.isArchived;
+    
     setChatSessions(prev => prev.map(s => 
-      s.id === sessionId ? { ...s, isArchived: !s.isArchived } : s
+      s.id === sessionId ? { ...s, isArchived: newArchived } : s
     ));
-    toast({ title: "Session archived" });
+    
+    // Persist to database
+    if (user) {
+      await supabase
+        .from("chat_sessions")
+        .update({ is_archived: newArchived })
+        .eq("id", sessionId)
+        .eq("user_id", user.id);
+    }
+    
+    toast({ title: newArchived ? "Session archived" : "Session unarchived" });
+  };
+
+  const handlePinSession = async (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    const newPinned = !session?.isPinned;
+    
+    setChatSessions(prev => prev.map(s => 
+      s.id === sessionId ? { ...s, isPinned: newPinned } : s
+    ));
+    
+    // Persist to database
+    if (user) {
+      await supabase
+        .from("chat_sessions")
+        .update({ is_pinned: newPinned })
+        .eq("id", sessionId)
+        .eq("user_id", user.id);
+    }
+    
+    toast({ title: newPinned ? "Session pinned" : "Session unpinned" });
+  };
+
+  const handleRenameSession = async (sessionId: string, newTitle: string) => {
+    setChatSessions(prev => prev.map(s => 
+      s.id === sessionId ? { ...s, title: newTitle } : s
+    ));
+    
+    // Persist to database
+    if (user) {
+      await supabase
+        .from("chat_sessions")
+        .update({ title: newTitle })
+        .eq("id", sessionId)
+        .eq("user_id", user.id);
+    }
+    
+    toast({ title: "Session renamed" });
+  };
+
+  const handleExportSession = (sessionId: string) => {
+    // This would trigger the export - for now just show toast
+    toast({ title: "Export feature available in chat header" });
   };
 
   const handleSignOut = async () => {
@@ -818,6 +891,9 @@ const AppDashboard = () => {
                       onSessionDelete={handleDeleteSession}
                       onSessionStar={handleStarSession}
                       onSessionArchive={handleArchiveSession}
+                      onSessionPin={handlePinSession}
+                      onSessionRename={handleRenameSession}
+                      onSessionExport={handleExportSession}
                     />
                   )}
                 </div>

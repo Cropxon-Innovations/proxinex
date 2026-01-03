@@ -51,6 +51,8 @@ export type Database = {
         Row: {
           created_at: string
           id: string
+          is_archived: boolean | null
+          is_pinned: boolean | null
           messages: Json | null
           title: string
           updated_at: string
@@ -59,6 +61,8 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
           messages?: Json | null
           title?: string
           updated_at?: string
@@ -67,6 +71,8 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
           messages?: Json | null
           title?: string
           updated_at?: string
