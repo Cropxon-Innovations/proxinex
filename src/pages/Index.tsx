@@ -9,6 +9,7 @@ import { CTASection } from "@/components/landing/CTASection";
 import { IntelligenceFlow } from "@/components/landing/IntelligenceFlow";
 import { HeroLivePreview } from "@/components/landing/HeroLivePreview";
 import { PricingCalculator } from "@/components/landing/PricingCalculator";
+import { VideoShowcase } from "@/components/landing/VideoShowcase";
 import { Helmet } from "react-helmet-async";
 
 const Index = () => {
@@ -44,8 +45,8 @@ const Index = () => {
 
           <ProblemSection />
           <IntelligenceFlow />
+          <VideoShowcase />
           <HowItWorksSection />
-          <FeaturesSection />
           <PricingCalculator />
           <SandboxPreview />
           <CTASection />
