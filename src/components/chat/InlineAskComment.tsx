@@ -12,6 +12,17 @@ import {
   Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 interface ConversationEntry {
   role: "user" | "assistant";
@@ -74,11 +85,13 @@ export const InlineAskComment = ({
     setIsEditing(false);
   };
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDelete = () => {
     if (onDelete) {
       onDelete(data.id);
     }
+    setShowDeleteConfirm(false);
   };
 
   if (isMinimized) {
@@ -94,25 +107,43 @@ export const InlineAskComment = ({
           <MessageSquare className="inline h-3 w-3 text-yellow-600 dark:text-yellow-500 mr-0.5" />
         </span>
         
-        {/* Hover Preview Tooltip */}
+        {/* Hover Preview Tooltip - Proxinex Ask */}
         {isHovered && (
           <div className="absolute z-50 left-0 top-full mt-1 w-72 p-3 bg-card border border-border rounded-lg shadow-xl animate-scale-in">
             <div className="flex items-center justify-between mb-2">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-4 w-4 text-primary" />
-                <span className="text-xs font-medium text-foreground">Inline Ask</span>
+                <span className="text-xs font-medium text-foreground">Proxinex Ask</span>
                 <span className={`text-xs ${getConfidenceColor()}`}>
                   {data.confidence}%
                 </span>
               </div>
               {onDelete && (
-                <button
-                  onClick={handleDelete}
-                  className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                  title="Delete inline ask"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
+                <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                      className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                      title="Delete inline ask"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Delete Proxinex Ask?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete this Proxinex Ask and all its conversation history. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               )}
             </div>
             
@@ -143,7 +174,7 @@ export const InlineAskComment = ({
             
             <div className="text-xs text-primary mt-2 flex items-center gap-1">
               <Maximize2 className="h-3 w-3" />
-              Click to expand full conversation
+              Click to view full conversation
             </div>
           </div>
         )}
@@ -159,7 +190,7 @@ export const InlineAskComment = ({
         <div className="flex items-center justify-between p-4 border-b border-border bg-secondary/30">
           <div className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
-            <span className="font-medium text-foreground">Inline Ask Details</span>
+            <span className="font-medium text-foreground">Proxinex Ask Details</span>
             {exchangeCount > 1 && (
               <span className="text-xs text-muted-foreground flex items-center gap-1">
                 <MessageCircle className="h-3 w-3" />
@@ -179,19 +210,36 @@ export const InlineAskComment = ({
               <button
                 onClick={() => setIsEditing(true)}
                 className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                title="Edit inline ask"
+                title="Edit Proxinex Ask"
               >
                 <Edit3 className="h-4 w-4" />
               </button>
             )}
             {onDelete && (
-              <button
-                onClick={handleDelete}
-                className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                title="Delete inline ask"
-              >
-                <Trash2 className="h-4 w-4" />
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Delete Proxinex Ask"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Proxinex Ask?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete this Proxinex Ask and all its conversation history. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             {onClose && (
               <button
@@ -381,6 +429,7 @@ interface HighlightedSegmentProps {
 
 const HighlightedSegment = ({ text, data, onClick, onDelete }: HighlightedSegmentProps) => {
   const [isHovered, setIsHovered] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const getConfidenceColor = () => {
     if (data.confidence >= 80) return "text-green-500";
@@ -392,11 +441,11 @@ const HighlightedSegment = ({ text, data, onClick, onDelete }: HighlightedSegmen
     ? Math.floor(data.conversationHistory.length / 2)
     : 1;
 
-  const handleDelete = (e: React.MouseEvent) => {
-    e.stopPropagation();
+  const handleDelete = () => {
     if (onDelete) {
       onDelete(data.id);
     }
+    setShowDeleteConfirm(false);
   };
 
   return (
@@ -409,25 +458,43 @@ const HighlightedSegment = ({ text, data, onClick, onDelete }: HighlightedSegmen
       {text}
       <MessageSquare className="inline h-3 w-3 text-yellow-600 dark:text-yellow-500 ml-0.5" />
       
-      {/* Tooltip on hover */}
+      {/* Proxinex Ask Tooltip on hover */}
       {isHovered && (
         <div className="absolute z-50 left-0 top-full mt-1 w-72 p-3 bg-card border border-border rounded-lg shadow-xl animate-scale-in">
           <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium text-foreground">Inline Ask</span>
+              <span className="text-xs font-medium text-foreground">Proxinex Ask</span>
               <span className={`text-xs ${getConfidenceColor()}`}>
                 {data.confidence}%
               </span>
             </div>
             {onDelete && (
-              <button
-                onClick={handleDelete}
-                className="p-1 text-muted-foreground hover:text-destructive transition-colors"
-                title="Delete"
-              >
-                <Trash2 className="h-3 w-3" />
-              </button>
+              <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+                <AlertDialogTrigger asChild>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setShowDeleteConfirm(true); }}
+                    className="p-1 text-muted-foreground hover:text-destructive transition-colors"
+                    title="Delete Proxinex Ask"
+                  >
+                    <Trash2 className="h-3 w-3" />
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Delete Proxinex Ask?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete this Proxinex Ask and all its conversation history. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
           </div>
           {exchangeCount > 1 && (
@@ -444,7 +511,7 @@ const HighlightedSegment = ({ text, data, onClick, onDelete }: HighlightedSegmen
           </p>
           <div className="text-xs text-primary mt-2 flex items-center gap-1">
             <Maximize2 className="h-3 w-3" />
-            Click to view full details
+            Click to view full conversation
           </div>
         </div>
       )}

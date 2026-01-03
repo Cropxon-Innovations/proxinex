@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, forwardRef } from "react";
 import { 
   Send, 
   Sparkles, 
@@ -68,7 +68,7 @@ const rewriteStyles: { id: RewriteStyle; label: string }[] = [
   { id: "friendly", label: "More friendly" },
 ];
 
-export const PersistentInlineAsk = ({ 
+export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAskProps>(({ 
   selectedText, 
   position, 
   fullContext, 
@@ -80,7 +80,7 @@ export const PersistentInlineAsk = ({
   isMaximized = false,
   onToggleMaximize,
   sessionId
-}: PersistentInlineAskProps) => {
+}, ref) => {
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
@@ -217,7 +217,11 @@ export const PersistentInlineAsk = ({
 
   return (
     <div 
-      ref={panelRef}
+      ref={(el) => {
+        panelRef.current = el;
+        if (typeof ref === 'function') ref(el);
+        else if (ref) ref.current = el;
+      }}
       className={`fixed z-50 animate-scale-in ${getBorderClass()} rounded-lg shadow-xl bg-card`}
       style={{ 
         left, 
@@ -538,7 +542,9 @@ export const PersistentInlineAsk = ({
       )}
     </div>
   );
-};
+});
+
+PersistentInlineAsk.displayName = "PersistentInlineAsk";
 
 // Hook for persistent text selection
 export const usePersistentInlineAsk = () => {
