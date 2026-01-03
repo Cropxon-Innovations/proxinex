@@ -5,3 +5,9 @@ verify_jwt = false
 
 [functions.chat]
 verify_jwt = false
+
+[functions.model-compare]
+verify_jwt = false
+
+[functions.text-action]
+verify_jwt = false

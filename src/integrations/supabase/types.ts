@@ -14,6 +14,39 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_keys: {
+        Row: {
+          created_at: string
+          id: string
+          key: string
+          last_used: string | null
+          name: string
+          requests_count: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          key: string
+          last_used?: string | null
+          name: string
+          requests_count?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          key?: string
+          last_used?: string | null
+          name?: string
+          requests_count?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chat_sessions: {
         Row: {
           created_at: string

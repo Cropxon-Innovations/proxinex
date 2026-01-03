@@ -15,6 +15,7 @@ import Auth from "./pages/Auth";
 import AppDashboard from "./pages/AppDashboard";
 import ResearchPage from "./pages/Research";
 import NotebooksPage from "./pages/Notebooks";
+import ApiKeysPage from "./pages/ApiKeys";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
               <Route path="/app/chat" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
               <Route path="/app/research" element={<ProtectedRoute><ResearchPage /></ProtectedRoute>} />
               <Route path="/app/notebooks" element={<ProtectedRoute><NotebooksPage /></ProtectedRoute>} />
+              <Route path="/app/api-keys" element={<ProtectedRoute><ApiKeysPage /></ProtectedRoute>} />
               <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
               <Route path="*" element={<NotFound />} />
             </Routes>

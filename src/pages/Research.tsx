@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
-import { InlineAsk, useTextSelection } from "@/components/InlineAsk";
+import { SelectToAsk, useSelectToAsk } from "@/components/SelectToAsk";
 import { searchWithTavily, Citation, ResearchResponse } from "@/lib/tavily";
 import { CitationAnswer } from "@/components/CitationAnswer";
 import { useToast } from "@/hooks/use-toast";
@@ -43,7 +43,7 @@ const sidebarItems = [
   { icon: Code, label: "API Playground", path: "/app/api" },
   { divider: true },
   { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-  { icon: Key, label: "API Keys", path: "/app/keys" },
+  { icon: Key, label: "API Keys", path: "/app/api-keys" },
   { icon: Settings, label: "Settings", path: "/app/settings" },
 ];
 
@@ -63,7 +63,7 @@ const ResearchPage = () => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const { selection, handleMouseUp, clearSelection } = useTextSelection();
+  const { selection, handleMouseUp, clearSelection } = useSelectToAsk();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -299,7 +299,7 @@ const ResearchPage = () => {
         </main>
       </div>
 
-      {selection && <InlineAsk selectedText={selection.text} position={selection.position} onClose={clearSelection} />}
+      {selection && <SelectToAsk selectedText={selection.text} position={selection.position} fullContext={messages.map(m => m.content).join("\n\n")} onClose={clearSelection} />}
     </>
   );
 };
