@@ -1,16 +1,19 @@
-import { useState, useRef, useCallback, ReactNode } from "react";
+import { useState, useRef, useCallback, ReactNode, MutableRefObject } from "react";
 import { RefreshCw } from "lucide-react";
 
 interface PullToRefreshProps {
   children: ReactNode;
   onRefresh: () => Promise<void>;
   threshold?: number;
+  /** Optional ref for callers that need access to the internal scroll container */
+  scrollContainerRef?: MutableRefObject<HTMLDivElement | null>;
 }
 
 export const PullToRefresh = ({
   children,
   onRefresh,
   threshold = 80,
+  scrollContainerRef,
 }: PullToRefreshProps) => {
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -89,7 +92,10 @@ export const PullToRefresh = ({
 
       {/* Content */}
       <div
-        ref={containerRef}
+        ref={(el) => {
+          containerRef.current = el;
+          if (scrollContainerRef) scrollContainerRef.current = el;
+        }}
         className="flex-1 min-h-0 overflow-y-auto"
         style={{
           transform: pullDistance > 0 ? `translateY(${pullDistance * 0.3}px)` : undefined,

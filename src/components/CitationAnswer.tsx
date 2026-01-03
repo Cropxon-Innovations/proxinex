@@ -71,8 +71,28 @@ export const CitationAnswer = ({
           {hasCitations && (
             <>
               <span className="text-border">•</span>
-              <ShieldCheck className="h-4 w-4 text-emerald-500" />
-              <span className="text-emerald-500">{citations.length} sources verified</span>
+              {onViewSources ? (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <button
+                        type="button"
+                        onClick={onViewSources}
+                        className="inline-flex items-center gap-1 text-success hover:text-success/80 transition-colors"
+                      >
+                        <ShieldCheck className="h-4 w-4" />
+                        <span>{citations.length} sources verified</span>
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent>Open verified sources panel</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <>
+                  <ShieldCheck className="h-4 w-4 text-success" />
+                  <span className="text-success">{citations.length} sources verified</span>
+                </>
+              )}
             </>
           )}
         </div>
