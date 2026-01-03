@@ -11,12 +11,15 @@ const footerLinks = {
   ],
   Developers: [
     { label: "Documentation", href: "/docs" },
-    { label: "API Reference", href: "/docs" },
+    { label: "API Reference", href: "/docs#chat" },
     { label: "For Developers", href: "/product/developers" },
     { label: "Enterprise", href: "/product/enterprise" },
   ],
   Company: [
-    { label: "About", href: "/product" },
+    { label: "About", href: "/about" },
+    { label: "Blog", href: "/blog" },
+    { label: "Careers", href: "/careers" },
+    { label: "Contact", href: "/contact" },
     { label: "Security", href: "/security" },
     { label: "Trust & Accuracy", href: "/product/trust" },
     { label: "Help Center", href: "/help" },

@@ -6,6 +6,8 @@ import { HowItWorksSection } from "@/components/landing/HowItWorksSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
 import { SandboxPreview } from "@/components/landing/SandboxPreview";
 import { CTASection } from "@/components/landing/CTASection";
+import { IntelligenceFlow } from "@/components/landing/IntelligenceFlow";
+import { HeroLivePreview } from "@/components/landing/HeroLivePreview";
 import { Helmet } from "react-helmet-async";
 
 const Index = () => {
@@ -23,7 +25,24 @@ const Index = () => {
         <Navbar />
         <main>
           <HeroSection />
+          
+          {/* Live Preview Section */}
+          <section className="py-20 bg-card/30">
+            <div className="container mx-auto px-4">
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+                  See Proxinex in Action
+                </h2>
+                <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                  Watch how Inline Ask™, citation verification, and accuracy scoring work together.
+                </p>
+              </div>
+              <HeroLivePreview />
+            </div>
+          </section>
+
           <ProblemSection />
+          <IntelligenceFlow />
           <HowItWorksSection />
           <FeaturesSection />
           <SandboxPreview />
