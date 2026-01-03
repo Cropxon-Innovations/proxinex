@@ -880,7 +880,7 @@ const AppDashboard = () => {
           </header>
 
           {/* Chat Area - Scrollable */}
-          <div className="flex-1 flex overflow-hidden min-h-0">
+          <div className="flex-1 flex overflow-hidden min-h-0 w-full">
             {/* Messages Column - Scrollable with Pull to Refresh */}
             <PullToRefresh
               onRefresh={async () => {
@@ -904,7 +904,7 @@ const AppDashboard = () => {
             >
               <div 
                 ref={chatContainerRef}
-                className="min-w-0 h-full"
+                className="flex-1 min-w-0 h-full overflow-x-hidden"
                 onMouseUp={(e) => handleMouseUp(e, messages.map(m => m.content).join("\n\n"))}
               >
                 {/* Pinned Messages Section */}
@@ -916,7 +916,7 @@ const AppDashboard = () => {
                   />
                 )}
 
-                <div className="p-4 md:p-6">
+                <div className="p-3 md:p-4 lg:p-6">
                   {messages.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center min-h-[60vh]">
                       <div className="text-center max-w-md px-4">

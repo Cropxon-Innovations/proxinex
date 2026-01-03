@@ -228,3 +228,25 @@
 .touch-pan-y {
   touch-action: pan-y;
 }
+
+/* Custom scrollbar styling */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-border::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-thumb-border::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thumb-border::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 3px;
+}
+
+.scrollbar-thumb-border::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
