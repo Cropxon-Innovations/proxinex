@@ -104,13 +104,13 @@ export default function ImagesPage() {
     if (!prompt.trim()) return;
 
     setIsGenerating(true);
-    const modelToUse = autoSelectModel ? "flux-schnell" : selectedModel;
-    const model = imageModels.find(m => m.id === modelToUse);
+    const modelToUse = autoSelectModel ? "gemini-flash" : selectedModel;
+    const model = imageModels.find(m => m.id === modelToUse) || { name: "Gemini 2.5 Flash Image" };
 
     const newImage: GeneratedImage = {
       id: Math.random().toString(36).substr(2, 9),
       prompt: prompt.trim(),
-      model: model?.name || modelToUse,
+      model: model.name,
       url: "",
       status: "generating",
       createdAt: new Date(),
@@ -118,23 +118,49 @@ export default function ImagesPage() {
 
     setGeneratedImages(prev => [newImage, ...prev]);
 
-    // Simulate generation
-    await new Promise(r => setTimeout(r, 2000 + Math.random() * 2000));
+    try {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-image`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+        },
+        body: JSON.stringify({ prompt: prompt.trim(), aspectRatio: "1:1" }),
+      });
 
-    // Use placeholder image
-    const placeholderUrl = `https://picsum.photos/seed/${newImage.id}/1024/1024`;
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to generate image");
+      }
 
-    setGeneratedImages(prev =>
-      prev.map(img =>
-        img.id === newImage.id
-          ? { ...img, status: "ready" as const, url: placeholderUrl }
-          : img
-      )
-    );
+      const data = await response.json();
 
-    setIsGenerating(false);
-    setPrompt("");
-    toast({ title: "Image generated", description: `Created with ${model?.name}` });
+      setGeneratedImages(prev =>
+        prev.map(img =>
+          img.id === newImage.id
+            ? { ...img, status: "ready" as const, url: data.imageUrl }
+            : img
+        )
+      );
+
+      toast({ title: "Image generated", description: `Created with ${model.name}` });
+    } catch (error) {
+      setGeneratedImages(prev =>
+        prev.map(img =>
+          img.id === newImage.id
+            ? { ...img, status: "error" as const }
+            : img
+        )
+      );
+      toast({
+        title: "Generation failed",
+        description: error instanceof Error ? error.message : "Unknown error",
+        variant: "destructive",
+      });
+    } finally {
+      setIsGenerating(false);
+      setPrompt("");
+    }
   };
 
   const handleDrop = useCallback((e: React.DragEvent) => {
