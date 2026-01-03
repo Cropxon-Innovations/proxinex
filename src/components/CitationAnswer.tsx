@@ -21,6 +21,7 @@ interface CitationAnswerProps {
   isLoading?: boolean;
   showVerification?: boolean;
   onOpenLinkPreview?: (url: string, title?: string) => void;
+  onCitationClick?: (citationId: string) => void;
 }
 
 export const CitationAnswer = ({
@@ -31,6 +32,7 @@ export const CitationAnswer = ({
   isLoading,
   showVerification = false,
   onOpenLinkPreview,
+  onCitationClick,
 }: CitationAnswerProps) => {
   const hasCitations = citations.length > 0;
   const isLowConfidence = confidence < 40;
@@ -117,7 +119,10 @@ export const CitationAnswer = ({
               return (
                 <button
                   key={citation.id}
-                  onClick={() => onOpenLinkPreview?.(citation.url, citation.title)}
+                  onClick={() => {
+                    onCitationClick?.(String(citation.id - 1));
+                    onOpenLinkPreview?.(citation.url, citation.title);
+                  }}
                   className="group flex items-start gap-3 p-3 rounded-lg bg-secondary/50 hover:bg-secondary border border-transparent hover:border-primary/20 transition-all text-left w-full"
                 >
                   {/* Citation Number Badge */}
