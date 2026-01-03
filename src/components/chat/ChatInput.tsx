@@ -420,7 +420,7 @@ export const ChatInput = ({
 
   return (
     <div 
-      className="border-t border-border bg-background p-4"
+      className="border-t border-border bg-background p-3 md:p-4 flex-shrink-0"
       ref={dropZoneRef}
       onDragEnter={handleDragEnter}
       onDragLeave={handleDragLeave}
@@ -430,15 +430,15 @@ export const ChatInput = ({
       {/* Drag Overlay */}
       {isDragging && (
         <div className="fixed inset-0 z-50 bg-background/80 backdrop-blur-sm flex items-center justify-center pointer-events-none">
-          <div className="bg-primary/10 border-2 border-dashed border-primary rounded-2xl p-12 text-center">
-            <Upload className="h-12 w-12 text-primary mx-auto mb-4" />
-            <p className="text-lg font-medium text-foreground">Drop files here</p>
-            <p className="text-sm text-muted-foreground mt-1">Maximum {MAX_FILES} files, 20MB each</p>
+          <div className="bg-primary/10 border-2 border-dashed border-primary rounded-2xl p-8 md:p-12 text-center">
+            <Upload className="h-10 w-10 md:h-12 md:w-12 text-primary mx-auto mb-4" />
+            <p className="text-base md:text-lg font-medium text-foreground">Drop files here</p>
+            <p className="text-xs md:text-sm text-muted-foreground mt-1">Maximum {MAX_FILES} files, 20MB each</p>
           </div>
         </div>
       )}
 
-      <form onSubmit={onSubmit} className="max-w-3xl mx-auto relative">
+      <form onSubmit={onSubmit} className="w-full max-w-3xl mx-auto relative">
         {/* Connector Menu Popover */}
         {showConnectorMenu && (
           <div className="absolute bottom-full mb-2 left-0 right-0 max-w-md bg-card border border-border rounded-xl shadow-lg overflow-hidden z-50">
@@ -500,12 +500,12 @@ export const ChatInput = ({
           />
         )}
 
-        {/* Main Input Container */}
-        <div className={`bg-input border rounded-xl overflow-hidden transition-colors ${
-          isDragging ? 'border-primary border-2' : 'border-border'
+        {/* Main Input Container - Clean Square Shape */}
+        <div className={`bg-card border rounded-xl shadow-sm overflow-hidden transition-all ${
+          isDragging ? 'border-primary border-2 shadow-md' : 'border-border hover:border-muted-foreground/30'
         }`}>
           {/* Input Row */}
-          <div className="flex items-center gap-2 p-3">
+          <div className="flex items-center gap-2 md:gap-3 p-3 md:p-4">
             <input
               ref={inputRef}
               type="text"
@@ -513,13 +513,13 @@ export const ChatInput = ({
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Ask anything. Type @ for apps and / for shortcuts"
               disabled={isLoading}
-              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-sm"
+              className="flex-1 bg-transparent text-foreground placeholder:text-muted-foreground focus:outline-none text-sm md:text-base min-w-0"
             />
             <Button
               type="submit"
               size="sm"
               disabled={!query.trim() || isLoading}
-              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg"
+              className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg h-9 w-9 md:h-10 md:w-10 p-0 flex-shrink-0"
             >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -530,7 +530,7 @@ export const ChatInput = ({
           </div>
 
           {/* Action Bar */}
-          <div className="flex items-center justify-between px-3 pb-3">
+          <div className="flex items-center justify-between px-3 md:px-4 pb-2 md:pb-3 pt-0">
             {/* Left Actions */}
             <div className="flex items-center gap-1">
               {/* Quick Action Buttons */}
@@ -736,13 +736,13 @@ export const ChatInput = ({
         </div>
 
         {/* Quick Chips */}
-        <div className="flex items-center justify-center gap-2 mt-3">
+        <div className="flex items-center justify-center gap-1.5 md:gap-2 mt-2 md:mt-3 flex-wrap">
           {quickChips.map(chip => (
             <button
               key={chip.id}
               type="button"
               onClick={() => setQuery(chip.label + " ")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
+              className="flex items-center gap-1 md:gap-1.5 px-2.5 md:px-3 py-1 md:py-1.5 text-[11px] md:text-xs bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors"
             >
               <chip.icon className="h-3 w-3" />
               {chip.label}

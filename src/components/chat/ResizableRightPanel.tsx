@@ -1,6 +1,12 @@
-import { useState, useRef, useCallback, ReactNode, useEffect } from "react";
-import { Minimize2, Maximize2, GripVertical } from "lucide-react";
+import { useState, useRef, useCallback, ReactNode } from "react";
+import { FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ResizableRightPanelProps {
   children: ReactNode;
@@ -17,7 +23,7 @@ export const ResizableRightPanel = ({
 }: ResizableRightPanelProps) => {
   const [width, setWidth] = useState(defaultWidth);
   const [savedWidth, setSavedWidth] = useState(defaultWidth);
-  const [isMinimized, setIsMinimized] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const isResizing = useRef(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -50,29 +56,36 @@ export const ResizableRightPanel = ({
     document.addEventListener("mouseup", handleMouseUp);
   }, [width, minWidth, maxWidth]);
 
-  const toggleMinimize = () => {
-    if (isMinimized) {
-      // Restore to saved width
+  const toggleCollapse = () => {
+    if (isCollapsed) {
       setWidth(savedWidth);
     } else {
-      // Save current width before minimizing
       setSavedWidth(width);
     }
-    setIsMinimized(!isMinimized);
+    setIsCollapsed(!isCollapsed);
   };
 
-  if (isMinimized) {
+  // Collapsed state - show only Sources icon
+  if (isCollapsed) {
     return (
-      <div className="w-10 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleMinimize}
-          className="m-1 h-8 w-8 p-0"
-          title="Expand panel"
-        >
-          <Maximize2 className="h-4 w-4" />
-        </Button>
+      <div className="w-12 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleCollapse}
+                className="m-1.5 h-9 w-9 p-0"
+              >
+                <FileText className="h-4 w-4 text-primary" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Open Sources Panel</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   }
@@ -80,8 +93,8 @@ export const ResizableRightPanel = ({
   return (
     <div
       ref={panelRef}
-      className="border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full relative"
-      style={{ width: `${width}px` }}
+      className="border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full relative overflow-hidden"
+      style={{ width: `${width}px`, maxWidth: '40vw' }}
     >
       {/* Resize Handle - Left Edge */}
       <div
@@ -92,21 +105,29 @@ export const ResizableRightPanel = ({
         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-16 bg-border group-hover:bg-primary/50 rounded-r transition-colors" />
       </div>
 
-      {/* Minimize Button */}
+      {/* Collapse Button */}
       <div className="absolute top-2 right-2 z-20">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={toggleMinimize}
-          className="h-6 w-6 p-0"
-          title="Minimize panel"
-        >
-          <Minimize2 className="h-3 w-3" />
-        </Button>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleCollapse}
+                className="h-7 w-7 p-0"
+              >
+                <FileText className="h-3.5 w-3.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">
+              <p>Collapse Panel</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
 
-      {/* Panel Content - Scrollable */}
-      <div className="flex-1 overflow-y-auto overflow-x-hidden">
+      {/* Panel Content - Fully Scrollable */}
+      <div className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
         {children}
       </div>
     </div>
