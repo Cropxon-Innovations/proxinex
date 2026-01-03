@@ -27,10 +27,14 @@ import { PinColorPickerDialog } from "@/components/chat/PinColorPickerDialog";
 import { ThinkingAnimation } from "@/components/chat/ThinkingAnimation";
 import { LinkPreviewPanel } from "@/components/LinkPreviewPanel";
 import { DeleteSessionDialog } from "@/components/chat/DeleteSessionDialog";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { SwipeableSidebar, useSwipeToOpen } from "@/components/SwipeableSidebar";
+import { CitationPreviewPanel } from "@/components/CitationPreviewPanel";
 import { 
   MessageSquare,
   Sparkles,
   History,
+  Menu,
 } from "lucide-react";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { UploadedFile } from "@/components/chat/FileUploadPreview";
@@ -65,7 +69,9 @@ interface MessageWithMetrics extends Message {
 
 const AppDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<"history">("history");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [rightPanelTab, setRightPanelTab] = useState<"history" | "citations">("history");
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<MessageWithMetrics[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ChatMetrics | null>(null);
@@ -81,6 +87,7 @@ const AppDashboard = () => {
   const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
+  const [selectedCitation, setSelectedCitation] = useState<any>(null);
   // chatDropdownOpen state moved to AppSidebar
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
@@ -101,6 +108,20 @@ const AppDashboard = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { selection, handleMouseUp, clearSelection, isMaximized, toggleMaximize } = usePersistentInlineAsk();
+
+  // Swipe gesture to open sidebar on mobile
+  useSwipeToOpen(() => setMobileSidebarOpen(true));
+
+  // Get citations from last research message
+  const lastResearchMessage = messages.filter(m => m.role === "assistant" && m.researchResponse).pop();
+  const currentCitations = lastResearchMessage?.researchResponse?.citations?.map((c: any, i: number) => ({
+    id: String(i),
+    title: c.title,
+    url: c.url,
+    snippet: c.snippet,
+    domain: c.domain,
+    favicon: c.favicon,
+  })) || [];
 
   // Mock memories for project
   const projectMemories = [
@@ -717,8 +738,44 @@ const AppDashboard = () => {
         <meta name="description" content="Access the Proxinex AI Intelligence Control Plane." />
       </Helmet>
 
-      <div className="h-screen bg-background flex overflow-hidden">
-        {/* Left Sidebar - Fixed */}
+      <div className="h-screen bg-background flex overflow-hidden pb-16 md:pb-0">
+        {/* Mobile Sidebar - Swipeable */}
+        <SwipeableSidebar
+          isOpen={mobileSidebarOpen}
+          onClose={() => setMobileSidebarOpen(false)}
+        >
+          <AppSidebar
+            collapsed={false}
+            onToggleCollapse={() => setMobileSidebarOpen(false)}
+            user={user}
+            onSignOut={handleSignOut}
+            chatSessions={chatSessions}
+            activeSessionId={activeSessionId}
+            onSelectSession={(id) => {
+              handleSelectSession(id);
+              setMobileSidebarOpen(false);
+            }}
+            onNewSession={() => {
+              handleNewSession();
+              setMobileSidebarOpen(false);
+            }}
+            onDeleteSession={handleOpenDeleteDialog}
+            onRenameSession={handleOpenRenameDialog}
+            onPinSession={handlePinSession}
+            onArchiveSession={handleArchiveSession}
+            onShareSession={(sessionId) => {
+              const baseUrl = window.location.hostname === 'localhost' 
+                ? window.location.origin 
+                : 'https://proxinex.com';
+              const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
+              navigator.clipboard.writeText(shareUrl);
+              toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
+            }}
+            onReorderPinnedSessions={handleReorderPinnedSessions}
+          />
+        </SwipeableSidebar>
+
+        {/* Left Sidebar - Fixed (Desktop) */}
         <div className="hidden md:block flex-shrink-0 h-full">
           <AppSidebar
             collapsed={sidebarCollapsed}
@@ -750,6 +807,13 @@ const AppDashboard = () => {
           {/* Header - Fixed */}
           <header className="h-14 md:h-16 border-b border-border flex items-center justify-between px-3 md:px-6 flex-shrink-0 bg-background">
             <div className="flex items-center gap-2 md:gap-4 min-w-0">
+              {/* Mobile menu button */}
+              <button
+                onClick={() => setMobileSidebarOpen(true)}
+                className="md:hidden p-2 -ml-2 rounded-lg hover:bg-secondary/50 transition-colors"
+              >
+                <Menu className="h-5 w-5 text-foreground" />
+              </button>
               <h1 className="font-semibold text-foreground text-sm md:text-base">Chat</h1>
               {messages.length > 0 && (
                 <span className="text-xs text-muted-foreground hidden sm:inline">
@@ -901,7 +965,7 @@ const AppDashboard = () => {
               </div>
             </div>
 
-            {/* Right Panel - Fixed, Link Preview or Chat History */}
+            {/* Right Panel - Fixed, Link Preview, Citations, or Chat History */}
             {linkPreviewUrl ? (
               <div className="w-80 flex-shrink-0 hidden lg:block h-full overflow-hidden">
                 <LinkPreviewPanel
@@ -910,6 +974,15 @@ const AppDashboard = () => {
                   onClose={handleCloseLinkPreview}
                 />
               </div>
+            ) : researchMode && currentCitations.length > 0 ? (
+              <CitationPreviewPanel
+                citations={currentCitations}
+                selectedCitation={selectedCitation}
+                onSelectCitation={setSelectedCitation}
+                onClose={() => setRightPanelTab("history")}
+                isCollapsed={rightPanelCollapsed}
+                onToggleCollapse={() => setRightPanelCollapsed(!rightPanelCollapsed)}
+              />
             ) : messages.length > 0 && (
               <aside className="w-72 xl:w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col h-full overflow-hidden">
                 {/* Header */}
@@ -960,6 +1033,9 @@ const AppDashboard = () => {
             onFilesChange={setUploadedFiles}
           />
         </main>
+
+        {/* Mobile Bottom Navigation */}
+        <MobileBottomNav onNewChat={handleNewSession} />
       </div>
 
       {/* Persistent Inline Ask Popup */}
