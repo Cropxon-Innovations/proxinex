@@ -40,6 +40,10 @@ import RefundPolicy from "./pages/RefundPolicy";
 import DataPolicy from "./pages/DataPolicy";
 import GDPRPolicy from "./pages/GDPRPolicy";
 import Security from "./pages/Security";
+import About from "./pages/About";
+import Blog from "./pages/Blog";
+import Careers from "./pages/Careers";
+import Contact from "./pages/Contact";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +72,11 @@ const App = () => (
                 <Route path="/product/trust" element={<ProductTrust />} />
                 <Route path="/product/developers" element={<ProductDevelopers />} />
                 <Route path="/product/enterprise" element={<ProductEnterprise />} />
+                {/* Company Pages */}
+                <Route path="/about" element={<About />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/careers" element={<Careers />} />
+                <Route path="/contact" element={<Contact />} />
                 {/* Legal Pages */}
                 <Route path="/terms" element={<TermsOfService />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />

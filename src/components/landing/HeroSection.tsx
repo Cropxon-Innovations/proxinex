@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Shield, Zap, Eye } from "lucide-react";
+import { ArrowRight, Shield, Zap, Eye, Monitor } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import heroBg from "@/assets/hero-bg.png";
 
 export const HeroSection = () => {
@@ -38,7 +39,7 @@ export const HeroSection = () => {
           </p>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16 animate-fade-up" style={{ animationDelay: "0.3s" }}>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 animate-fade-up" style={{ animationDelay: "0.3s" }}>
             <Link to="/app">
               <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 glow group px-8">
                 Start Free
@@ -50,6 +51,14 @@ export const HeroSection = () => {
                 Try Sandbox
               </Button>
             </Link>
+          </div>
+
+          {/* Desktop Client Badge */}
+          <div className="flex justify-center mb-12 animate-fade-up" style={{ animationDelay: "0.35s" }}>
+            <Badge variant="outline" className="px-4 py-2 text-sm border-amber-500/30 bg-amber-500/10 text-amber-400">
+              <Monitor className="w-4 h-4 mr-2" />
+              Proxinex Desktop Client — Coming Soon
+            </Badge>
           </div>
 
           {/* Trust Indicators */}
