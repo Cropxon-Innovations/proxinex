@@ -173,8 +173,16 @@ export const ChatInput = ({
   };
 
   const handleModeToggle = (modeId: string) => {
+    if (modeId === 'research') {
+      onResearchModeChange(!researchMode);
+    }
     setActiveModes(prev => ({ ...prev, [modeId]: !prev[modeId] }));
   };
+
+  // Sync activeModes with researchMode prop
+  useEffect(() => {
+    setActiveModes(prev => ({ ...prev, research: researchMode }));
+  }, [researchMode]);
 
   const handleEnhancePrompt = async () => {
     if (!query.trim() || isEnhancing) return;

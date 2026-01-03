@@ -41,6 +41,8 @@ import { SourcesDisplay, Source } from "@/components/chat/SourcesDisplay";
 import { ChatReadAloud } from "@/components/chat/ChatReadAloud";
 import { ProxinexIcon } from "@/components/Logo";
 import { toast } from "sonner";
+import { useCodeTheme, CodeThemeConfig } from "@/components/chat/CodeThemeSelector";
+import { usePinColor } from "@/components/chat/PinColorSelector";
 
 // Code copy button component
 const CodeCopyButton = ({ code }: { code: string }) => {
@@ -92,8 +94,8 @@ interface ChatMessageProps {
   onPin?: () => void;
 }
 
-// Tokenize code for syntax highlighting
-function tokenizeCode(code: string, language: string): JSX.Element[] {
+// Tokenize code for syntax highlighting with theme support
+function tokenizeCode(code: string, language: string, themeConfig: import("./CodeThemeSelector").CodeThemeConfig): JSX.Element[] {
   const elements: JSX.Element[] = [];
   
   // Keywords by language
@@ -119,7 +121,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
       // Check for comments
       if (line.slice(i).startsWith('//') || line.slice(i).startsWith('#')) {
         lineElements.push(
-          <span key={`${lineIndex}-comment-${i}`} className="text-emerald-600 dark:text-emerald-400 italic">
+          <span key={`${lineIndex}-comment-${i}`} className={`${themeConfig.comment} italic`}>
             {line.slice(i)}
           </span>
         );
@@ -135,7 +137,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
         }
         end++;
         lineElements.push(
-          <span key={`${lineIndex}-str-${i}`} className="text-amber-600 dark:text-amber-400">
+          <span key={`${lineIndex}-str-${i}`} className={themeConfig.string}>
             {line.slice(i, end)}
           </span>
         );
@@ -151,7 +153,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
         }
         end++;
         lineElements.push(
-          <span key={`${lineIndex}-tpl-${i}`} className="text-amber-600 dark:text-amber-400">
+          <span key={`${lineIndex}-tpl-${i}`} className={themeConfig.string}>
             {line.slice(i, end)}
           </span>
         );
@@ -166,7 +168,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
           end++;
         }
         lineElements.push(
-          <span key={`${lineIndex}-num-${i}`} className="text-purple-600 dark:text-purple-400">
+          <span key={`${lineIndex}-num-${i}`} className={themeConfig.number}>
             {line.slice(i, end)}
           </span>
         );
@@ -181,7 +183,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
           const nextChar = line[i + keyword.length];
           if (!nextChar || !/\w/.test(nextChar)) {
             lineElements.push(
-              <span key={`${lineIndex}-kw-${i}`} className="text-pink-600 dark:text-pink-400 font-semibold">
+              <span key={`${lineIndex}-kw-${i}`} className={`${themeConfig.keyword} font-semibold`}>
                 {line.slice(i, i + keyword.length)}
               </span>
             );
@@ -205,19 +207,19 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
         
         if (isFunction) {
           lineElements.push(
-            <span key={`${lineIndex}-fn-${i}`} className="text-blue-600 dark:text-blue-400">
+            <span key={`${lineIndex}-fn-${i}`} className={themeConfig.function}>
               {word}
             </span>
           );
         } else if (isType) {
           lineElements.push(
-            <span key={`${lineIndex}-type-${i}`} className="text-cyan-600 dark:text-cyan-400">
+            <span key={`${lineIndex}-type-${i}`} className={themeConfig.type}>
               {word}
             </span>
           );
         } else {
           lineElements.push(
-            <span key={`${lineIndex}-id-${i}`} className="text-foreground">
+            <span key={`${lineIndex}-id-${i}`} className={themeConfig.text}>
               {word}
             </span>
           );
@@ -229,7 +231,7 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
       // Operators and punctuation
       if (/[{}()\[\];:,.<>=!+\-*/%&|^~?]/.test(line[i])) {
         lineElements.push(
-          <span key={`${lineIndex}-op-${i}`} className="text-muted-foreground">
+          <span key={`${lineIndex}-op-${i}`} className={themeConfig.operator}>
             {line[i]}
           </span>
         );
@@ -239,14 +241,14 @@ function tokenizeCode(code: string, language: string): JSX.Element[] {
       
       // Regular characters
       lineElements.push(
-        <span key={`${lineIndex}-char-${i}`}>{line[i]}</span>
+        <span key={`${lineIndex}-char-${i}`} className={themeConfig.text}>{line[i]}</span>
       );
       i++;
     }
     
     elements.push(
       <div key={`line-${lineIndex}`} className="leading-relaxed">
-        <span className="inline-block w-8 text-right mr-4 text-muted-foreground/50 select-none text-xs">
+        <span className="inline-block w-8 text-right mr-4 opacity-50 select-none text-xs">
           {lineIndex + 1}
         </span>
         {lineElements}
@@ -346,6 +348,8 @@ export const ChatMessage = ({
   const [displayedContent, setDisplayedContent] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { themeConfig } = useCodeTheme();
+  const { colorConfig: pinColorConfig } = usePinColor();
 
   // Typing animation effect for assistant messages
   useEffect(() => {
@@ -395,12 +399,12 @@ export const ChatMessage = ({
               onClick={onPin}
               className={`absolute -left-8 top-1/2 -translate-y-1/2 p-1.5 rounded-full transition-all ${
                 isPinned 
-                  ? "bg-primary/20 text-primary opacity-100" 
-                  : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                  ? `${pinColorConfig.bg} ${pinColorConfig.text} opacity-100` 
+                  : `opacity-0 group-hover:opacity-100 text-muted-foreground hover:${pinColorConfig.text} hover:${pinColorConfig.bg}`
               }`}
               title={isPinned ? "Unpin message" : "Pin message"}
             >
-              <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+              <Pin className={`h-3.5 w-3.5 ${isPinned ? pinColorConfig.fill : ""}`} />
             </button>
           )}
         </div>
@@ -504,9 +508,9 @@ export const ChatMessage = ({
                 </div>
                 <CodeCopyButton code={codeContent} />
               </div>
-              <pre className="bg-slate-50 dark:bg-[#1e1e2e] border border-t-0 border-border rounded-b-lg p-4 overflow-x-auto text-slate-800 dark:text-slate-200">
+              <pre className={`${themeConfig.bg} border border-t-0 border-border rounded-b-lg p-4 overflow-x-auto ${themeConfig.text}`}>
                 <code className="text-xs font-mono">
-                  {tokenizeCode(codeContent.trim(), codeLanguage)}
+                  {tokenizeCode(codeContent.trim(), codeLanguage, themeConfig)}
                 </code>
               </pre>
             </div>
@@ -794,12 +798,12 @@ export const ChatMessage = ({
                 onClick={onPin}
                 className={`p-1.5 rounded transition-colors ${
                   isPinned 
-                    ? "text-primary bg-primary/10" 
-                    : "text-muted-foreground hover:text-primary hover:bg-primary/10"
+                    ? `${pinColorConfig.text} ${pinColorConfig.bg}` 
+                    : `text-muted-foreground hover:${pinColorConfig.text} hover:${pinColorConfig.bg}`
                 }`}
                 title={isPinned ? "Unpin message" : "Pin message"}
               >
-                <Pin className={`h-3.5 w-3.5 ${isPinned ? "fill-current" : ""}`} />
+                <Pin className={`h-3.5 w-3.5 ${isPinned ? pinColorConfig.fill : ""}`} />
               </button>
             )}
 

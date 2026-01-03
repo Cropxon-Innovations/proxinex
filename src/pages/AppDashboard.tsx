@@ -21,6 +21,8 @@ import { TokenCounter } from "@/components/chat/TokenCounter";
 import { PinnedMessages } from "@/components/chat/PinnedMessages";
 import { InlineAskData, InlineAskComment } from "@/components/chat/InlineAskComment";
 import { CitationAnswer } from "@/components/CitationAnswer";
+import { CodeThemeSelector } from "@/components/chat/CodeThemeSelector";
+import { PinColorSelector } from "@/components/chat/PinColorSelector";
 import { 
   Plus, 
   MessageSquare, 
@@ -94,7 +96,7 @@ interface MessageWithMetrics extends Message {
 
 const AppDashboard = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [rightPanelTab, setRightPanelTab] = useState<"details" | "history">("details");
+  const [rightPanelTab, setRightPanelTab] = useState<"history">("history");
   const [query, setQuery] = useState("");
   const [messages, setMessages] = useState<MessageWithMetrics[]>([]);
   const [lastMetrics, setLastMetrics] = useState<ChatMetrics | null>(null);
@@ -806,6 +808,8 @@ const AppDashboard = () => {
               </span>
               <InlineAskExport inlineAsks={inlineAsks} sessionTitle={messages[0]?.content.slice(0, 30) || "Proxinex Ask"} />
               <ChatExport messages={messages} sessionTitle={messages[0]?.content.slice(0, 30) || "Chat"} />
+              <CodeThemeSelector />
+              <PinColorSelector />
               <KeyboardShortcutsButton />
               <NotificationCenter />
               <ThemeSelector />
@@ -924,95 +928,27 @@ const AppDashboard = () => {
             {/* Right Panel - Fixed */}
             {messages.length > 0 && (
               <aside className="w-80 border-l border-border bg-card/50 flex-shrink-0 hidden lg:flex flex-col overflow-hidden">
-                {/* Tabs */}
-                <div className="flex border-b border-border flex-shrink-0">
-                  <button
-                    onClick={() => setRightPanelTab("details")}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                      rightPanelTab === "details" 
-                        ? "text-primary border-b-2 border-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <Star className="h-4 w-4 inline mr-1.5" />
-                    Details
-                  </button>
-                  <button
-                    onClick={() => setRightPanelTab("history")}
-                    className={`flex-1 py-3 text-sm font-medium transition-colors ${
-                      rightPanelTab === "history" 
-                        ? "text-primary border-b-2 border-primary" 
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    <History className="h-4 w-4 inline mr-1.5" />
-                    History
-                  </button>
+                {/* Header */}
+                <div className="flex items-center justify-between p-3 border-b border-border flex-shrink-0">
+                  <div className="flex items-center gap-2">
+                    <History className="h-4 w-4 text-primary" />
+                    <span className="text-sm font-medium">Chat History</span>
+                  </div>
                 </div>
 
                 {/* Panel Content - Scrollable */}
                 <div className="flex-1 overflow-y-auto">
-                  {rightPanelTab === "details" ? (
-                    <div className="p-4 space-y-4">
-                      {/* Response Details */}
-                      <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                        <div className="text-xs text-muted-foreground mb-1">Accuracy Score</div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
-                            <div className="h-full bg-primary rounded-full" style={{ width: "94%" }} />
-                          </div>
-                          <span className="text-sm font-medium text-foreground">{lastMetrics?.accuracy || 85}%</span>
-                        </div>
-                      </div>
-
-                      <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                        <div className="text-xs text-muted-foreground mb-1">Model</div>
-                        <div className="text-sm text-foreground">
-                          {lastMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
-                        </div>
-                        {lastMetrics && (
-                          <div className="text-[10px] text-muted-foreground mt-1">
-                            {lastMetrics.inputTokens} in / {lastMetrics.outputTokens} out tokens
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="p-4 rounded-lg bg-secondary/50 border border-border">
-                        <div className="text-xs text-muted-foreground mb-1">Query Cost</div>
-                        <div className="text-lg font-semibold text-foreground">₹{(lastMetrics?.cost || 0.012).toFixed(3)}</div>
-                      </div>
-
-                      {/* Project Memory */}
-                      <ProjectMemory
-                        projectName="Current Project"
-                        memories={projectMemories}
-                        onDeleteMemory={(id) => toast({ title: "Memory removed" })}
-                      />
-
-                      {/* Inline Ask Tip */}
-                      <div className="p-4 rounded-lg bg-primary/10 border border-primary/30">
-                        <div className="flex items-center gap-2 mb-2">
-                          <Star className="h-4 w-4 text-primary" />
-                          <span className="text-sm font-medium text-foreground">Inline Ask™</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Highlight any text to: Explain, Rewrite, Verify, or Ask follow-up questions.
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <ChatHistory
-                      sessions={chatSessions}
-                      activeSessionId={activeSessionId || undefined}
-                      onSessionSelect={handleSelectSession}
-                      onSessionDelete={handleDeleteSession}
-                      onSessionStar={handleStarSession}
-                      onSessionArchive={handleArchiveSession}
-                      onSessionPin={handlePinSession}
-                      onSessionRename={handleRenameSession}
-                      onSessionExport={handleExportSession}
-                    />
-                  )}
+                  <ChatHistory
+                    sessions={chatSessions}
+                    activeSessionId={activeSessionId || undefined}
+                    onSessionSelect={handleSelectSession}
+                    onSessionDelete={handleDeleteSession}
+                    onSessionStar={handleStarSession}
+                    onSessionArchive={handleArchiveSession}
+                    onSessionPin={handlePinSession}
+                    onSessionRename={handleRenameSession}
+                    onSessionExport={handleExportSession}
+                  />
                 </div>
               </aside>
             )}
