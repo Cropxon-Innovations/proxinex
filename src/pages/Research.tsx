@@ -4,7 +4,8 @@ import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { InlineAsk, useTextSelection } from "@/components/InlineAsk";
-import { streamChat, Message } from "@/lib/chat";
+import { searchWithTavily, Citation, ResearchResponse } from "@/lib/tavily";
+import { CitationAnswer } from "@/components/CitationAnswer";
 import { useToast } from "@/hooks/use-toast";
 import { 
   Plus, 
@@ -22,13 +23,8 @@ import {
   ChevronLeft,
   ChevronRight,
   Send,
-  Star,
-  Clock,
-  DollarSign,
   ExternalLink,
-  LogOut,
   Loader2,
-  User,
   Globe,
   BookMarked,
   RefreshCw
@@ -51,17 +47,17 @@ const sidebarItems = [
   { icon: Settings, label: "Settings", path: "/app/settings" },
 ];
 
-interface Source {
-  title: string;
-  url: string;
-  relevance: number;
+interface ResearchMessage {
+  role: "user" | "assistant";
+  content: string;
+  response?: ResearchResponse;
+  timestamp: Date;
 }
 
 const ResearchPage = () => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [query, setQuery] = useState("");
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [sources, setSources] = useState<Source[]>([]);
+  const [messages, setMessages] = useState<ResearchMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [researchHistory, setResearchHistory] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -77,50 +73,54 @@ const ResearchPage = () => {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
 
-    const userMessage: Message = { role: "user", content: query, timestamp: new Date() };
+    const userMessage: ResearchMessage = { 
+      role: "user", 
+      content: query, 
+      timestamp: new Date() 
+    };
     setMessages(prev => [...prev, userMessage]);
     setResearchHistory(prev => [...prev, query]);
     setQuery("");
     setIsLoading(true);
 
-    // Generate mock sources based on query
-    const mockSources: Source[] = [
-      { title: "Wikipedia - " + query.split(" ").slice(0, 3).join(" "), url: "https://wikipedia.org", relevance: 0.95 },
-      { title: "Nature - Research Paper", url: "https://nature.com", relevance: 0.88 },
-      { title: "MIT Technology Review", url: "https://technologyreview.com", relevance: 0.82 },
-      { title: "arXiv - Academic Papers", url: "https://arxiv.org", relevance: 0.79 },
-    ];
-    setSources(mockSources);
+    // Add loading placeholder
+    setMessages(prev => [...prev, { 
+      role: "assistant", 
+      content: "", 
+      timestamp: new Date() 
+    }]);
 
-    let assistantContent = "";
-    
-    const updateAssistant = (chunk: string) => {
-      assistantContent += chunk;
+    try {
+      const response = await searchWithTavily(query);
+      
       setMessages(prev => {
-        const lastMsg = prev[prev.length - 1];
-        if (lastMsg?.role === "assistant") {
-          return prev.map((m, i) => 
-            i === prev.length - 1 ? { ...m, content: assistantContent } : m
-          );
-        }
-        return [...prev, { role: "assistant", content: assistantContent, timestamp: new Date() }];
+        const updated = [...prev];
+        updated[updated.length - 1] = {
+          role: "assistant",
+          content: response.answer,
+          response,
+          timestamp: new Date(),
+        };
+        return updated;
       });
-    };
 
-    await streamChat({
-      messages: [...messages, userMessage],
-      type: "research",
-      onDelta: updateAssistant,
-      onDone: () => setIsLoading(false),
-      onError: (error) => {
+      if (response.error) {
         toast({
-          title: "Error",
-          description: error,
+          title: "Research Error",
+          description: response.error,
           variant: "destructive",
         });
-        setIsLoading(false);
-      },
-    });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to perform research",
+        variant: "destructive",
+      });
+      setMessages(prev => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -168,7 +168,7 @@ const ResearchPage = () => {
             <div className="flex items-center gap-4">
               <Search className="h-5 w-5 text-primary" />
               <h1 className="font-semibold text-foreground">Research Mode</h1>
-              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">Deep Search</span>
+              <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary">Tavily + RAG</span>
             </div>
           </header>
 
@@ -182,11 +182,11 @@ const ResearchPage = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-foreground mb-2">Research Mode</h2>
                     <p className="text-muted-foreground mb-6">
-                      Multi-source search with auto-citations, timeline-based freshness, and cross-question memory.
+                      Real-time web search with verified sources, inline citations¹²³, and confidence scoring.
                     </p>
                     <div className="flex flex-wrap justify-center gap-2">
-                      {["Latest AI breakthroughs 2024", "Climate change solutions", "Web3 adoption trends"].map((s) => (
-                        <button key={s} onClick={() => setQuery(s)} className="px-3 py-1.5 text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full">
+                      {["Latest AI breakthroughs 2025", "Climate change solutions", "India's AI funding growth"].map((s) => (
+                        <button key={s} onClick={() => setQuery(s)} className="px-3 py-1.5 text-sm bg-secondary text-muted-foreground hover:text-foreground rounded-full transition-colors">
                           {s}
                         </button>
                       ))}
@@ -198,27 +198,26 @@ const ResearchPage = () => {
                   {messages.map((msg, i) => (
                     <div key={i} className={msg.role === "user" ? "flex justify-end" : ""}>
                       {msg.role === "user" ? (
-                        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg max-w-md">{msg.content}</div>
+                        <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg max-w-md">
+                          {msg.content}
+                        </div>
                       ) : (
-                        <div className="space-y-4">
+                        msg.response ? (
+                          <CitationAnswer
+                            answer={msg.response.answer}
+                            confidence={msg.response.confidence}
+                            confidence_label={msg.response.confidence_label}
+                            citations={msg.response.citations}
+                            isLoading={isLoading && i === messages.length - 1}
+                          />
+                        ) : (
                           <div className="bg-card border border-border rounded-lg p-6">
-                            <div className="prose prose-sm prose-invert max-w-none whitespace-pre-wrap text-foreground leading-relaxed">
-                              {msg.content}
-                              {isLoading && i === messages.length - 1 && <span className="inline-block w-2 h-4 bg-primary animate-pulse ml-1" />}
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <span>Searching sources...</span>
                             </div>
                           </div>
-                          {i === messages.length - 1 && !isLoading && sources.length > 0 && (
-                            <div className="flex flex-wrap gap-2">
-                              {sources.map((s, idx) => (
-                                <a key={idx} href={s.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-secondary text-secondary-foreground rounded-full hover:bg-secondary/80">
-                                  <span>[{idx + 1}]</span>
-                                  <span>{s.title}</span>
-                                  <ExternalLink className="h-3 w-3" />
-                                </a>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                        )
                       )}
                     </div>
                   ))}
@@ -233,15 +232,26 @@ const ResearchPage = () => {
                 <BookMarked className="h-4 w-4" />
                 Sources
               </h3>
-              {sources.length > 0 ? (
+              {messages.length > 0 && messages[messages.length - 1].response?.citations ? (
                 <div className="space-y-3">
-                  {sources.map((s, idx) => (
-                    <a key={idx} href={s.url} target="_blank" rel="noopener noreferrer" className="block p-3 rounded-lg bg-secondary/50 hover:bg-secondary/80 transition-colors">
+                  {messages[messages.length - 1].response!.citations.map((citation) => (
+                    <a 
+                      key={citation.id} 
+                      href={citation.url} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="block p-3 rounded-lg bg-secondary/50 hover:bg-secondary/80 transition-colors"
+                    >
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="text-xs text-primary font-medium">[{idx + 1}]</span>
-                        <span className="text-xs text-muted-foreground">{Math.round(s.relevance * 100)}% match</span>
+                        <span className="text-xs text-primary font-medium">[{citation.id}]</span>
+                        <span className="text-xs text-muted-foreground">{citation.score}% match</span>
                       </div>
-                      <div className="text-sm text-foreground truncate">{s.title}</div>
+                      <div className="text-sm text-foreground line-clamp-2">{citation.title}</div>
+                      {citation.published_date && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {new Date(citation.published_date).toLocaleDateString()}
+                        </div>
+                      )}
                     </a>
                   ))}
                 </div>
@@ -257,7 +267,11 @@ const ResearchPage = () => {
                   </h4>
                   <div className="space-y-2">
                     {researchHistory.slice(-5).map((q, i) => (
-                      <button key={i} onClick={() => setQuery(q)} className="w-full text-left text-xs p-2 rounded bg-muted/30 text-muted-foreground hover:text-foreground truncate">
+                      <button 
+                        key={i} 
+                        onClick={() => setQuery(q)} 
+                        className="w-full text-left text-xs p-2 rounded bg-muted/30 text-muted-foreground hover:text-foreground truncate transition-colors"
+                      >
                         {q}
                       </button>
                     ))}
@@ -273,7 +287,7 @@ const ResearchPage = () => {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Research any topic..."
+                placeholder="Research any topic with real-time sources..."
                 disabled={isLoading}
                 className="flex-1 px-4 py-3 rounded-lg bg-input border border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
               />
