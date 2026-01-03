@@ -5,6 +5,7 @@ import { SelectToAsk, useSelectToAsk } from "@/components/SelectToAsk";
 import { searchWithTavily, ResearchResponse } from "@/lib/tavily";
 import { CitationAnswer } from "@/components/CitationAnswer";
 import { SourceVerificationLoader } from "@/components/SourceVerificationLoader";
+import { ResearchSummaryCard } from "@/components/ResearchSummaryCard";
 import { SourceVerificationPanel, VerifiedSource } from "@/components/chat/SourceVerificationPanel";
 import { useToast } from "@/hooks/use-toast";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
@@ -199,7 +200,7 @@ const ResearchPage = () => {
     }]);
 
     try {
-      const response = await searchWithTavily(query);
+      const response = await searchWithTavily(query, { max_sources: 15, is_deep_research: true });
       
       const finalMessages = [...newMessages, {
         role: "assistant" as const,
@@ -305,6 +306,22 @@ const ResearchPage = () => {
                 </div>
               ) : (
                 <div className="max-w-4xl mx-auto space-y-6">
+                  {/* Research Summary Card - Show for the latest response */}
+                  {messages.length > 0 && (() => {
+                    const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant' && m.response);
+                    if (lastAssistantMsg?.response && !isLoading) {
+                      return (
+                        <ResearchSummaryCard
+                          answer={lastAssistantMsg.response.answer}
+                          confidence={lastAssistantMsg.response.confidence}
+                          confidence_label={lastAssistantMsg.response.confidence_label}
+                          citations={lastAssistantMsg.response.citations}
+                        />
+                      );
+                    }
+                    return null;
+                  })()}
+                  
                   {messages.map((msg, i) => (
                     <div key={i} className={msg.role === "user" ? "flex justify-end" : ""}>
                       {msg.role === "user" ? (
