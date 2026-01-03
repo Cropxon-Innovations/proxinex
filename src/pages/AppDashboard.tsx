@@ -54,6 +54,7 @@ import {
 const sidebarItems = [
   { icon: Plus, label: "New Session", path: "/app", isNew: true },
   { icon: MessageSquare, label: "Chat", path: "/app/chat", hasDropdown: true },
+  { icon: Pin, label: "Pinned", path: "/app/pinned" },
   { icon: Search, label: "Research", path: "/app/research" },
   { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
   { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
