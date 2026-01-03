@@ -88,7 +88,7 @@ const AppDashboard = () => {
   const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
-  const [selectedCitation, setSelectedCitation] = useState<any>(null);
+  const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   // chatDropdownOpen state moved to AppSidebar
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [linkPreviewUrl, setLinkPreviewUrl] = useState<string | null>(null);
@@ -966,6 +966,7 @@ const AppDashboard = () => {
                                   citations={message.researchResponse!.citations}
                                   isLoading={isLoading && isLastMessage}
                                   onOpenLinkPreview={handleOpenLinkPreview}
+                                  onCitationClick={(id) => setSelectedSourceId(id)}
                                 />
                               </div>
                             ) : (
@@ -1009,10 +1010,12 @@ const AppDashboard = () => {
                   onClose={handleCloseLinkPreview}
                 />
               </ResizableRightPanel>
-            ) : researchMode && verifiedSources.length > 0 ? (
+            ) : verifiedSources.length > 0 ? (
               <ResizableRightPanel defaultWidth={320} minWidth={240} maxWidth={500}>
                 <SourceVerificationPanel
                   sources={verifiedSources}
+                  selectedSourceId={selectedSourceId}
+                  onSelectSource={(source) => setSelectedSourceId(source.id)}
                   isCollapsed={rightPanelCollapsed}
                   onToggleCollapse={() => setRightPanelCollapsed(!rightPanelCollapsed)}
                   onClose={() => setRightPanelTab("history")}
