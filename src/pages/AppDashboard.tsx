@@ -25,57 +25,20 @@ import { CodeThemeSelector } from "@/components/chat/CodeThemeSelector";
 import { PinColorSelector } from "@/components/chat/PinColorSelector";
 import { ThinkingAnimation } from "@/components/chat/ThinkingAnimation";
 import { 
-  Plus, 
-  MessageSquare, 
-  Search, 
-  Layers, 
-  BookOpen, 
-  FileText, 
-  Image, 
-  Video, 
-  Code,
-  BarChart3,
-  Key,
-  Settings,
   ChevronLeft,
   ChevronRight,
-  LogOut,
-  User,
   History,
-  Star,
-  PanelLeftClose,
-  PanelLeft,
-  Pin,
-  ChevronDown,
   Sparkles,
   Share2,
+  MessageSquare,
 } from "lucide-react";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { UploadedFile } from "@/components/chat/FileUploadPreview";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+// Collapsible imports now handled in AppSidebar
 
-const sidebarItems = [
-  { icon: Plus, label: "New Session", path: "/app", isNew: true },
-  { icon: MessageSquare, label: "Chat", path: "/app/chat", hasDropdown: true },
-  { icon: Pin, label: "Pinned", path: "/app/pinned" },
-  { icon: Search, label: "Research", path: "/app/research" },
-  { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
-  { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
-  { icon: FileText, label: "Documents", path: "/app/documents" },
-  { icon: Image, label: "Images", path: "/app/images" },
-  { icon: Video, label: "Video", path: "/app/video" },
-  { icon: Code, label: "API Playground", path: "/app/api" },
-  { divider: true },
-  { icon: Star, label: "Projects", path: "/app/projects" },
-  { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-  { icon: Key, label: "API Keys", path: "/app/api-keys" },
-  { icon: Settings, label: "Settings", path: "/app/settings" },
-];
+// Sidebar items moved to AppSidebar component
 
 interface ChatSessionData {
   id: string;
@@ -115,7 +78,7 @@ const AppDashboard = () => {
   const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
-  const [chatDropdownOpen, setChatDropdownOpen] = useState(false);
+  // chatDropdownOpen state moved to AppSidebar
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -652,142 +615,17 @@ const AppDashboard = () => {
       </Helmet>
 
       <div className="h-screen bg-background flex overflow-hidden">
-        {/* Left Sidebar - Fixed */}
-        <aside 
-          className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300`}
-        >
-          {/* Collapse Toggle at Top */}
-          <div className="h-14 border-b border-sidebar-border flex items-center justify-between px-3 flex-shrink-0">
-            <Link to="/" className={sidebarCollapsed ? "mx-auto" : ""}>
-              <Logo size="sm" showText={!sidebarCollapsed} />
-            </Link>
-            <button
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              className={`p-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors ${sidebarCollapsed ? "hidden" : ""}`}
-              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {sidebarCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-            </button>
-          </div>
-
-          {/* Expand button when collapsed */}
-          {sidebarCollapsed && (
-            <button
-              onClick={() => setSidebarCollapsed(false)}
-              className="p-2 mx-auto mt-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-              title="Expand sidebar"
-            >
-              <PanelLeft className="h-4 w-4" />
-            </button>
-          )}
-
-          <nav className="flex-1 py-4 overflow-y-auto">
-            {sidebarItems.map((item, index) => {
-              if ('divider' in item && item.divider) {
-                return <div key={index} className="my-4 border-t border-sidebar-border" />;
-              }
-              
-              const Icon = item.icon!;
-              const isActive = location.pathname === item.path;
-              const isNewSession = 'isNew' in item && item.isNew;
-              const hasDropdown = 'hasDropdown' in item && item.hasDropdown;
-              
-              // Render Chat item with dropdown
-              if (hasDropdown && !sidebarCollapsed) {
-                return (
-                  <Collapsible
-                    key={item.path}
-                    open={chatDropdownOpen}
-                    onOpenChange={setChatDropdownOpen}
-                    className="mx-2"
-                  >
-                    <CollapsibleTrigger className="w-full">
-                      <div className={`flex items-center gap-3 px-2 py-2.5 rounded-lg transition-colors ${
-                        isActive 
-                          ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                          : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                      }`}>
-                        <Icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary' : ''}`} />
-                        <span className="text-sm flex-1 text-left">{item.label}</span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${chatDropdownOpen ? 'rotate-180' : ''}`} />
-                      </div>
-                    </CollapsibleTrigger>
-                    <CollapsibleContent className="mt-1 space-y-0.5">
-                      {chatSessions.slice(0, 5).map((session) => (
-                        <button
-                          key={session.id}
-                          onClick={() => handleSelectSession(session.id)}
-                          className={`w-full text-left px-3 py-1.5 text-xs rounded-md truncate transition-colors ${
-                            activeSessionId === session.id
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground'
-                          }`}
-                        >
-                          {session.isStarred && <Star className="h-3 w-3 inline mr-1 text-yellow-400 fill-yellow-400" />}
-                          {session.title.slice(0, 25)}{session.title.length > 25 ? '...' : ''}
-                        </button>
-                      ))}
-                      {chatSessions.length > 5 && (
-                        <Link
-                          to="/app/chat"
-                          className="block px-3 py-1.5 text-xs text-primary hover:underline"
-                        >
-                          View all {chatSessions.length} chats →
-                        </Link>
-                      )}
-                      {chatSessions.length === 0 && (
-                        <div className="px-3 py-1.5 text-xs text-muted-foreground">
-                          No chat history yet
-                        </div>
-                      )}
-                    </CollapsibleContent>
-                  </Collapsible>
-                );
-              }
-              
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path!}
-                  onClick={isNewSession ? handleNewSession : undefined}
-                  className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-sidebar-accent text-sidebar-accent-foreground' 
-                      : 'text-sidebar-foreground hover:bg-sidebar-accent/50'
-                  } ${isNewSession ? 'border border-primary/50' : ''}`}
-                >
-                  <Icon className={`h-5 w-5 flex-shrink-0 ${isNewSession ? 'text-primary' : isActive ? 'text-primary' : ''}`} />
-                  {!sidebarCollapsed && <span className="text-sm">{item.label}</span>}
-                </Link>
-              );
-            })}
-          </nav>
-
-          {/* User Info */}
-          {!sidebarCollapsed && user && (
-            <div className="p-4 border-t border-sidebar-border flex-shrink-0">
-              <div className="flex items-center gap-3 mb-3">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">
-                    {user.email}
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleSignOut}
-                className="w-full justify-start text-muted-foreground hover:text-foreground"
-              >
-                <LogOut className="h-4 w-4 mr-2" />
-                Sign Out
-              </Button>
-            </div>
-          )}
-        </aside>
+        {/* Left Sidebar - Modular Component */}
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          user={user}
+          onSignOut={handleSignOut}
+          chatSessions={chatSessions}
+          activeSessionId={activeSessionId}
+          onSelectSession={handleSelectSession}
+          onNewSession={handleNewSession}
+        />
 
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">

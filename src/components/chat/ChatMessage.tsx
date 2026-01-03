@@ -43,6 +43,7 @@ import { ProxinexIcon } from "@/components/Logo";
 import { toast } from "sonner";
 import { useCodeTheme, CodeThemeConfig } from "@/components/chat/CodeThemeSelector";
 import { usePinColor } from "@/components/chat/PinColorSelector";
+import { FileAttachmentDisplay, FileAttachment, InlineImagePreview } from "@/components/chat/FileAttachmentDisplay";
 
 // Code copy button component
 const CodeCopyButton = ({ code }: { code: string }) => {
@@ -89,6 +90,7 @@ interface ChatMessageProps {
   sources?: Source[];
   verified?: boolean;
   isPinned?: boolean;
+  attachments?: FileAttachment[];
   onCopy?: () => void;
   onFeedback?: (type: "up" | "down" | "love", reason?: string) => void;
   onPin?: () => void;
@@ -341,6 +343,7 @@ export const ChatMessage = ({
   sources = [],
   verified = true,
   isPinned = false,
+  attachments = [],
   onCopy,
   onFeedback,
   onPin,
@@ -392,8 +395,20 @@ export const ChatMessage = ({
   if (role === "user") {
     return (
       <div className="flex justify-end mb-4 group">
-        <div className="relative bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-md max-w-md">
-          <p className="text-sm">{content}</p>
+        <div className="relative max-w-md">
+          {/* File Attachments for User Messages */}
+          {attachments.length > 0 && (
+            <div className="mb-2">
+              <InlineImagePreview files={attachments} />
+              <FileAttachmentDisplay 
+                files={attachments.filter(f => !f.type.startsWith("image/"))} 
+                className="mt-2"
+              />
+            </div>
+          )}
+          <div className="bg-primary text-primary-foreground px-4 py-3 rounded-2xl rounded-br-md">
+            <p className="text-sm">{content}</p>
+          </div>
           {onPin && (
             <button
               onClick={onPin}
