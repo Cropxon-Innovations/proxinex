@@ -9,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import { ThemeToggle } from "./ThemeToggle";
 
 const productLinks = [
   { label: "Overview", href: "/product" },
@@ -82,6 +83,7 @@ export const Navbar = () => {
 
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
+          <ThemeToggle />
           <Link to="/signin">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Sign In
