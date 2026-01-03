@@ -26,10 +26,10 @@ Deno.serve(async (req) => {
 
     console.log(`Processing document: ${fileName} (${fileType})`);
 
-    // Get API key for Google AI (Gemini for document understanding)
+    // Get API key for Proxinex AI (powered by Lovable AI gateway)
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
-      console.error("LOVABLE_API_KEY not configured");
+      console.error("API key not configured");
       return new Response(
         JSON.stringify({ success: false, error: "AI API key not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -70,9 +70,9 @@ Deno.serve(async (req) => {
       mimeType = mimeTypes[ext];
     }
 
-    // Use Gemini for document understanding with OCR
+    // Use Proxinex AI (Gemini) for document understanding with OCR
     const geminiResponse = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
       {
         method: "POST",
         headers: {
@@ -89,19 +89,25 @@ Deno.serve(async (req) => {
                   type: "text",
                   text: `Analyze this document thoroughly. Perform OCR if it's an image or scanned document.
 
-Please provide:
-1. **Summary**: A concise 2-3 sentence summary of the document content
-2. **Key Points**: List the main points or findings (up to 5 bullet points)
-3. **Extracted Text**: If this is an image with text, extract ALL visible text using OCR
-4. **Document Type**: Identify what type of document this is (invoice, report, letter, form, etc.)
-5. **Entities**: Extract any important entities like:
-   - Names of people or organizations
-   - Dates
-   - Numbers/amounts
-   - Locations
-   - Contact information
+Please provide a comprehensive analysis in the following JSON format:
+{
+  "summary": "A concise 2-3 sentence summary of the document content",
+  "keyPoints": ["Main point 1", "Main point 2", ...up to 5 key points],
+  "extractedText": "If this is an image with text, extract ALL visible text using OCR",
+  "documentType": "Type of document (invoice, report, letter, form, contract, etc.)",
+  "entities": {
+    "names": ["Any names of people or organizations"],
+    "dates": ["Any dates found"],
+    "amounts": ["Any monetary amounts or quantities"],
+    "locations": ["Any locations or addresses"],
+    "contacts": ["Any email addresses, phone numbers, etc."]
+  },
+  "language": "Primary language of the document",
+  "sentiment": "Overall tone (neutral, formal, informal, urgent, etc.)",
+  "actionItems": ["Any action items or tasks mentioned"]
+}
 
-Format your response as JSON with these keys: summary, keyPoints (array), extractedText, documentType, entities (object with arrays for names, dates, amounts, locations, contacts)`
+IMPORTANT: Return ONLY valid JSON, no markdown formatting or code blocks.`
                 },
                 {
                   type: "image_url",
@@ -120,7 +126,21 @@ Format your response as JSON with these keys: summary, keyPoints (array), extrac
 
     if (!geminiResponse.ok) {
       const errorData = await geminiResponse.json();
-      console.error("Gemini API error:", errorData);
+      console.error("AI API error:", errorData);
+      
+      if (geminiResponse.status === 429) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (geminiResponse.status === 402) {
+        return new Response(
+          JSON.stringify({ success: false, error: "Usage limit reached. Please add credits." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       throw new Error(errorData.error?.message || "Failed to process document with AI");
     }
 
@@ -133,7 +153,7 @@ Format your response as JSON with these keys: summary, keyPoints (array), extrac
       // Remove markdown code blocks if present
       const jsonMatch = content.match(/```json\n?([\s\S]*?)\n?```/) || content.match(/```\n?([\s\S]*?)\n?```/);
       const jsonContent = jsonMatch ? jsonMatch[1] : content;
-      analysis = JSON.parse(jsonContent);
+      analysis = JSON.parse(jsonContent.trim());
     } catch {
       // If parsing fails, structure the raw content
       analysis = {
@@ -147,7 +167,10 @@ Format your response as JSON with these keys: summary, keyPoints (array), extrac
           amounts: [],
           locations: [],
           contacts: []
-        }
+        },
+        language: "unknown",
+        sentiment: "neutral",
+        actionItems: []
       };
     }
 

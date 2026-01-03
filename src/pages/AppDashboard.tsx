@@ -53,6 +53,7 @@ interface ChatSessionData {
   isArchived?: boolean;
   isStarred?: boolean;
   isPinned?: boolean;
+  isResearch?: boolean;
   content?: string; // For read aloud
 }
 
@@ -160,6 +161,9 @@ const AppDashboard = () => {
             ? firstMessage.content.slice(0, 50) 
             : "Chat session";
           
+          // Check if this was a research session by looking at messages with research responses
+          const hasResearchResponse = messagesArray.some((m: any) => m?.researchResponse);
+          
           return {
             id: session.id,
             title: session.title,
@@ -170,6 +174,7 @@ const AppDashboard = () => {
             citationCount: 0,
             isPinned: (session as any).is_pinned || false,
             isArchived: (session as any).is_archived || false,
+            isResearch: hasResearchResponse,
             content: contentPreview, // For read aloud
           };
         }));
@@ -657,9 +662,13 @@ const AppDashboard = () => {
                   variant="ghost"
                   size="sm"
                   onClick={() => {
-                    const shareUrl = `${window.location.origin}/app?chat=${activeSessionId}`;
+                    // Use proxinex.com for production, current origin for dev
+                    const baseUrl = window.location.hostname === 'localhost' 
+                      ? window.location.origin 
+                      : 'https://proxinex.com';
+                    const shareUrl = `${baseUrl}/app?chat=${activeSessionId}`;
                     navigator.clipboard.writeText(shareUrl);
-                    toast({ title: "Link copied", description: "Chat link copied to clipboard" });
+                    toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
                   }}
                   className="gap-1.5"
                 >

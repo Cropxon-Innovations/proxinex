@@ -8,6 +8,11 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Plus,
   MessageSquare,
   Search,
@@ -29,12 +34,16 @@ import {
   ChevronDown,
   Wand2,
   Beaker,
+  Lock,
+  History,
 } from "lucide-react";
+import { useUserPlan, UserPlan } from "@/hooks/useUserPlan";
 
 interface ChatSession {
   id: string;
   title: string;
   isStarred?: boolean;
+  isResearch?: boolean;
 }
 
 interface AppSidebarProps {
@@ -48,35 +57,46 @@ interface AppSidebarProps {
   onNewSession?: () => void;
 }
 
+type FeatureKey = "chat" | "research" | "documents" | "notebooks" | "images" | "video" | "sandbox" | "apiPlayground";
+
+interface NavItem {
+  icon: any;
+  label: string;
+  path: string;
+  isNew?: boolean;
+  hasDropdown?: boolean;
+  feature?: FeatureKey;
+}
+
 // Primary actions - always visible
-const primaryItems = [
+const primaryItems: NavItem[] = [
   { icon: Plus, label: "New Session", path: "/app", isNew: true },
-  { icon: MessageSquare, label: "Chat", path: "/app/chat", hasDropdown: true },
-  { icon: Search, label: "Research", path: "/app/research" },
+  { icon: MessageSquare, label: "Chat", path: "/app/chat", hasDropdown: true, feature: "chat" },
+  { icon: Search, label: "Research", path: "/app/research", feature: "research" },
 ];
 
 // Create section - content generation tools
-const createItems = [
-  { icon: FileText, label: "Documents", path: "/app/documents" },
-  { icon: Image, label: "Images", path: "/app/images" },
-  { icon: Video, label: "Video", path: "/app/video" },
+const createItems: NavItem[] = [
+  { icon: FileText, label: "Documents", path: "/app/documents", feature: "documents" },
+  { icon: Image, label: "Images", path: "/app/images", feature: "images" },
+  { icon: Video, label: "Video", path: "/app/video", feature: "video" },
 ];
 
 // Advanced section - power user tools
-const advancedItems = [
-  { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
-  { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
-  { icon: Code, label: "API Playground", path: "/app/api" },
+const advancedItems: NavItem[] = [
+  { icon: Layers, label: "Sandbox", path: "/app/sandbox", feature: "sandbox" },
+  { icon: BookOpen, label: "Notebooks", path: "/app/notebooks", feature: "notebooks" },
+  { icon: Code, label: "API Playground", path: "/app/api", feature: "apiPlayground" },
 ];
 
 // Organization section
-const orgItems = [
+const orgItems: NavItem[] = [
   { icon: Star, label: "Projects", path: "/app/projects" },
   { icon: Pin, label: "Pinned", path: "/app/pinned" },
 ];
 
 // Settings section
-const settingsItems = [
+const settingsItems: NavItem[] = [
   { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
   { icon: Key, label: "API Keys", path: "/app/api-keys" },
   { icon: Settings, label: "Settings", path: "/app/settings" },
@@ -93,28 +113,71 @@ export const AppSidebar = ({
   onNewSession,
 }: AppSidebarProps) => {
   const location = useLocation();
-  const [chatDropdownOpen, setChatDropdownOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const { isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
 
   const isActive = (path: string) => location.pathname === path;
 
-  const renderNavItem = (
-    item: { icon: any; label: string; path: string; isNew?: boolean; hasDropdown?: boolean },
-    index: number
-  ) => {
+  // Separate chat and research sessions
+  const chatOnlySessions = chatSessions.filter(s => !s.isResearch);
+  const researchSessions = chatSessions.filter(s => s.isResearch);
+
+  const renderLockedItem = (item: NavItem, Icon: any, active: boolean) => {
+    const requiredPlan = getRequiredPlan(item.feature!);
+    const hint = getUpgradeHint(item.feature!);
+
+    return (
+      <Tooltip key={item.path}>
+        <TooltipTrigger asChild>
+          <div
+            className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg cursor-not-allowed opacity-60 ${
+              active
+                ? "bg-sidebar-accent/50"
+                : "text-sidebar-foreground"
+            }`}
+          >
+            <Icon className="h-5 w-5 flex-shrink-0 text-muted-foreground" />
+            {!collapsed && (
+              <>
+                <span className="text-sm text-muted-foreground flex-1">{item.label}</span>
+                <Lock className="h-3.5 w-3.5 text-muted-foreground" />
+              </>
+            )}
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="right" className="max-w-[200px]">
+          <p className="text-xs">{hint}</p>
+          <Link 
+            to="/pricing" 
+            className="text-xs text-primary hover:underline mt-1 block"
+          >
+            View {requiredPlan.charAt(0).toUpperCase() + requiredPlan.slice(1)} Plan →
+          </Link>
+        </TooltipContent>
+      </Tooltip>
+    );
+  };
+
+  const renderNavItem = (item: NavItem, index: number) => {
     const Icon = item.icon;
     const active = isActive(item.path);
     const isNewSession = item.isNew;
     const hasDropdown = item.hasDropdown;
 
-    // Render Chat item with dropdown
+    // Check if feature is locked
+    if (item.feature && !isFeatureAvailable(item.feature)) {
+      return renderLockedItem(item, Icon, active);
+    }
+
+    // Render Chat item with collapsible history dropdown
     if (hasDropdown && !collapsed) {
       return (
         <Collapsible
           key={item.path}
-          open={chatDropdownOpen}
-          onOpenChange={setChatDropdownOpen}
+          open={historyOpen}
+          onOpenChange={setHistoryOpen}
           className="mx-2"
         >
           <CollapsibleTrigger className="w-full">
@@ -125,41 +188,72 @@ export const AppSidebar = ({
                   : "text-sidebar-foreground hover:bg-sidebar-accent/50"
               }`}
             >
-              <Icon className={`h-5 w-5 flex-shrink-0 ${active ? "text-primary" : ""}`} />
-              <span className="text-sm flex-1 text-left">{item.label}</span>
+              <History className={`h-5 w-5 flex-shrink-0 ${active ? "text-primary" : ""}`} />
+              <span className="text-sm flex-1 text-left">History</span>
               <ChevronDown
-                className={`h-4 w-4 transition-transform ${chatDropdownOpen ? "rotate-180" : ""}`}
+                className={`h-4 w-4 transition-transform ${historyOpen ? "rotate-180" : ""}`}
               />
             </div>
           </CollapsibleTrigger>
-          <CollapsibleContent className="mt-1 space-y-0.5">
-            {chatSessions.slice(0, 5).map((session) => (
-              <button
-                key={session.id}
-                onClick={() => onSelectSession?.(session.id)}
-                className={`w-full text-left px-3 py-1.5 text-xs rounded-md truncate transition-colors ${
-                  activeSessionId === session.id
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
-                }`}
-              >
-                {session.isStarred && (
-                  <Star className="h-3 w-3 inline mr-1 text-yellow-400 fill-yellow-400" />
-                )}
-                {session.title.slice(0, 25)}
-                {session.title.length > 25 ? "..." : ""}
-              </button>
-            ))}
-            {chatSessions.length > 5 && (
+          <CollapsibleContent className="mt-1 space-y-1">
+            {/* Chat Sessions */}
+            {chatOnlySessions.length > 0 && (
+              <div className="mb-2">
+                <div className="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Chat
+                </div>
+                {chatOnlySessions.slice(0, 3).map((session) => (
+                  <button
+                    key={session.id}
+                    onClick={() => onSelectSession?.(session.id)}
+                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md truncate transition-colors flex items-center gap-2 ${
+                      activeSessionId === session.id
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    }`}
+                  >
+                    <MessageSquare className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{session.title.slice(0, 20)}{session.title.length > 20 ? "..." : ""}</span>
+                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">Chat</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {/* Research Sessions */}
+            {researchSessions.length > 0 && (
+              <div className="mb-2">
+                <div className="px-3 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                  Research
+                </div>
+                {researchSessions.slice(0, 3).map((session) => (
+                  <button
+                    key={session.id}
+                    onClick={() => onSelectSession?.(session.id)}
+                    className={`w-full text-left px-3 py-1.5 text-xs rounded-md truncate transition-colors flex items-center gap-2 ${
+                      activeSessionId === session.id
+                        ? "bg-primary/10 text-primary"
+                        : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+                    }`}
+                  >
+                    <Search className="h-3 w-3 flex-shrink-0" />
+                    <span className="truncate">{session.title.slice(0, 20)}{session.title.length > 20 ? "..." : ""}</span>
+                    <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded bg-primary/20 text-primary">Research</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            
+            {chatSessions.length > 6 && (
               <Link
                 to="/app/chat"
                 className="block px-3 py-1.5 text-xs text-primary hover:underline"
               >
-                View all {chatSessions.length} chats →
+                View all {chatSessions.length} sessions →
               </Link>
             )}
             {chatSessions.length === 0 && (
-              <div className="px-3 py-1.5 text-xs text-muted-foreground">No chat history yet</div>
+              <div className="px-3 py-1.5 text-xs text-muted-foreground">No history yet</div>
             )}
           </CollapsibleContent>
         </Collapsible>
@@ -188,7 +282,7 @@ export const AppSidebar = ({
   const renderCollapsibleSection = (
     label: string,
     icon: any,
-    items: { icon: any; label: string; path: string }[],
+    items: NavItem[],
     isOpen: boolean,
     setIsOpen: (open: boolean) => void
   ) => {
@@ -201,6 +295,26 @@ export const AppSidebar = ({
           {items.map((item) => {
             const ItemIcon = item.icon;
             const active = isActive(item.path);
+            const isLocked = item.feature && !isFeatureAvailable(item.feature);
+            
+            if (isLocked) {
+              return (
+                <Tooltip key={item.path}>
+                  <TooltipTrigger asChild>
+                    <div
+                      className="flex items-center justify-center py-2.5 mx-2 rounded-lg cursor-not-allowed opacity-60"
+                      title={item.label}
+                    >
+                      <ItemIcon className="h-5 w-5 text-muted-foreground" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p className="text-xs">{getUpgradeHint(item.feature!)}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            }
+            
             return (
               <Link
                 key={item.path}
@@ -246,6 +360,12 @@ export const AppSidebar = ({
           {items.map((item) => {
             const ItemIcon = item.icon;
             const active = isActive(item.path);
+            const isLocked = item.feature && !isFeatureAvailable(item.feature);
+            
+            if (isLocked) {
+              return renderLockedItem(item, ItemIcon, active);
+            }
+            
             return (
               <Link
                 key={item.path}
