@@ -2,6 +2,7 @@ import { FormattedAnswer } from "./FormattedAnswer";
 import { SourceVerificationLoader } from "./SourceVerificationLoader";
 import { ConfidenceBadge } from "./ConfidenceBadge";
 import { Citation } from "./EnhancedCitationTooltip";
+import { ChatReadAloud } from "./chat/ChatReadAloud";
 import { 
   ExternalLink, 
   AlertTriangle, 
@@ -45,16 +46,22 @@ export const CitationAnswer = ({
 
   return (
     <div className="space-y-4">
-      {/* Answer Header */}
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Sparkles className="h-4 w-4 text-primary" />
-        <span className="font-medium">AI-Generated Answer</span>
-        {hasCitations && (
-          <>
-            <span className="text-border">•</span>
-            <ShieldCheck className="h-4 w-4 text-emerald-500" />
-            <span className="text-emerald-500">{citations.length} sources verified</span>
-          </>
+      {/* Answer Header with TTS */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Sparkles className="h-4 w-4 text-primary" />
+          <span className="font-medium">AI-Generated Answer</span>
+          {hasCitations && (
+            <>
+              <span className="text-border">•</span>
+              <ShieldCheck className="h-4 w-4 text-emerald-500" />
+              <span className="text-emerald-500">{citations.length} sources verified</span>
+            </>
+          )}
+        </div>
+        {/* Text-to-Speech for Research Answers */}
+        {!isLoading && answer && (
+          <ChatReadAloud content={answer} />
         )}
       </div>
 

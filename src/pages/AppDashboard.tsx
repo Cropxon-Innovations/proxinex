@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { PersistentInlineAsk, usePersistentInlineAsk } from "@/components/PersistentInlineAsk";
 import { streamChat, Message, ChatMetrics } from "@/lib/chat";
+import { searchWithTavily, ResearchResponse } from "@/lib/tavily";
 import { useToast } from "@/hooks/use-toast";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessage } from "@/components/chat/ChatMessage";
@@ -19,6 +20,7 @@ import { InlineAskExport } from "@/components/chat/InlineAskExport";
 import { TokenCounter } from "@/components/chat/TokenCounter";
 import { PinnedMessages } from "@/components/chat/PinnedMessages";
 import { InlineAskData, InlineAskComment } from "@/components/chat/InlineAskComment";
+import { CitationAnswer } from "@/components/CitationAnswer";
 import { 
   Plus, 
   MessageSquare, 
@@ -100,6 +102,7 @@ const AppDashboard = () => {
   const [currentCost, setCurrentCost] = useState(0);
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
   const [autoMode, setAutoMode] = useState(true);
+  const [researchMode, setResearchMode] = useState(false);
   const [chatSessions, setChatSessions] = useState<ChatSessionData[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
@@ -179,6 +182,51 @@ const AppDashboard = () => {
     setQuery("");
     setIsLoading(true);
 
+    // Research mode - use Tavily
+    if (researchMode) {
+      // Add placeholder for loading state
+      setMessages(prev => [...prev, { 
+        role: "assistant", 
+        content: "", 
+        timestamp: new Date() 
+      }]);
+
+      try {
+        const response = await searchWithTavily(query);
+        
+        setMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1] = {
+            role: "assistant",
+            content: response.answer,
+            timestamp: new Date(),
+            researchResponse: response,
+          };
+          return updated;
+        });
+
+        if (response.error) {
+          toast({
+            title: "Research Error",
+            description: response.error,
+            variant: "destructive",
+          });
+        }
+      } catch (error) {
+        toast({
+          title: "Error",
+          description: "Failed to perform research",
+          variant: "destructive",
+        });
+        setMessages(prev => prev.slice(0, -1));
+      } finally {
+        setIsLoading(false);
+        saveChatSession();
+      }
+      return;
+    }
+
+    // Regular chat mode
     let assistantContent = "";
     
     const updateAssistant = (chunk: string) => {
@@ -771,22 +819,45 @@ const AppDashboard = () => {
                     {messages.map((message, index) => {
                       const messageMetrics = message.metrics || (message.role === "assistant" ? lastMetrics : null);
                       const isPinned = pinnedMessages.some(m => m.originalIndex === index);
+                      const hasResearchResponse = message.researchResponse && message.role === "assistant";
+                      
                       return (
                         <div
                           key={index}
                           ref={(el) => { messageRefs.current[index] = el; }}
                         >
-                          <ChatMessage
-                            role={message.role}
-                            content={message.content}
-                            timestamp={message.timestamp}
-                            isLoading={isLoading && index === messages.length - 1 && message.role === "assistant"}
-                            accuracy={messageMetrics?.accuracy || 85}
-                            cost={messageMetrics?.cost || 0.012}
-                            model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
-                            isPinned={isPinned}
-                            onPin={() => handlePinMessage(index)}
-                          />
+                          {message.role === "user" ? (
+                            <ChatMessage
+                              role={message.role}
+                              content={message.content}
+                              timestamp={message.timestamp}
+                              isLoading={false}
+                              isPinned={isPinned}
+                              onPin={() => handlePinMessage(index)}
+                            />
+                          ) : hasResearchResponse ? (
+                            <div className="py-4">
+                              <CitationAnswer
+                                answer={message.researchResponse!.answer}
+                                confidence={message.researchResponse!.confidence}
+                                confidence_label={message.researchResponse!.confidence_label}
+                                citations={message.researchResponse!.citations}
+                                isLoading={isLoading && index === messages.length - 1}
+                              />
+                            </div>
+                          ) : (
+                            <ChatMessage
+                              role={message.role}
+                              content={message.content}
+                              timestamp={message.timestamp}
+                              isLoading={isLoading && index === messages.length - 1}
+                              accuracy={messageMetrics?.accuracy || 85}
+                              cost={messageMetrics?.cost || 0.012}
+                              model={messageMetrics?.model || (autoMode ? "Auto (Gemini 2.5 Flash)" : selectedModel)}
+                              isPinned={isPinned}
+                              onPin={() => handlePinMessage(index)}
+                            />
+                          )}
                         </div>
                       );
                     })}
@@ -918,6 +989,8 @@ const AppDashboard = () => {
             onModelChange={setSelectedModel}
             autoMode={autoMode}
             onAutoModeChange={setAutoMode}
+            researchMode={researchMode}
+            onResearchModeChange={setResearchMode}
           />
         </main>
       </div>
