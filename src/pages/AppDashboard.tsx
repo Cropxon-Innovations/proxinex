@@ -26,6 +26,7 @@ import { RenameSessionDialog } from "@/components/chat/RenameSessionDialog";
 import { PinColorPickerDialog } from "@/components/chat/PinColorPickerDialog";
 import { ThinkingAnimation } from "@/components/chat/ThinkingAnimation";
 import { LinkPreviewPanel } from "@/components/LinkPreviewPanel";
+import { DeleteSessionDialog } from "@/components/chat/DeleteSessionDialog";
 import { 
   MessageSquare,
   Sparkles,
@@ -89,6 +90,9 @@ const AppDashboard = () => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameSessionId, setRenameSessionId] = useState<string | null>(null);
   const [renameSessionTitle, setRenameSessionTitle] = useState("");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteSessionId, setDeleteSessionId] = useState<string | null>(null);
+  const [deleteSessionTitle, setDeleteSessionTitle] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const messageRefs = useRef<{ [key: number]: HTMLDivElement | null }>({});
@@ -327,16 +331,28 @@ const AppDashboard = () => {
     }
   };
 
-  const handleDeleteSession = async (sessionId: string) => {
+  const handleOpenDeleteDialog = (sessionId: string) => {
+    const session = chatSessions.find(s => s.id === sessionId);
+    setDeleteSessionId(sessionId);
+    setDeleteSessionTitle(session?.title || "this session");
+    setDeleteDialogOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteSessionId) return;
+    
     const { error } = await supabase
       .from("chat_sessions")
       .delete()
-      .eq("id", sessionId);
+      .eq("id", deleteSessionId);
 
     if (!error) {
-      setChatSessions(prev => prev.filter(s => s.id !== sessionId));
+      setChatSessions(prev => prev.filter(s => s.id !== deleteSessionId));
       toast({ title: "Session deleted" });
     }
+    
+    setDeleteSessionId(null);
+    setDeleteDialogOpen(false);
   };
 
   // Load inline asks for a session
@@ -712,7 +728,7 @@ const AppDashboard = () => {
           activeSessionId={activeSessionId}
           onSelectSession={handleSelectSession}
           onNewSession={handleNewSession}
-          onDeleteSession={handleDeleteSession}
+          onDeleteSession={handleOpenDeleteDialog}
           onRenameSession={handleOpenRenameDialog}
           onPinSession={handlePinSession}
           onArchiveSession={handleArchiveSession}
@@ -904,7 +920,7 @@ const AppDashboard = () => {
                     sessions={chatSessions}
                     activeSessionId={activeSessionId || undefined}
                     onSessionSelect={handleSelectSession}
-                    onSessionDelete={handleDeleteSession}
+                    onSessionDelete={handleOpenDeleteDialog}
                     onSessionStar={handleStarSession}
                     onSessionArchive={handleArchiveSession}
                     onSessionPin={handlePinSession}
@@ -982,6 +998,14 @@ const AppDashboard = () => {
         onOpenChange={setRenameDialogOpen}
         currentTitle={renameSessionTitle}
         onRename={handleRenameSession}
+      />
+
+      {/* Delete Session Confirmation Dialog */}
+      <DeleteSessionDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        sessionTitle={deleteSessionTitle}
+        onConfirm={handleConfirmDelete}
       />
     </>
   );
