@@ -291,7 +291,7 @@ export default function Settings() {
 
           {/* Plan Tab - Now using SettingsPlanTab component */}
           <TabsContent value="plan">
-            <SettingsPlanTab currency="INR" />
+            <SettingsPlanTab />
           </TabsContent>
 
           {/* Notifications Tab */}

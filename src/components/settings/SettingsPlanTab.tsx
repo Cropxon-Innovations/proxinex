@@ -4,6 +4,7 @@ import { useUserPlan } from "@/hooks/useUserPlan";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { useToast } from "@/hooks/use-toast";
+import { useCurrency } from "@/hooks/useCurrency";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -65,11 +66,8 @@ const plans: PlanDetails[] = [
   },
 ];
 
-interface SettingsPlanTabProps {
-  currency?: "INR" | "USD";
-}
-
-export const SettingsPlanTab = ({ currency = "INR" }: SettingsPlanTabProps) => {
+export const SettingsPlanTab = () => {
+  const { currency } = useCurrency();
   const { user } = useAuth();
   const { plan: currentPlan, loading: planLoading } = useUserPlan();
   const { 

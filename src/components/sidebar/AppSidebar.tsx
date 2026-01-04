@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
@@ -196,6 +197,7 @@ export const AppSidebar = ({
   const [inlineAsksExpanded, setInlineAsksExpanded] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const { plan, isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
 
   // Auto-collapse on mobile
@@ -351,12 +353,12 @@ export const AppSidebar = ({
         </TooltipTrigger>
         <TooltipContent side="right" className="max-w-[200px]">
           <p className="text-xs">{hint}</p>
-          <Link 
-            to="/app/settings?tab=plan" 
+          <button 
+            onClick={() => setUpgradeModalOpen(true)}
             className="text-xs text-primary hover:underline mt-1 block"
           >
             Upgrade to {requiredPlan.charAt(0).toUpperCase() + requiredPlan.slice(1)} →
-          </Link>
+          </button>
         </TooltipContent>
       </Tooltip>
     );
@@ -703,6 +705,7 @@ export const AppSidebar = ({
       : "w-48 md:w-52 lg:w-56";
 
   return (
+    <>
     <aside
       className={`${sidebarWidth} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300 h-full`}
     >
@@ -784,9 +787,9 @@ export const AppSidebar = ({
           <div className="space-y-2">
             {/* Plan Badge & Upgrade */}
             {!collapsed && !isMobile && (
-              <Link
-                to="/app/settings?tab=plan"
-                className={`flex items-center justify-between px-2 py-1.5 rounded-md ${currentPlan.color} hover:opacity-90 transition-opacity`}
+              <button
+                onClick={() => setUpgradeModalOpen(true)}
+                className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md ${currentPlan.color} hover:opacity-90 transition-opacity`}
               >
                 <div className="flex items-center gap-2">
                   {PlanIcon && <PlanIcon className="h-3.5 w-3.5" />}
@@ -795,7 +798,7 @@ export const AppSidebar = ({
                 {plan === "free" && (
                   <span className="text-[10px] font-medium">Upgrade →</span>
                 )}
-              </Link>
+              </button>
             )}
             
             <DropdownMenu>
@@ -883,5 +886,8 @@ export const AppSidebar = ({
         </Tooltip>
       </div>
     </aside>
+
+    <UpgradeModal open={upgradeModalOpen} onOpenChange={setUpgradeModalOpen} />
+    </>
   );
 };
