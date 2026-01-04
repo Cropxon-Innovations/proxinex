@@ -18,12 +18,21 @@ import {
   Search,
   Shield,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  FileText,
+  Save
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { InlineAskData } from "@/components/chat/InlineAskComment";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type ActionType = "ask" | "explain" | "verify" | "sources" | "rewrite";
 type RewriteStyle = "shorter" | "formal" | "technical" | "friendly";
@@ -32,6 +41,11 @@ interface ConversationEntry {
   role: "user" | "assistant";
   content: string;
   timestamp: Date;
+}
+
+interface Notebook {
+  id: string;
+  title: string;
 }
 
 interface PersistentInlineAskProps {
@@ -53,7 +67,7 @@ interface PersistentInlineAskProps {
 interface ActionResult {
   answer: string;
   confidence: number;
-  citations?: Array<{ id: number; title: string; url: string; published_date?: string; snippet?: string }>;
+  citations?: Array<{ id: number; title: string; url: string; published_date?: string; snippet?: string; score?: number }>;
   verified?: boolean;
   verification_status?: "verified" | "partially_supported" | "not_supported" | "insufficient_evidence";
   uses_sources?: boolean;
@@ -74,6 +88,63 @@ const rewriteStyles: { id: RewriteStyle; label: string }[] = [
   { id: "technical", label: "More technical" },
   { id: "friendly", label: "More friendly" },
 ];
+
+// Beautiful Citation Badge Component
+const CitationBadge = ({ citation, index }: { citation: ActionResult['citations'][0]; index: number }) => {
+  const domain = (() => {
+    try {
+      return new URL(citation.url).hostname.replace("www.", "");
+    } catch {
+      return citation.url;
+    }
+  })();
+
+  return (
+    <a
+      href={citation.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex items-start gap-2 p-2 rounded-lg bg-card hover:bg-secondary/50 border border-border hover:border-primary/30 transition-all"
+    >
+      {/* Beautiful Citation Number */}
+      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground text-[10px] font-bold flex items-center justify-center">
+        {index + 1}
+      </span>
+      
+      <div className="flex-1 min-w-0">
+        <div className="text-xs font-medium text-foreground line-clamp-1 group-hover:text-primary transition-colors">
+          {citation.title}
+        </div>
+        <div className="flex items-center gap-2 mt-0.5">
+          <span className="text-[10px] text-muted-foreground truncate">{domain}</span>
+          {citation.score && (
+            <span className={`text-[10px] px-1 py-0.5 rounded ${
+              citation.score >= 80 
+                ? "bg-emerald-500/10 text-emerald-500" 
+                : citation.score >= 50 
+                ? "bg-amber-500/10 text-amber-500"
+                : "bg-muted text-muted-foreground"
+            }`}>
+              {citation.score}%
+            </span>
+          )}
+        </div>
+        {citation.published_date && (
+          <div className="flex items-center gap-1 text-[10px] text-muted-foreground mt-0.5">
+            <Calendar className="h-2.5 w-2.5" />
+            {new Date(citation.published_date).toLocaleDateString("en-US", {
+              year: "numeric",
+              month: "short",
+              day: "numeric"
+            })}
+          </div>
+        )}
+      </div>
+      
+      <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+    </a>
+  );
+};
 
 export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAskProps>(({ 
   selectedText, 
@@ -96,9 +167,134 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
   const [askQuestion, setAskQuestion] = useState("");
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [showConversation, setShowConversation] = useState(false);
+  const [notebooks, setNotebooks] = useState<Notebook[]>([]);
+  const [isSavingToNotebook, setIsSavingToNotebook] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { user } = useAuth();
+
+  // Fetch notebooks when component mounts
+  useEffect(() => {
+    if (user) {
+      fetchNotebooks();
+    }
+  }, [user]);
+
+  const fetchNotebooks = async () => {
+    const { data } = await supabase
+      .from("notebooks")
+      .select("id, title")
+      .order("updated_at", { ascending: false })
+      .limit(10);
+    
+    if (data) {
+      setNotebooks(data);
+    }
+  };
+
+  const saveToNotebook = async (notebookId: string) => {
+    if (!user || conversation.length === 0) return;
+    
+    setIsSavingToNotebook(true);
+    try {
+      // Get current notebook
+      const { data: notebook, error: fetchError } = await supabase
+        .from("notebooks")
+        .select("content")
+        .eq("id", notebookId)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Create inline ask content block
+      const inlineAskBlock = {
+        id: crypto.randomUUID(),
+        type: "inline_ask",
+        content: JSON.stringify({
+          selectedText,
+          conversation,
+          citations: result?.citations || [],
+          confidence: result?.confidence || 0,
+          isResearchMode,
+          timestamp: new Date().toISOString()
+        })
+      };
+
+      // Append to notebook content
+      const currentContent = Array.isArray(notebook?.content) ? notebook.content : [];
+      const { error: updateError } = await supabase
+        .from("notebooks")
+        .update({ 
+          content: [...currentContent, inlineAskBlock],
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", notebookId);
+
+      if (updateError) throw updateError;
+
+      toast({
+        title: "Saved to Notebook",
+        description: "Inline Ask conversation saved successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to save to notebook",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingToNotebook(false);
+    }
+  };
+
+  const createNotebookAndSave = async () => {
+    if (!user || conversation.length === 0) return;
+    
+    setIsSavingToNotebook(true);
+    try {
+      const inlineAskBlock = {
+        id: crypto.randomUUID(),
+        type: "inline_ask",
+        content: JSON.stringify({
+          selectedText,
+          conversation,
+          citations: result?.citations || [],
+          confidence: result?.confidence || 0,
+          isResearchMode,
+          timestamp: new Date().toISOString()
+        })
+      };
+
+      const { data, error } = await supabase
+        .from("notebooks")
+        .insert({ 
+          user_id: user.id, 
+          title: `Inline Ask: ${selectedText.slice(0, 30)}...`,
+          content: [inlineAskBlock]
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      toast({
+        title: "Created & Saved",
+        description: "New notebook created with your conversation",
+      });
+
+      // Refresh notebooks list
+      fetchNotebooks();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to create notebook",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingToNotebook(false);
+    }
+  };
 
   // Scroll to bottom of conversation
   useEffect(() => {
@@ -123,7 +319,6 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
     setIsLoading(true);
 
     try {
-      // Build context from previous conversation
       const conversationContext = conversation.length > 0 
         ? `\n\nPrevious conversation about this text:\n${conversation.map(c => `${c.role}: ${c.content}`).join('\n')}`
         : '';
@@ -142,7 +337,6 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
       if (error) throw error;
       setResult(data);
 
-      // Add to conversation if it was an ask action
       if (action === "ask" && data) {
         const newEntry: ConversationEntry[] = [
           { role: "user", content: askQuestion, timestamp: new Date() },
@@ -150,9 +344,8 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
         ];
         setConversation(prev => [...prev, ...newEntry]);
         setShowConversation(true);
-        setAskQuestion(""); // Clear for next question
+        setAskQuestion("");
 
-        // Save inline ask with conversation history
         if (onSaveInlineAsk) {
           const inlineAskData: InlineAskData = {
             id: `inline-${Date.now()}`,
@@ -215,7 +408,6 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
     return "bg-red-500/20 text-red-500";
   };
 
-  // Calculate position
   const panelWidth = isMaximized ? 520 : 380;
   const panelHeight = isMaximized ? 600 : 400;
   const left = isMaximized 
@@ -255,11 +447,11 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
       {showConversation && conversation.length > 0 && (
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className={`flex items-center justify-between p-3 border-b border-border ${isResearchMode ? 'bg-green-500/10' : 'bg-green-500/10'}`}>
+          <div className="flex items-center justify-between p-3 border-b border-border bg-green-500/10">
             <div className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4 text-green-500" />
-              <span className="text-sm font-medium text-foreground">Inline Ask Conversation</span>
-              <span className="text-xs text-muted-foreground">({conversation.length / 2} exchanges)</span>
+              <span className="text-sm font-medium text-foreground">Inline Ask</span>
+              <span className="text-xs text-muted-foreground">({Math.floor(conversation.length / 2)} exchanges)</span>
               {isResearchMode && (
                 <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-500 rounded-full flex items-center gap-1">
                   <Shield className="h-2.5 w-2.5" />
@@ -268,6 +460,54 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
               )}
             </div>
             <div className="flex items-center gap-1">
+              {/* Save to Notebook */}
+              {user && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button 
+                      disabled={isSavingToNotebook}
+                      className="text-muted-foreground hover:text-foreground p-1 disabled:opacity-50"
+                    >
+                      {isSavingToNotebook ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={createNotebookAndSave}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      New Notebook
+                    </DropdownMenuItem>
+                    {notebooks.length > 0 && (
+                      <>
+                        <div className="h-px bg-border my-1" />
+                        {notebooks.slice(0, 5).map((nb) => (
+                          <DropdownMenuItem key={nb.id} onClick={() => saveToNotebook(nb.id)}>
+                            <BookOpen className="h-4 w-4 mr-2" />
+                            <span className="truncate">{nb.title}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      </>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+              
+              {/* Research Mode Toggle - Always visible in conversation */}
+              <button 
+                onClick={() => onToggleResearchMode?.(!isResearchMode)}
+                className="text-muted-foreground hover:text-foreground p-1"
+                title={isResearchMode ? "Disable Research Mode" : "Enable Research Mode"}
+              >
+                {isResearchMode ? (
+                  <ToggleRight className="h-4 w-4 text-green-500" />
+                ) : (
+                  <ToggleLeft className="h-4 w-4" />
+                )}
+              </button>
+              
               {onToggleMaximize && (
                 <button onClick={onToggleMaximize} className="text-muted-foreground hover:text-foreground p-1">
                   {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
@@ -316,12 +556,13 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
             <div ref={conversationEndRef} />
           </div>
 
-          {/* Result with Citations (in research mode) */}
+          {/* Beautiful Citations (in research mode) */}
           {result && isResearchMode && result.citations && result.citations.length > 0 && (
-            <div className="border-t border-border bg-secondary/20 max-h-32 overflow-y-auto">
+            <div className="border-t border-border bg-secondary/20 max-h-40 overflow-y-auto">
               <div className="px-3 py-2">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
+                    <Shield className="h-3 w-3 text-green-500" />
                     <span className="text-xs font-medium text-muted-foreground">Verified Sources</span>
                     <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                       result.confidence >= 80 ? 'bg-green-500/20 text-green-500' : 
@@ -338,21 +579,9 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
                     </span>
                   )}
                 </div>
-                <div className="space-y-1">
-                  {result.citations.slice(0, 3).map((citation) => (
-                    <a
-                      key={citation.id}
-                      href={citation.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-start gap-2 p-1.5 rounded bg-card hover:bg-secondary/50 transition-colors group text-xs"
-                    >
-                      <span className="text-primary font-medium">[{citation.id}]</span>
-                      <span className="text-foreground line-clamp-1 group-hover:text-primary transition-colors flex-1">
-                        {citation.title}
-                      </span>
-                      <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary flex-shrink-0" />
-                    </a>
+                <div className="space-y-1.5">
+                  {result.citations.slice(0, 3).map((citation, idx) => (
+                    <CitationBadge key={citation.id} citation={citation} index={idx} />
                   ))}
                 </div>
               </div>
@@ -383,7 +612,7 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
             {isResearchMode && (
               <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
                 <Shield className="h-2.5 w-2.5 text-green-500" />
-                Research mode active
+                Research mode active • Toggle off anytime with the switch above
               </p>
             )}
           </div>
@@ -581,33 +810,16 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
             </p>
           </div>
 
-          {/* Citations */}
+          {/* Beautiful Citations */}
           {result.citations && result.citations.length > 0 && (
             <div className="p-3 border-t border-border bg-secondary/20">
-              <div className="text-xs font-medium text-muted-foreground mb-2">Sources</div>
+              <div className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1">
+                <Shield className="h-3 w-3" />
+                Sources
+              </div>
               <div className="space-y-1.5">
-                {result.citations.map((citation) => (
-                  <a
-                    key={citation.id}
-                    href={citation.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-start gap-2 p-2 rounded bg-card hover:bg-secondary/50 transition-colors group"
-                  >
-                    <span className="text-xs text-primary font-medium">[{citation.id}]</span>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-xs text-foreground line-clamp-1 group-hover:text-primary transition-colors">
-                        {citation.title}
-                      </div>
-                      {citation.published_date && (
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-                          <Calendar className="h-3 w-3" />
-                          {citation.published_date}
-                        </div>
-                      )}
-                    </div>
-                    <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary" />
-                  </a>
+                {result.citations.map((citation, idx) => (
+                  <CitationBadge key={citation.id} citation={citation} index={idx} />
                 ))}
               </div>
             </div>
@@ -666,7 +878,6 @@ export const usePersistentInlineAsk = () => {
   const [isMaximized, setIsMaximized] = useState(false);
 
   const handleMouseUp = useCallback((e: React.MouseEvent, context?: string, messageIndex?: number) => {
-    // Small delay to ensure selection is complete
     setTimeout(() => {
       const windowSelection = window.getSelection();
       const selectedText = windowSelection?.toString().trim();
