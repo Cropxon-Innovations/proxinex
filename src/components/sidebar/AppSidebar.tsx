@@ -138,25 +138,21 @@ const primaryItems: NavItem[] = [
   { icon: PenLine, label: "New Chat", path: "/app", isNew: true },
   { icon: MessageSquare, label: "Chat", path: "/app/chat", hasDropdown: true, feature: "chat" },
   { icon: Search, label: "Research", path: "/app/research", feature: "research" },
+  { icon: Layers, label: "Projects", path: "/app/projects" },
 ];
 
-// Create section - content generation tools
+// Create section - content generation tools (metered for free plan)
 const createItems: NavItem[] = [
   { icon: FileText, label: "Documents", path: "/app/documents", feature: "documents" },
   { icon: Image, label: "Images", path: "/app/images", feature: "images" },
   { icon: Video, label: "Video", path: "/app/video", feature: "video" },
 ];
 
-// Advanced section - power user tools
+// Advanced section - power user tools (metered for free plan)
 const advancedItems: NavItem[] = [
   { icon: Layers, label: "Sandbox", path: "/app/sandbox", feature: "sandbox" },
   { icon: BookOpen, label: "Notebooks", path: "/app/notebooks", feature: "notebooks" },
   { icon: Code, label: "API Playground", path: "/app/api", feature: "apiPlayground" },
-];
-
-// Organization section - Using Layers for Projects (project iconography)
-const orgItems: NavItem[] = [
-  { icon: Layers, label: "Projects", path: "/app/projects" },
 ];
 
 const planLabels: Record<UserPlan, { label: string; color: string; icon: any }> = {
@@ -709,15 +705,35 @@ export const AppSidebar = ({
     <aside
       className={`${sidebarWidth} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300 h-full`}
     >
-      {/* Header with Logo - Click to start new chat */}
-      <div className="h-12 border-b border-sidebar-border flex items-center justify-center px-2 flex-shrink-0">
+      {/* Header with Logo and Collapse Toggle */}
+      <div className="h-12 border-b border-sidebar-border flex items-center justify-between px-2 flex-shrink-0">
         <button 
           onClick={onNewSession}
-          className="hover:opacity-80 transition-opacity"
+          className="hover:opacity-80 transition-opacity flex-1"
           title="New Chat"
         >
           <Logo size="sm" showText={!collapsed && !isMobile} />
         </button>
+        {!isMobile && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                onClick={onToggleCollapse}
+                className="p-1.5 rounded-md text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors"
+                title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              >
+                {collapsed ? (
+                  <ChevronsRight className="h-4 w-4" />
+                ) : (
+                  <PanelLeftClose className="h-4 w-4" />
+                )}
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right">
+              {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            </TooltipContent>
+          </Tooltip>
+        )}
       </div>
 
       {/* Navigation - Scrollable */}
@@ -735,49 +751,6 @@ export const AppSidebar = ({
 
         {/* Advanced Section */}
         {renderCollapsibleSection("Advanced", Beaker, advancedItems, advancedOpen, setAdvancedOpen)}
-
-        {/* Divider */}
-        <div className="h-px bg-sidebar-border mx-4 my-3" />
-
-        {/* Organization */}
-        <div className="space-y-1 px-2">
-          {orgItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-            
-            if (collapsed) {
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center justify-center py-2.5 mx-2 rounded-lg transition-colors ${
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                  }`}
-                  title={item.label}
-                >
-                  <Icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
-                </Link>
-              );
-            }
-            
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
-              >
-                <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
-                <span className="text-sm">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
 
       </nav>
 
@@ -862,28 +835,6 @@ export const AppSidebar = ({
           </Link>
         )}
 
-        {/* Compact Collapse Toggle */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              onClick={onToggleCollapse}
-              className={`w-full flex items-center gap-2 p-2 rounded-lg text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors ${collapsed || isMobile ? "justify-center" : ""}`}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-            >
-              {collapsed ? (
-                <ChevronsRight className="h-4 w-4" />
-              ) : (
-                <ChevronsLeft className="h-4 w-4" />
-              )}
-              {!collapsed && !isMobile && (
-                <span className="text-xs">Collapse</span>
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right">
-            {collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          </TooltipContent>
-        </Tooltip>
       </div>
     </aside>
 
