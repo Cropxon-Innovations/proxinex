@@ -155,11 +155,6 @@ const orgItems: NavItem[] = [
   { icon: Layers, label: "Projects", path: "/app/projects" },
 ];
 
-// Settings section - Removed Settings (now in email dropdown)
-const settingsItems: NavItem[] = [
-  { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-];
-
 const planLabels: Record<UserPlan, { label: string; color: string; icon: any }> = {
   free: { label: "Free", color: "bg-muted text-muted-foreground", icon: null },
   go: { label: "Go", color: "bg-primary/20 text-primary", icon: Sparkles },
@@ -691,7 +686,7 @@ export const AppSidebar = ({
 
   return (
     <aside
-      className={`${collapsed ? "w-16" : "w-56 lg:w-64"} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300 h-full`}
+      className={`${collapsed ? "w-14" : "w-48"} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300 h-full`}
     >
       {/* Header with Logo - Click to start new chat */}
       <div className="h-14 border-b border-sidebar-border flex items-center justify-between px-3 flex-shrink-0">
@@ -781,48 +776,6 @@ export const AppSidebar = ({
           })}
         </div>
 
-        {/* Divider */}
-        <div className="h-px bg-sidebar-border mx-4 my-3" />
-
-        {/* Settings */}
-        <div className="space-y-1 px-2">
-          {settingsItems.map((item) => {
-            const Icon = item.icon;
-            const active = isActive(item.path);
-            
-            if (collapsed) {
-              return (
-                <Link
-                  key={item.path}
-                  to={item.path}
-                  className={`flex items-center justify-center py-2.5 mx-2 rounded-lg transition-colors ${
-                    active
-                      ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                      : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                  }`}
-                  title={item.label}
-                >
-                  <Icon className={`h-5 w-5 ${active ? "text-primary" : ""}`} />
-                </Link>
-              );
-            }
-            
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                  active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent/50"
-                }`}
-              >
-                <Icon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
-                <span className="text-sm">{item.label}</span>
-              </Link>
-            );
-          })}
-        </div>
       </nav>
 
       {/* User Section */}
@@ -864,6 +817,12 @@ export const AppSidebar = ({
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to="/app/usage" className="flex items-center">
+                    <BarChart3 className="h-4 w-4 mr-2" />
+                    Usage & Cost
+                  </Link>
+                </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link to="/app/settings" className="flex items-center">
                     <Settings className="h-4 w-4 mr-2" />
