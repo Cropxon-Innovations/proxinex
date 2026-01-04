@@ -23,6 +23,7 @@ interface FormattedAnswerProps {
   answer: string;
   citations: Citation[];
   isLoading?: boolean;
+  onCitationClick?: (citationId: string) => void;
 }
 
 // Map superscript characters to numbers
@@ -68,7 +69,8 @@ const getContentIcon = (text: string) => {
 export const FormattedAnswer = ({ 
   answer, 
   citations, 
-  isLoading 
+  isLoading,
+  onCitationClick
 }: FormattedAnswerProps) => {
   
   const renderFormattedContent = useMemo(() => {
@@ -98,7 +100,7 @@ export const FormattedAnswer = ({
             }`}
           >
             {getContentIcon(text)}
-            {processInlineFormatting(text, citations, key)}
+            {processInlineFormatting(text, citations, key, onCitationClick)}
           </HeadingTag>
         );
         return;
@@ -114,7 +116,7 @@ export const FormattedAnswer = ({
               {getContentIcon(content)}
             </span>
             <span className="text-foreground">
-              {processInlineFormatting(content, citations, key)}
+              {processInlineFormatting(content, citations, key, onCitationClick)}
             </span>
           </div>
         );
@@ -132,7 +134,7 @@ export const FormattedAnswer = ({
               {num}
             </span>
             <span className="text-foreground flex-1">
-              {processInlineFormatting(content, citations, key)}
+              {processInlineFormatting(content, citations, key, onCitationClick)}
             </span>
           </div>
         );
@@ -142,13 +144,13 @@ export const FormattedAnswer = ({
       // Regular paragraph
       elements.push(
         <p key={key++} className="text-foreground my-2 leading-relaxed">
-          {processInlineFormatting(line, citations, key)}
+          {processInlineFormatting(line, citations, key, onCitationClick)}
         </p>
       );
     });
 
     return elements;
-  }, [answer, citations]);
+  }, [answer, citations, onCitationClick]);
 
   return (
     <div className="space-y-1">
@@ -167,7 +169,8 @@ export const FormattedAnswer = ({
 function processInlineFormatting(
   text: string, 
   citations: Citation[], 
-  baseKey: number
+  baseKey: number,
+  onCitationClick?: (citationId: string) => void
 ): (string | JSX.Element)[] {
   const elements: (string | JSX.Element)[] = [];
   let currentText = "";
@@ -186,7 +189,7 @@ function processInlineFormatting(
       const citationId = superscriptToNumber[char];
       const citation = citations.find(c => c.id === citationId);
       if (citation) {
-        elements.push(<EnhancedCitationTooltip key={key++} citation={citation} />);
+        elements.push(<EnhancedCitationTooltip key={key++} citation={citation} onPreviewClick={onCitationClick} />);
       } else {
         elements.push(
           <sup key={key++} className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-medium rounded-full bg-muted text-muted-foreground ml-0.5">
@@ -211,7 +214,7 @@ function processInlineFormatting(
           }
           const citation = citations.find(c => c.id === citationId);
           if (citation) {
-            elements.push(<EnhancedCitationTooltip key={key++} citation={citation} />);
+            elements.push(<EnhancedCitationTooltip key={key++} citation={citation} onPreviewClick={onCitationClick} />);
           } else {
             elements.push(
               <sup key={key++} className="inline-flex items-center justify-center w-4 h-4 text-[9px] font-medium rounded-full bg-muted text-muted-foreground ml-0.5">

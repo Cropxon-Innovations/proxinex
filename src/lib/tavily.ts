@@ -15,6 +15,8 @@ export interface ResearchResponse {
   confidence_label: string;
   citations: Citation[];
   error?: string;
+  searchModes?: string[];
+  relatedQueries?: string[];
 }
 
 export interface SearchOptions {
