@@ -131,7 +131,30 @@ serve(async (req) => {
       payment_id: razorpay_payment_id
     });
 
-    return new Response(JSON.stringify({ 
+    // Send confirmation email
+    if (user_email) {
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            type: 'payment_confirmation',
+            to: user_email,
+            name: user_name || 'User',
+            data: {
+              plan,
+              amount,
+              currency,
+              invoiceNumber,
+              invoiceDate: new Date().toLocaleDateString('en-IN'),
+            },
+          },
+        });
+        console.log('Confirmation email sent to:', user_email);
+      } catch (emailError) {
+        console.error('Failed to send confirmation email:', emailError);
+      }
+    }
+
+    return new Response(JSON.stringify({
       success: true,
       message: 'Payment verified successfully',
       plan,

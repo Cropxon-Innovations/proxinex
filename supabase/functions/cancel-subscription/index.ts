@@ -62,6 +62,37 @@ serve(async (req) => {
 
     console.log('Subscription cancelled:', { subscription_id, user_id, grace_period_ends: gracePeriodEnds });
 
+    // Get user profile for email
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email, full_name, plan')
+      .eq('id', user_id)
+      .single();
+
+    // Send cancellation confirmation email
+    if (profile?.email) {
+      try {
+        await supabase.functions.invoke('send-email', {
+          body: {
+            type: 'cancellation_confirmation',
+            to: profile.email,
+            name: profile.full_name || 'User',
+            data: {
+              plan: profile.plan || subscription.plan,
+              gracePeriodEndDate: gracePeriodEnds.toLocaleDateString('en-IN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+              }),
+            },
+          },
+        });
+        console.log('Cancellation email sent to:', profile.email);
+      } catch (emailError) {
+        console.error('Failed to send cancellation email:', emailError);
+      }
+    }
+
     return new Response(JSON.stringify({
       success: true,
       message: 'Subscription cancelled successfully',
