@@ -86,6 +86,12 @@ const sidebarSections = [
       { label: "Changelog", id: "changelog", icon: Book },
     ],
   },
+  {
+    title: "Integrations",
+    items: [
+      { label: "Razorpay Webhooks", id: "razorpay-webhooks", icon: Zap },
+    ],
+  },
 ];
 
 const codeExamples = {
@@ -1816,6 +1822,129 @@ usage = client.billing.usage()
                   ))}
                 </div>
               </section>
+
+              {/* Razorpay Webhooks */}
+              <section id="razorpay-webhooks" className="mb-16 scroll-mt-20">
+                <h2 className="text-2xl font-bold text-foreground mb-4">Razorpay Webhook Configuration</h2>
+                <p className="text-muted-foreground mb-6">
+                  Set up Razorpay webhooks to receive real-time payment and subscription events.
+                </p>
+
+                {/* Setup Steps */}
+                <div className="space-y-6">
+                  <div className="p-6 rounded-lg border border-border bg-card">
+                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">1</span>
+                      Get Your Webhook URL
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Your webhook endpoint is automatically configured. Copy the URL below:
+                    </p>
+                    <div className="p-3 rounded-md bg-secondary font-mono text-sm break-all">
+                      https://jfmrvhrpwyxxjpcblavp.supabase.co/functions/v1/razorpay-webhook
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-lg border border-border bg-card">
+                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">2</span>
+                      Configure in Razorpay Dashboard
+                    </h3>
+                    <ol className="space-y-3 text-sm text-foreground">
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs text-muted-foreground">a</span>
+                        <span>Log in to your <a href="https://dashboard.razorpay.com" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">Razorpay Dashboard</a></span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs text-muted-foreground">b</span>
+                        <span>Navigate to <strong>Settings → Webhooks</strong></span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs text-muted-foreground">c</span>
+                        <span>Click <strong>"+ Add New Webhook"</strong></span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs text-muted-foreground">d</span>
+                        <span>Paste your webhook URL from Step 1</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs text-muted-foreground">e</span>
+                        <span>Enter a <strong>Secret</strong> (this should match your <code className="px-1 py-0.5 rounded bg-secondary text-xs">RAZORPAY_KEY_SECRET</code> environment variable)</span>
+                      </li>
+                      <li className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-secondary flex items-center justify-center text-xs text-muted-foreground">f</span>
+                        <span>Click <strong>"Create Webhook"</strong></span>
+                      </li>
+                    </ol>
+                  </div>
+
+                  <div className="p-6 rounded-lg border border-border bg-card">
+                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">3</span>
+                      Select Webhook Events
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Enable the following events for full subscription management:
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {[
+                        { event: "payment.captured", desc: "When a payment is successfully captured" },
+                        { event: "payment.failed", desc: "When a payment attempt fails" },
+                        { event: "subscription.activated", desc: "When a subscription becomes active" },
+                        { event: "subscription.charged", desc: "When a subscription renewal is charged" },
+                        { event: "subscription.pending", desc: "When a subscription payment is pending" },
+                        { event: "subscription.halted", desc: "When a subscription is halted due to failures" },
+                        { event: "subscription.cancelled", desc: "When a subscription is cancelled" },
+                      ].map((item) => (
+                        <div key={item.event} className="p-3 rounded-md bg-secondary">
+                          <code className="text-xs font-medium text-primary">{item.event}</code>
+                          <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="p-6 rounded-lg border border-border bg-card">
+                    <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+                      <span className="flex items-center justify-center w-6 h-6 rounded-full bg-primary text-primary-foreground text-xs font-bold">4</span>
+                      Verify Webhook Setup
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      After saving, Razorpay will show your webhook as "Active". You can test it by:
+                    </p>
+                    <ul className="space-y-2 text-sm text-foreground">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span>Making a test payment in Razorpay's test mode</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span>Checking your backend logs for incoming webhook events</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="h-4 w-4 text-primary flex-shrink-0 mt-0.5" />
+                        <span>Verifying subscription status updates in your database</span>
+                      </li>
+                    </ul>
+                  </div>
+
+                  {/* Important Notes */}
+                  <div className="p-4 rounded-lg border border-primary/30 bg-primary/5">
+                    <div className="flex items-start gap-3">
+                      <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
+                      <div>
+                        <h4 className="font-medium text-foreground mb-1">Important Notes</h4>
+                        <ul className="space-y-1 text-sm text-muted-foreground">
+                          <li>• Webhook signature verification is enabled by default for security</li>
+                          <li>• Ensure your <code className="px-1 py-0.5 rounded bg-secondary text-xs">RAZORPAY_KEY_SECRET</code> is correctly set in your environment</li>
+                          <li>• Webhooks are processed idempotently to handle retries safely</li>
+                          <li>• Failed webhook deliveries will be retried by Razorpay automatically</li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
             </div>
           </main>
 
@@ -1874,6 +2003,11 @@ usage = client.billing.usage()
                 <li>
                   <button onClick={() => scrollToSection('changelog')} className="text-muted-foreground hover:text-foreground transition-colors text-left">
                     Changelog
+                  </button>
+                </li>
+                <li>
+                  <button onClick={() => scrollToSection('razorpay-webhooks')} className="text-muted-foreground hover:text-foreground transition-colors text-left">
+                    Razorpay Webhooks
                   </button>
                 </li>
               </ul>
