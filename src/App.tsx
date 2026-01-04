@@ -18,6 +18,7 @@ import AppDashboard from "./pages/AppDashboard";
 import ResearchPage from "./pages/Research";
 import NotebooksPage from "./pages/Notebooks";
 import ApiKeysPage from "./pages/ApiKeys";
+import InlineAsksPage from "./pages/InlineAsks";
 import DocumentsPage from "./pages/Documents";
 import UsagePage from "./pages/Usage";
 import SettingsPage from "./pages/Settings";
@@ -101,6 +102,7 @@ const App = () => (
                 <Route path="/app/help" element={<ProtectedRoute><HelpCenterPage /></ProtectedRoute>} />
                 <Route path="/app/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
                 <Route path="/app/pinned" element={<ProtectedRoute><PinnedContentPage /></ProtectedRoute>} />
+                <Route path="/app/inline-asks" element={<ProtectedRoute><InlineAsksPage /></ProtectedRoute>} />
                 <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

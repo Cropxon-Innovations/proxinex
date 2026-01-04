@@ -107,6 +107,11 @@ interface AppSidebarProps {
   onReorderPinnedSessions?: (sessions: ChatSession[]) => void;
   inlineAsks?: InlineAskItem[];
   onSelectInlineAsk?: (askId: string, sessionId?: string) => void;
+  onDeleteInlineAsk?: (askId: string) => void;
+  onRenameInlineAsk?: (askId: string, question: string) => void;
+  onPinInlineAsk?: (askId: string) => void;
+  onArchiveInlineAsk?: (askId: string) => void;
+  onShareInlineAsk?: (askId: string) => void;
 }
 
 type FeatureKey = "chat" | "research" | "documents" | "notebooks" | "images" | "video" | "sandbox" | "apiPlayground";
@@ -174,6 +179,11 @@ export const AppSidebar = ({
   onReorderPinnedSessions,
   inlineAsks = [],
   onSelectInlineAsk,
+  onDeleteInlineAsk,
+  onRenameInlineAsk,
+  onPinInlineAsk,
+  onArchiveInlineAsk,
+  onShareInlineAsk,
 }: AppSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -458,12 +468,14 @@ export const AppSidebar = ({
                   {inlineAsks.slice(0, 6).map((ask) => (
                     <div
                       key={ask.id}
-                      className="group flex items-center w-full text-left px-2 py-2 text-xs rounded-md transition-colors text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground cursor-pointer"
-                      onClick={() => onSelectInlineAsk?.(ask.id, ask.session_id)}
+                      className="group flex items-center w-full text-left px-2 py-2 text-xs rounded-md transition-colors text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
                     >
-                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                      <button
+                        onClick={() => onSelectInlineAsk?.(ask.id, ask.session_id)}
+                        className="flex items-center gap-2.5 flex-1 min-w-0"
+                      >
                         <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
-                        <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0 text-left">
                           <span className="truncate block text-[11px] leading-tight">
                             {ask.highlighted_text.slice(0, 25)}{ask.highlighted_text.length > 25 ? '...' : ''}
                           </span>
@@ -471,9 +483,52 @@ export const AppSidebar = ({
                             {ask.question.slice(0, 30)}{ask.question.length > 30 ? '...' : ''}
                           </span>
                         </div>
-                      </div>
+                      </button>
+                      
+                      {/* Actions Menu for Inline Ask */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button className="p-0.5 opacity-0 group-hover:opacity-100 hover:bg-secondary rounded transition-opacity ml-1">
+                            <MoreHorizontal className="h-3.5 w-3.5" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-36">
+                          <DropdownMenuItem onClick={() => onRenameInlineAsk?.(ask.id, ask.question)}>
+                            <Pencil className="h-3 w-3 mr-2" />
+                            Rename
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onPinInlineAsk?.(ask.id)}>
+                            <Pin className="h-3 w-3 mr-2" />
+                            Pin
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onShareInlineAsk?.(ask.id)}>
+                            <Share2 className="h-3 w-3 mr-2" />
+                            Share
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => onArchiveInlineAsk?.(ask.id)}>
+                            <Archive className="h-3 w-3 mr-2" />
+                            Archive
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            onClick={() => onDeleteInlineAsk?.(ask.id)}
+                            className="text-destructive focus:text-destructive"
+                          >
+                            <Trash2 className="h-3 w-3 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   ))}
+                  {inlineAsks.length > 6 && (
+                    <Link
+                      to="/app/inline-asks"
+                      className="block px-2 py-1.5 text-xs text-primary hover:underline"
+                    >
+                      View all {inlineAsks.length} inline asks →
+                    </Link>
+                  )}
                 </CollapsibleContent>
               </Collapsible>
             )}
