@@ -17,7 +17,7 @@ import {
   Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import proxinexLogo from "@/assets/proxinex-logo.png";
+import { ProxinexIcon } from "@/components/Logo";
 
 interface ThinkingStep {
   id: string;
@@ -118,14 +118,9 @@ export const ThinkingAnimation = ({
               {/* Pulsing glow effect */}
               <div className="absolute inset-0 rounded-full bg-primary/40 blur-xl animate-pulse" />
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/40 to-primary/30 blur-lg animate-pulse" style={{ animationDelay: '0.5s' }} />
-              {/* Logo with bounce animation */}
-              <img 
-                src={proxinexLogo} 
-                alt="Proxinex" 
-                className="w-10 h-10 object-contain relative z-10 drop-shadow-[0_0_15px_hsl(var(--primary)/0.6)]"
-                style={{ 
-                  animation: 'bounce-scale 1.5s ease-in-out infinite',
-                }}
+              {/* Logo with spin animation */}
+              <ProxinexIcon 
+                className="w-10 h-10 relative z-10 text-primary drop-shadow-[0_0_15px_hsl(var(--primary)/0.6)] animate-spin"
               />
             </div>
             <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">

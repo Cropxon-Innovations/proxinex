@@ -14,7 +14,7 @@ import {
   Zap,
   Layers
 } from "lucide-react";
-import proxinexLogo from "@/assets/proxinex-logo.png";
+import { ProxinexIcon } from "@/components/Logo";
 
 interface SourceVerificationLoaderProps {
   sources?: string[];
@@ -98,7 +98,6 @@ export const SourceVerificationLoader = ({
       {/* Header with Animated Proxinex Logo */}
       <div className="flex items-center gap-4">
         <div className="relative">
-          {/* Animated Logo Container */}
           <div className="relative w-16 h-16 flex items-center justify-center">
             {/* Multi-layer pulsing glow effect */}
             <div className="absolute inset-0 rounded-full bg-primary/50 blur-2xl animate-pulse" />
@@ -110,14 +109,9 @@ export const SourceVerificationLoader = ({
               className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/30 via-primary/30 to-cyan-500/30 blur-lg animate-pulse"
               style={{ animationDelay: '0.6s' }}
             />
-            {/* Logo with bounce animation */}
-            <img 
-              src={proxinexLogo} 
-              alt="Proxinex" 
-              className="w-12 h-12 object-contain relative z-10 drop-shadow-[0_0_20px_hsl(var(--primary)/0.7)]"
-              style={{ 
-                animation: isComplete ? 'none' : 'bounce-scale 1.5s ease-in-out infinite',
-              }}
+            {/* Logo with spin animation */}
+            <ProxinexIcon 
+              className={`w-12 h-12 relative z-10 text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.7)] ${isComplete ? '' : 'animate-spin'}`}
             />
           </div>
           {/* Status indicator */}
