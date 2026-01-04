@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
-type Theme = "default" | "midnight" | "ocean" | "forest" | "sunset" | "lavender";
+type Theme = "default" | "midnight" | "ocean" | "forest" | "sunset" | "lavender" | "monochrome";
 type ColorMode = "dark" | "light" | "system";
 
 interface ThemeOption {
@@ -263,6 +263,47 @@ const themes: ThemeOption[] = [
       "--border": "270 10% 91%",
       "--input": "270 10% 91%",
       "--ring": "270 91% 65%",
+    }
+  },
+  { 
+    id: "monochrome", 
+    name: "Black & White", 
+    primary: "#ffffff",
+    darkVariables: {
+      "--primary": "0 0% 100%",
+      "--primary-foreground": "0 0% 0%",
+      "--accent": "0 0% 85%",
+      "--background": "0 0% 0%",
+      "--foreground": "0 0% 100%",
+      "--card": "0 0% 5%",
+      "--card-foreground": "0 0% 100%",
+      "--popover": "0 0% 8%",
+      "--popover-foreground": "0 0% 100%",
+      "--secondary": "0 0% 12%",
+      "--secondary-foreground": "0 0% 100%",
+      "--muted": "0 0% 15%",
+      "--muted-foreground": "0 0% 60%",
+      "--border": "0 0% 20%",
+      "--input": "0 0% 12%",
+      "--ring": "0 0% 100%",
+    },
+    lightVariables: {
+      "--primary": "0 0% 0%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "0 0% 15%",
+      "--background": "0 0% 100%",
+      "--foreground": "0 0% 0%",
+      "--card": "0 0% 98%",
+      "--card-foreground": "0 0% 0%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "0 0% 0%",
+      "--secondary": "0 0% 96%",
+      "--secondary-foreground": "0 0% 0%",
+      "--muted": "0 0% 96%",
+      "--muted-foreground": "0 0% 45%",
+      "--border": "0 0% 90%",
+      "--input": "0 0% 90%",
+      "--ring": "0 0% 0%",
     }
   },
 ];
