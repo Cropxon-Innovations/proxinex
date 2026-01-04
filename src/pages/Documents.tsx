@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { useHistoryData } from "@/hooks/useHistoryData";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { UsageLimitModal } from "@/components/UsageLimitModal";
 import {
   FileText,
   Upload,
@@ -31,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
 
 interface Document {
   id: string;
@@ -111,9 +114,18 @@ export default function Documents() {
   const [isDragging, setIsDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<Record<string, number>>({});
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  const { 
+    usage, 
+    limits, 
+    canUseFeature, 
+    incrementUsage, 
+    getUsageDisplay,
+    getRequiredPlanForUnlimited 
+  } = useUsageLimits();
   
   const {
     chatSessions,
@@ -151,7 +163,20 @@ export default function Documents() {
     handleFileUpload(files);
   }, []);
 
-  const handleFileUpload = (files: File[]) => {
+  const handleFileUpload = async (files: File[]) => {
+    // Check usage limits before uploading
+    if (!canUseFeature("documents")) {
+      setLimitModalOpen(true);
+      return;
+    }
+
+    // Increment usage
+    const success = await incrementUsage("documents");
+    if (!success) {
+      setLimitModalOpen(true);
+      return;
+    }
+
     files.forEach((file) => {
       const id = Math.random().toString(36).substr(2, 9);
       const newDoc: Document = {
@@ -289,7 +314,14 @@ export default function Documents() {
               </div>
               <div>
                 <h1 className="font-semibold text-foreground text-sm">Documents</h1>
-                <span className="text-xs text-muted-foreground">{documents.length} files</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">{documents.length} files</span>
+                  {limits.documents !== Infinity && (
+                    <Badge variant="secondary" className="text-[10px] h-4">
+                      {getUsageDisplay("documents")} used
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -508,6 +540,15 @@ export default function Documents() {
           </div>
         </main>
       </div>
+
+      <UsageLimitModal
+        open={limitModalOpen}
+        onOpenChange={setLimitModalOpen}
+        feature="documents"
+        usageCount={usage.documents}
+        limit={limits.documents}
+        requiredPlan={getRequiredPlanForUnlimited("documents")}
+      />
     </>
   );
 }
