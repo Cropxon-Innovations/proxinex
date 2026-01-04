@@ -40,6 +40,7 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface Project {
   id: string;
@@ -289,6 +290,7 @@ export default function ProjectsPage() {
                   <List className="h-4 w-4" />
                 </button>
               </div>
+              <ThemeToggle />
               <Button onClick={() => setShowCreateDialog(true)} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Project

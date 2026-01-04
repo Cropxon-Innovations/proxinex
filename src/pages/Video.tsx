@@ -44,6 +44,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useNotifications } from "@/components/NotificationCenter";
 import { Helmet } from "react-helmet-async";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface VideoModel {
   id: string;
@@ -385,7 +386,7 @@ export default function VideoPage() {
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="h-14 border-b border-border flex items-center px-6 flex-shrink-0 bg-background">
+          <header className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
             <div className="flex items-center gap-3">
               <div className="p-2 rounded-lg bg-primary/10">
                 <VideoIcon className="h-4 w-4 text-primary" />
@@ -402,6 +403,7 @@ export default function VideoPage() {
                 </div>
               </div>
             </div>
+            <ThemeToggle />
           </header>
 
           <div className="flex-1 overflow-y-auto p-6">

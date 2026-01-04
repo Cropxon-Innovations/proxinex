@@ -44,6 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface ApiKey {
   id: string;
@@ -209,6 +210,7 @@ const ApiKeysPage = () => {
                   </p>
                 </div>
               </div>
+              <ThemeToggle />
               <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
                 <Plus className="h-4 w-4" />
                 Create New Key

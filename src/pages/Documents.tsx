@@ -34,6 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface Document {
   id: string;
@@ -348,6 +349,7 @@ export default function Documents() {
                   <List className="h-4 w-4" />
                 </button>
               </div>
+              <ThemeToggle />
               <label>
                 <input
                   type="file"
