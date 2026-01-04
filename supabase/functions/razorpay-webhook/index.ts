@@ -22,22 +22,56 @@ function generateInvoiceNumber(): string {
   return `INV-${year}${month}-${random}`;
 }
 
+// Log webhook event to database
+async function logWebhookEvent(
+  supabase: any,
+  eventType: string,
+  eventId: string | null,
+  payload: any,
+  signature: string | null,
+  status: 'received' | 'processed' | 'failed',
+  errorMessage?: string
+) {
+  try {
+    await supabase
+      .from('webhook_events')
+      .insert({
+        event_type: eventType,
+        event_id: eventId,
+        payload,
+        signature,
+        status,
+        error_message: errorMessage,
+        processed_at: status !== 'received' ? new Date().toISOString() : null,
+      });
+  } catch (error) {
+    console.error('Failed to log webhook event:', error);
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+
+  let eventType = 'unknown';
+  let eventId: string | null = null;
+  let payload: any = null;
+  let signature: string | null = null;
+
   try {
     const RAZORPAY_KEY_SECRET = Deno.env.get('RAZORPAY_KEY_SECRET');
-    const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 
     if (!RAZORPAY_KEY_SECRET) {
       throw new Error('Razorpay credentials not configured');
     }
 
     const body = await req.text();
-    const signature = req.headers.get('x-razorpay-signature');
+    signature = req.headers.get('x-razorpay-signature');
 
     if (!signature) {
       throw new Error('Missing webhook signature');
@@ -53,16 +87,19 @@ serve(async (req) => {
       throw new Error('Invalid webhook signature');
     }
 
-    const payload = JSON.parse(body);
-    const event = payload.event;
+    payload = JSON.parse(body);
+    eventType = payload.event || 'unknown';
+    eventId = payload.payload?.payment?.entity?.id || payload.payload?.subscription?.entity?.id || null;
+    
     const paymentEntity = payload.payload?.payment?.entity;
     const subscriptionEntity = payload.payload?.subscription?.entity;
 
-    console.log('Razorpay webhook event:', event);
+    console.log('Razorpay webhook event:', eventType);
 
-    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
+    // Log received event
+    await logWebhookEvent(supabase, eventType, eventId, payload, signature, 'received');
 
-    switch (event) {
+    switch (eventType) {
       case 'payment.captured': {
         // Payment successful - handled by verify-razorpay-payment
         console.log('Payment captured:', paymentEntity?.id);
@@ -255,8 +292,11 @@ serve(async (req) => {
       }
 
       default:
-        console.log('Unhandled webhook event:', event);
+        console.log('Unhandled webhook event:', eventType);
     }
+
+    // Log successful processing
+    await logWebhookEvent(supabase, eventType, eventId, payload, signature, 'processed');
 
     return new Response(JSON.stringify({ received: true }), {
       status: 200,
@@ -265,6 +305,10 @@ serve(async (req) => {
   } catch (error: unknown) {
     console.error('Webhook error:', error);
     const message = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Log failed event
+    await logWebhookEvent(supabase, eventType, eventId, payload, signature, 'failed', message);
+    
     return new Response(JSON.stringify({ error: message }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
