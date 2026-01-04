@@ -4,6 +4,7 @@ import { useUserPlan } from "@/hooks/useUserPlan";
 import { useSubscription } from "@/hooks/useSubscription";
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -87,8 +88,44 @@ export const SettingsPlanTab = ({ currency = "INR" }: SettingsPlanTabProps) => {
   const [selectedInvoice, setSelectedInvoice] = useState<any>(null);
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [downloadingInvoice, setDownloadingInvoice] = useState<string | null>(null);
 
   const loading = planLoading || subLoading;
+
+  const handleDownloadInvoice = async (invoiceId: string, invoiceNumber: string) => {
+    setDownloadingInvoice(invoiceId);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-invoice-pdf', {
+        body: { invoice_id: invoiceId },
+      });
+
+      if (error) throw error;
+
+      if (data?.html) {
+        // Open in new window for printing/saving as PDF
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+          printWindow.document.write(data.html);
+          printWindow.document.close();
+          printWindow.focus();
+          // Auto-trigger print dialog
+          setTimeout(() => printWindow.print(), 250);
+        }
+        toast({
+          title: "Invoice Generated",
+          description: "Print dialog opened. Save as PDF to download.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Download Failed",
+        description: error.message || "Failed to generate invoice",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloadingInvoice(null);
+    }
+  };
 
   const handleUpgrade = (planKey: string) => {
     if (planKey === "go" || planKey === "pro") {
@@ -425,8 +462,17 @@ export const SettingsPlanTab = ({ currency = "INR" }: SettingsPlanTabProps) => {
                               )}
                             </div>
                             <Separator />
-                            <Button variant="outline" className="w-full">
-                              <Download className="h-4 w-4 mr-2" />
+                            <Button 
+                              variant="outline" 
+                              className="w-full"
+                              onClick={() => handleDownloadInvoice(invoice.id, invoice.invoice_number)}
+                              disabled={downloadingInvoice === invoice.id}
+                            >
+                              {downloadingInvoice === invoice.id ? (
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              ) : (
+                                <Download className="h-4 w-4 mr-2" />
+                              )}
                               Download PDF
                             </Button>
                           </div>
