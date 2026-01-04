@@ -43,6 +43,7 @@ const proPlanLimits: UsageLimits = {
 interface UsageData {
   feature: string;
   usage_count: number;
+  reset_at: string | null;
 }
 
 export const useUsageLimits = () => {
@@ -68,6 +69,42 @@ export const useUsageLimits = () => {
     }
   }, [plan]);
 
+  // Get next reset date based on subscription
+  const getNextResetDate = useCallback(async (): Promise<Date | null> => {
+    if (!user) return null;
+
+    // Get active subscription
+    const { data: subscription } = await supabase
+      .from("subscriptions")
+      .select("expires_at, started_at")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (subscription?.expires_at) {
+      return new Date(subscription.expires_at);
+    }
+
+    // For free users, reset monthly from when they started
+    if (subscription?.started_at) {
+      const startDate = new Date(subscription.started_at);
+      const now = new Date();
+      
+      // Calculate next monthly reset
+      const nextReset = new Date(startDate);
+      while (nextReset <= now) {
+        nextReset.setMonth(nextReset.getMonth() + 1);
+      }
+      return nextReset;
+    }
+
+    // Default: reset at start of next month
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  }, [user]);
+
   const fetchUsage = useCallback(async () => {
     if (!user) {
       setLoading(false);
@@ -77,16 +114,42 @@ export const useUsageLimits = () => {
     try {
       const { data, error } = await supabase
         .from("user_usage")
-        .select("feature, usage_count")
+        .select("feature, usage_count, reset_at")
         .eq("user_id", user.id);
 
       if (error) {
         console.error("Error fetching usage:", error);
       } else if (data) {
+        const now = new Date();
         const usageMap: Record<string, number> = {};
+        const needsReset: string[] = [];
+
         data.forEach((item: UsageData) => {
-          usageMap[item.feature] = item.usage_count;
+          // Check if usage needs to be reset
+          if (item.reset_at && new Date(item.reset_at) <= now) {
+            needsReset.push(item.feature);
+            usageMap[item.feature] = 0;
+          } else {
+            usageMap[item.feature] = item.usage_count;
+          }
         });
+
+        // Reset expired usage counts
+        if (needsReset.length > 0) {
+          const nextReset = await getNextResetDate();
+          for (const feature of needsReset) {
+            await supabase
+              .from("user_usage")
+              .update({
+                usage_count: 0,
+                reset_at: nextReset?.toISOString() || null,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("user_id", user.id)
+              .eq("feature", feature);
+          }
+        }
+
         setUsage({
           documents: usageMap.documents || 0,
           images: usageMap.images || 0,
@@ -100,7 +163,7 @@ export const useUsageLimits = () => {
     } finally {
       setLoading(false);
     }
-  }, [user]);
+  }, [user, getNextResetDate]);
 
   useEffect(() => {
     fetchUsage();
@@ -119,13 +182,17 @@ export const useUsageLimits = () => {
     }
 
     try {
-      // Upsert usage record
+      // Get next reset date for new records
+      const nextReset = await getNextResetDate();
+
+      // Upsert usage record with reset date
       const { error } = await supabase
         .from("user_usage")
         .upsert({
           user_id: user.id,
           feature,
           usage_count: currentUsage + 1,
+          reset_at: nextReset?.toISOString() || null,
         }, {
           onConflict: "user_id,feature",
         });
@@ -146,7 +213,7 @@ export const useUsageLimits = () => {
       console.error("Error incrementing usage:", error);
       return false;
     }
-  }, [user, usage, getLimits]);
+  }, [user, usage, getLimits, getNextResetDate]);
 
   const canUseFeature = useCallback((feature: UsageFeature): boolean => {
     const limits = getLimits();
