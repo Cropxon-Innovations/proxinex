@@ -20,7 +20,7 @@ const planFeatures: Record<UserPlan, PlanFeatures> = {
     chat: true,
     research: true, // Limited
     documents: false,
-    notebooks: false,
+    notebooks: true, // Limited to 5
     images: false,
     video: false,
     sandbox: false,

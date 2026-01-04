@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUserPlan } from "@/hooks/useUserPlan";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { 
   Plus, 
@@ -83,7 +84,12 @@ const NotebooksPage = () => {
   const [rightPanelTab, setRightPanelTab] = useState<"collaborators" | "comments" | "history">("collaborators");
   const { user, signOut } = useAuth();
   const { toast } = useToast();
+  const { plan } = useUserPlan();
   const navigate = useNavigate();
+  
+  const FREE_NOTEBOOK_LIMIT = 5;
+  const isFreePlan = plan === "free";
+  const canCreateMore = !isFreePlan || notebooks.length < FREE_NOTEBOOK_LIMIT;
 
   // Collaboration state (mock data for demo)
   const [collaborators] = useState<Collaborator[]>([
@@ -136,6 +142,16 @@ const NotebooksPage = () => {
 
   const createNotebook = async () => {
     if (!user) return;
+    
+    // Check free plan limit
+    if (isFreePlan && notebooks.length >= FREE_NOTEBOOK_LIMIT) {
+      toast({ 
+        title: "Notebook limit reached", 
+        description: `Free plan allows up to ${FREE_NOTEBOOK_LIMIT} notebooks. Upgrade to create more.`,
+        variant: "destructive" 
+      });
+      return;
+    }
     
     const { data, error } = await supabase
       .from("notebooks")
@@ -265,8 +281,19 @@ const NotebooksPage = () => {
               <div className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-primary" />
                 <h2 className="font-semibold text-foreground text-sm">Notebooks</h2>
+                {isFreePlan && (
+                  <span className="text-xs text-muted-foreground">
+                    ({notebooks.length}/{FREE_NOTEBOOK_LIMIT})
+                  </span>
+                )}
               </div>
-              <Button size="sm" onClick={createNotebook} className="h-8 w-8 p-0">
+              <Button 
+                size="sm" 
+                onClick={createNotebook} 
+                className="h-8 w-8 p-0"
+                disabled={!canCreateMore}
+                title={!canCreateMore ? `Free plan limit: ${FREE_NOTEBOOK_LIMIT} notebooks` : "Create notebook"}
+              >
                 <Plus className="h-4 w-4" />
               </Button>
             </div>

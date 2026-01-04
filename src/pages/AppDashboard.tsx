@@ -878,6 +878,40 @@ const AppDashboard = () => {
     }
   };
 
+  // Rename inline ask from sidebar
+  const handleRenameInlineAsk = async (id: string, question: string) => {
+    const newQuestion = prompt("Rename inline ask:", question);
+    if (newQuestion && newQuestion !== question) {
+      await handleEditInlineAsk(id, { question: newQuestion });
+      loadAllInlineAsks();
+    }
+  };
+
+  // Pin inline ask
+  const handlePinInlineAsk = async (id: string) => {
+    toast({ title: "Inline Ask pinned" });
+  };
+
+  // Archive inline ask
+  const handleArchiveInlineAsk = async (id: string) => {
+    toast({ title: "Inline Ask archived" });
+  };
+
+  // Share inline ask
+  const handleShareInlineAsk = async (id: string) => {
+    const ask = allInlineAsks.find(a => a.id === id);
+    if (ask) {
+      navigator.clipboard.writeText(`Question: ${ask.question}\n\nHighlighted: ${ask.highlighted_text}`);
+      toast({ title: "Copied to clipboard" });
+    }
+  };
+
+  // Delete inline ask from sidebar
+  const handleDeleteInlineAskFromSidebar = async (id: string) => {
+    await handleDeleteInlineAsk(id);
+    loadAllInlineAsks();
+  };
+
   const handleVoiceStart = () => {
     setIsRecording(true);
     toast({ title: "Voice recording started", description: "Speak your query..." });
@@ -944,6 +978,11 @@ const AppDashboard = () => {
               handleSelectInlineAsk(askId, sessionId);
               setMobileSidebarOpen(false);
             }}
+            onDeleteInlineAsk={handleDeleteInlineAskFromSidebar}
+            onRenameInlineAsk={handleRenameInlineAsk}
+            onPinInlineAsk={handlePinInlineAsk}
+            onArchiveInlineAsk={handleArchiveInlineAsk}
+            onShareInlineAsk={handleShareInlineAsk}
           />
         </SwipeableSidebar>
 
@@ -973,6 +1012,11 @@ const AppDashboard = () => {
             onReorderPinnedSessions={handleReorderPinnedSessions}
             inlineAsks={allInlineAsks}
             onSelectInlineAsk={handleSelectInlineAsk}
+            onDeleteInlineAsk={handleDeleteInlineAskFromSidebar}
+            onRenameInlineAsk={handleRenameInlineAsk}
+            onPinInlineAsk={handlePinInlineAsk}
+            onArchiveInlineAsk={handleArchiveInlineAsk}
+            onShareInlineAsk={handleShareInlineAsk}
           />
         </div>
 
