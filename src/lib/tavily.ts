@@ -20,13 +20,14 @@ export interface ResearchResponse {
 export interface SearchOptions {
   max_sources?: number;
   is_deep_research?: boolean;
+  search_modes?: string[];
 }
 
 export async function searchWithTavily(
   query: string, 
   options: SearchOptions = {}
 ): Promise<ResearchResponse> {
-  const { max_sources = 15, is_deep_research = false } = options;
+  const { max_sources = 15, is_deep_research = false, search_modes = [] } = options;
   
   try {
     const response = await fetch(TAVILY_SEARCH_URL, {
@@ -35,7 +36,7 @@ export async function searchWithTavily(
         "Content-Type": "application/json",
         Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
       },
-      body: JSON.stringify({ query, max_sources, is_deep_research }),
+      body: JSON.stringify({ query, max_sources, is_deep_research, search_modes }),
     });
 
     if (!response.ok) {

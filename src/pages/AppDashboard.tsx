@@ -305,7 +305,14 @@ const AppDashboard = () => {
       ]);
 
       try {
-        const response = await searchWithTavily(userMessage.content);
+        // Get active search modes (excluding 'web' which is the default)
+        const activeSearchModes = Object.entries(activeModes)
+          .filter(([key, value]) => value && key !== 'web')
+          .map(([key]) => key);
+        
+        const response = await searchWithTavily(userMessage.content, {
+          search_modes: activeSearchModes,
+        });
 
         const finalMessages: MessageWithMetrics[] = [
           ...baseMessages,
