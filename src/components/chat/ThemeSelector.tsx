@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Palette, Check, Moon, Sun, Monitor } from "lucide-react";
 import {
   Popover,
@@ -7,7 +7,7 @@ import {
 } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 
-type Theme = "default" | "midnight" | "ocean" | "forest" | "sunset" | "lavender" | "monochrome";
+type Theme = "default" | "midnight" | "ocean" | "forest" | "sunset" | "lavender" | "minimal";
 type ColorMode = "dark" | "light" | "system";
 
 interface ThemeOption {
@@ -19,6 +19,47 @@ interface ThemeOption {
 }
 
 const themes: ThemeOption[] = [
+  { 
+    id: "minimal", 
+    name: "Minimal", 
+    primary: "#888888",
+    darkVariables: {
+      "--primary": "0 0% 100%",
+      "--primary-foreground": "0 0% 0%",
+      "--accent": "0 0% 85%",
+      "--background": "0 0% 0%",
+      "--foreground": "0 0% 100%",
+      "--card": "0 0% 5%",
+      "--card-foreground": "0 0% 100%",
+      "--popover": "0 0% 8%",
+      "--popover-foreground": "0 0% 100%",
+      "--secondary": "0 0% 12%",
+      "--secondary-foreground": "0 0% 100%",
+      "--muted": "0 0% 15%",
+      "--muted-foreground": "0 0% 60%",
+      "--border": "0 0% 20%",
+      "--input": "0 0% 12%",
+      "--ring": "0 0% 100%",
+    },
+    lightVariables: {
+      "--primary": "0 0% 0%",
+      "--primary-foreground": "0 0% 100%",
+      "--accent": "0 0% 15%",
+      "--background": "0 0% 100%",
+      "--foreground": "0 0% 0%",
+      "--card": "0 0% 98%",
+      "--card-foreground": "0 0% 0%",
+      "--popover": "0 0% 100%",
+      "--popover-foreground": "0 0% 0%",
+      "--secondary": "0 0% 96%",
+      "--secondary-foreground": "0 0% 0%",
+      "--muted": "0 0% 96%",
+      "--muted-foreground": "0 0% 45%",
+      "--border": "0 0% 90%",
+      "--input": "0 0% 90%",
+      "--ring": "0 0% 0%",
+    }
+  },
   { 
     id: "default", 
     name: "Obsidian", 
@@ -265,47 +306,6 @@ const themes: ThemeOption[] = [
       "--ring": "270 91% 65%",
     }
   },
-  { 
-    id: "monochrome", 
-    name: "Black & White", 
-    primary: "#ffffff",
-    darkVariables: {
-      "--primary": "0 0% 100%",
-      "--primary-foreground": "0 0% 0%",
-      "--accent": "0 0% 85%",
-      "--background": "0 0% 0%",
-      "--foreground": "0 0% 100%",
-      "--card": "0 0% 5%",
-      "--card-foreground": "0 0% 100%",
-      "--popover": "0 0% 8%",
-      "--popover-foreground": "0 0% 100%",
-      "--secondary": "0 0% 12%",
-      "--secondary-foreground": "0 0% 100%",
-      "--muted": "0 0% 15%",
-      "--muted-foreground": "0 0% 60%",
-      "--border": "0 0% 20%",
-      "--input": "0 0% 12%",
-      "--ring": "0 0% 100%",
-    },
-    lightVariables: {
-      "--primary": "0 0% 0%",
-      "--primary-foreground": "0 0% 100%",
-      "--accent": "0 0% 15%",
-      "--background": "0 0% 100%",
-      "--foreground": "0 0% 0%",
-      "--card": "0 0% 98%",
-      "--card-foreground": "0 0% 0%",
-      "--popover": "0 0% 100%",
-      "--popover-foreground": "0 0% 0%",
-      "--secondary": "0 0% 96%",
-      "--secondary-foreground": "0 0% 0%",
-      "--muted": "0 0% 96%",
-      "--muted-foreground": "0 0% 45%",
-      "--border": "0 0% 90%",
-      "--input": "0 0% 90%",
-      "--ring": "0 0% 0%",
-    }
-  },
 ];
 
 interface ThemeSelectorProps {
@@ -316,9 +316,9 @@ interface ThemeSelectorProps {
 export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelectorProps) => {
   const [selectedTheme, setSelectedTheme] = useState<Theme>(() => {
     if (typeof window !== 'undefined') {
-      return (localStorage.getItem("proxinex-theme") as Theme) || "default";
+      return (localStorage.getItem("proxinex-theme") as Theme) || "minimal";
     }
-    return "default";
+    return "minimal";
   });
   const [colorMode, setColorMode] = useState<ColorMode>(() => {
     if (typeof window !== 'undefined') {
@@ -326,33 +326,39 @@ export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelecto
     }
     return "dark";
   });
+  
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isPreviewingRef = useRef(false);
 
-  // Apply theme and color mode
-  useEffect(() => {
-    const theme = themes.find(t => t.id === selectedTheme);
+  const applyThemeVariables = useCallback((themeId: Theme, mode: ColorMode) => {
+    const theme = themes.find(t => t.id === themeId);
     if (!theme) return;
 
     const root = document.documentElement;
     
-    // Determine if dark mode
-    let isDark = colorMode === "dark";
-    if (colorMode === "system") {
+    let isDark = mode === "dark";
+    if (mode === "system") {
       isDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
     }
 
-    // Apply dark/light class
     root.classList.toggle("dark", isDark);
 
-    // Apply theme variables based on color mode
     const variables = isDark ? theme.darkVariables : theme.lightVariables;
     Object.entries(variables).forEach(([key, value]) => {
       root.style.setProperty(key, value);
     });
 
-    root.setAttribute("data-theme", selectedTheme);
+    root.setAttribute("data-theme", themeId);
+  }, []);
+
+  // Apply theme and color mode
+  useEffect(() => {
+    if (isPreviewingRef.current) return;
+    
+    applyThemeVariables(selectedTheme, colorMode);
     localStorage.setItem("proxinex-theme", selectedTheme);
     localStorage.setItem("proxinex-color-mode", colorMode);
-  }, [selectedTheme, colorMode]);
+  }, [selectedTheme, colorMode, applyThemeVariables]);
 
   // Listen for system preference changes
   useEffect(() => {
@@ -360,24 +366,20 @@ export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelecto
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handler = () => {
-      const theme = themes.find(t => t.id === selectedTheme);
-      if (!theme) return;
-      
-      const root = document.documentElement;
-      const isDark = mediaQuery.matches;
-      root.classList.toggle("dark", isDark);
-      
-      const variables = isDark ? theme.darkVariables : theme.lightVariables;
-      Object.entries(variables).forEach(([key, value]) => {
-        root.style.setProperty(key, value);
-      });
+      if (isPreviewingRef.current) return;
+      applyThemeVariables(selectedTheme, colorMode);
     };
 
     mediaQuery.addEventListener("change", handler);
     return () => mediaQuery.removeEventListener("change", handler);
-  }, [colorMode, selectedTheme]);
+  }, [colorMode, selectedTheme, applyThemeVariables]);
 
   const handleThemeChange = (theme: Theme) => {
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+      previewTimeoutRef.current = null;
+    }
+    isPreviewingRef.current = false;
     setSelectedTheme(theme);
     onThemeChange?.(theme);
   };
@@ -385,6 +387,26 @@ export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelecto
   const handleColorModeChange = (mode: ColorMode) => {
     setColorMode(mode);
     onColorModeChange?.(mode);
+  };
+
+  const handleThemeHover = (themeId: Theme) => {
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+    
+    isPreviewingRef.current = true;
+    applyThemeVariables(themeId, colorMode);
+  };
+
+  const handleThemeLeave = () => {
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
+    
+    previewTimeoutRef.current = setTimeout(() => {
+      isPreviewingRef.current = false;
+      applyThemeVariables(selectedTheme, colorMode);
+    }, 100);
   };
 
   return (
@@ -437,6 +459,8 @@ export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelecto
               <button
                 key={theme.id}
                 onClick={() => handleThemeChange(theme.id)}
+                onMouseEnter={() => handleThemeHover(theme.id)}
+                onMouseLeave={handleThemeLeave}
                 className={`relative flex flex-col items-center p-2 rounded-lg border transition-all ${
                   selectedTheme === theme.id
                     ? "border-primary bg-primary/10"
@@ -446,7 +470,9 @@ export const ThemeSelector = ({ onThemeChange, onColorModeChange }: ThemeSelecto
                 <div
                   className="w-8 h-8 rounded-full border-2 mb-1"
                   style={{ 
-                    background: theme.primary,
+                    background: theme.id === "minimal" 
+                      ? "linear-gradient(135deg, #000 50%, #fff 50%)" 
+                      : theme.primary,
                     borderColor: theme.primary 
                   }}
                 />
