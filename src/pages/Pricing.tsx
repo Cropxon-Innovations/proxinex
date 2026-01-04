@@ -3,7 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
 import { Check, Zap, Rocket, Building2, IndianRupee, DollarSign, Loader2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { PricingCalculator } from "@/components/landing/PricingCalculator";
 import { useRazorpay } from "@/hooks/useRazorpay";
@@ -116,18 +116,23 @@ const Pricing = () => {
   const { user } = useAuth();
   const { plan: currentPlan } = useUserPlan();
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const handleSubscribe = (planKey: "go" | "pro") => {
     if (!user) {
+      // Redirect to auth with return URL
       toast({
         title: "Sign in required",
         description: "Please sign in to subscribe to a plan.",
-        variant: "destructive",
       });
+      navigate(`/auth?redirect=/checkout?plan=${planKey}&currency=${currency}`);
       return;
     }
-    initiatePayment(planKey, currency);
+    
+    // For logged-in users, redirect to checkout page for distraction-free experience
+    navigate(`/checkout?plan=${planKey}&currency=${currency}`);
   };
+
   return (
     <>
       <Helmet>
@@ -260,6 +265,8 @@ const Pricing = () => {
                         </>
                       ) : currentPlan === plan.planKey ? (
                         "Current Plan"
+                      ) : currentPlan !== "free" && plans.findIndex(p => p.planKey === plan.planKey) < plans.findIndex(p => p.planKey === currentPlan) ? (
+                        "Downgrade"
                       ) : (
                         plan.cta
                       )}
@@ -273,7 +280,7 @@ const Pricing = () => {
             <div className="max-w-2xl mx-auto mt-12 text-center">
               <p className="text-sm text-muted-foreground">
                 All plans include access to our AI Intelligence Control Plane. 
-                Upgrade or downgrade anytime. Changes take effect immediately.
+                Upgrade or downgrade anytime. Changes take effect at the end of your billing period.
               </p>
             </div>
 
@@ -297,15 +304,15 @@ const Pricing = () => {
                 <div className="p-4 rounded-lg bg-card border border-border">
                   <h3 className="font-semibold text-foreground mb-2">Can I switch plans anytime?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Yes! Upgrade or downgrade anytime. Changes take effect immediately, and we'll prorate 
-                    your billing accordingly.
+                    Yes! Upgrade or downgrade anytime. Upgrades take effect immediately. Downgrades 
+                    take effect at the end of your current billing period.
                   </p>
                 </div>
                 <div className="p-4 rounded-lg bg-card border border-border">
-                  <h3 className="font-semibold text-foreground mb-2">Is there a free trial?</h3>
+                  <h3 className="font-semibold text-foreground mb-2">Can I cancel my subscription?</h3>
                   <p className="text-sm text-muted-foreground">
-                    Yes! The Free plan lets you try Proxinex with 50 queries per day. No credit card required 
-                    to get started.
+                    Yes! You can cancel anytime up to 3 days before your renewal date. After cancellation,
+                    you'll have 7 days to continue using your plan features.
                   </p>
                 </div>
                 <div className="p-4 rounded-lg bg-card border border-border">

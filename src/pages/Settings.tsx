@@ -17,30 +17,24 @@ import {
   Settings as SettingsIcon,
   Crown,
   ArrowLeft,
-  Mail,
-  Key,
-  Globe,
-  Moon,
   Sun,
+  Moon,
   Monitor,
   Smartphone,
   Laptop,
   LogOut,
   Trash2,
   Download,
-  CreditCard,
   ChevronRight,
   Check,
   ExternalLink,
   Plug,
-  Slack,
   FileText,
   Calendar,
   Database,
   Cloud,
   MessageSquare,
   BookOpen,
-  HelpCircle,
   FileCode,
   AlertTriangle,
   Keyboard
@@ -54,6 +48,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import { SettingsPlanTab } from "@/components/settings/SettingsPlanTab";
 
 // Connector definitions
 export const connectors = [
@@ -120,27 +115,6 @@ export const connectors = [
     connected: false, 
     description: "Access files stored in Dropbox",
     category: "Storage"
-  },
-];
-
-const plans = [
-  {
-    name: "Free",
-    price: "$0",
-    features: ["100 queries/month", "Basic models", "Standard support"],
-    current: false,
-  },
-  {
-    name: "Pro",
-    price: "$19",
-    features: ["Unlimited queries", "All models", "Priority support", "API access"],
-    current: true,
-  },
-  {
-    name: "Enterprise",
-    price: "Custom",
-    features: ["Custom limits", "Dedicated support", "SSO", "Custom integrations"],
-    current: false,
   },
 ];
 
@@ -300,73 +274,9 @@ export default function Settings() {
             </Card>
           </TabsContent>
 
-          {/* Plan Tab */}
-          <TabsContent value="plan" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Crown className="h-5 w-5 text-primary" />
-                      Current Plan
-                    </CardTitle>
-                    <CardDescription>Manage your subscription</CardDescription>
-                  </div>
-                  <Badge className="bg-primary text-primary-foreground">Pro</Badge>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {plans.map(plan => (
-                    <div
-                      key={plan.name}
-                      className={`p-6 rounded-xl border-2 transition-colors ${
-                        plan.current
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-muted-foreground"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-lg">{plan.name}</h3>
-                        {plan.current && <Badge variant="secondary">Current</Badge>}
-                      </div>
-                      <div className="mb-4">
-                        <span className="text-3xl font-bold">{plan.price}</span>
-                        {plan.price !== "Custom" && <span className="text-muted-foreground">/month</span>}
-                      </div>
-                      <ul className="space-y-2 mb-6">
-                        {plan.features.map((feature, i) => (
-                          <li key={i} className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Check className="h-4 w-4 text-primary" />
-                            {feature}
-                          </li>
-                        ))}
-                      </ul>
-                      <Button
-                        variant={plan.current ? "outline" : "default"}
-                        className="w-full"
-                        disabled={plan.current}
-                      >
-                        {plan.current ? "Current Plan" : plan.name === "Enterprise" ? "Contact Sales" : "Upgrade"}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator />
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="font-medium">Usage This Month</h4>
-                    <p className="text-sm text-muted-foreground">2,450 / Unlimited queries</p>
-                  </div>
-                  <Button variant="outline" size="sm">
-                    <CreditCard className="h-4 w-4 mr-2" />
-                    Manage Billing
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Plan Tab - Now using SettingsPlanTab component */}
+          <TabsContent value="plan">
+            <SettingsPlanTab currency="INR" />
           </TabsContent>
 
           {/* Notifications Tab */}

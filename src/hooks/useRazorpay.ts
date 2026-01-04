@@ -12,10 +12,21 @@ interface RazorpayOptions {
   order_id: string;
   handler: (response: RazorpayResponse) => void;
   prefill: {
+    name?: string;
     email?: string;
+    contact?: string;
+  };
+  notes?: {
+    plan?: string;
+    user_id?: string;
   };
   theme: {
     color: string;
+  };
+  modal?: {
+    ondismiss?: () => void;
+    escape?: boolean;
+    backdropclose?: boolean;
   };
 }
 
@@ -29,8 +40,21 @@ declare global {
   interface Window {
     Razorpay: new (options: RazorpayOptions) => {
       open: () => void;
+      close: () => void;
     };
   }
+}
+
+interface PaymentResult {
+  success: boolean;
+  invoice?: {
+    id: string;
+    invoice_number: string;
+    amount: number;
+    currency: string;
+    paid_at: string;
+  };
+  error?: string;
 }
 
 export const useRazorpay = () => {
@@ -54,7 +78,25 @@ export const useRazorpay = () => {
     });
   }, []);
 
-  const initiatePayment = useCallback(async (plan: 'go' | 'pro', currency: 'INR' | 'USD') => {
+  const initiatePayment = useCallback(async (
+    plan: 'go' | 'pro', 
+    currency: 'INR' | 'USD',
+    options?: {
+      onSuccess?: (result: PaymentResult) => void;
+      onFailure?: (error: string) => void;
+      userName?: string;
+      userPhone?: string;
+    }
+  ) => {
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please sign in to subscribe to a plan.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -78,13 +120,18 @@ export const useRazorpay = () => {
         pro: 'Proxinex Pro',
       };
 
-      // Open Razorpay checkout
-      const options: RazorpayOptions = {
+      const planPrices = {
+        go: { INR: '₹199', USD: '$5' },
+        pro: { INR: '₹499', USD: '$12' },
+      };
+
+      // Open Razorpay checkout with enhanced options
+      const razorpayOptions: RazorpayOptions = {
         key: orderData.keyId,
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Proxinex',
-        description: `${planNames[plan]} Subscription`,
+        description: `${planNames[plan]} - ${planPrices[plan][currency]}/month`,
         order_id: orderData.orderId,
         handler: async (response: RazorpayResponse) => {
           try {
@@ -95,38 +142,66 @@ export const useRazorpay = () => {
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
                 plan,
-                user_id: user?.id,
+                user_id: user.id,
+                currency,
+                user_email: user.email,
+                user_name: options?.userName || user.email?.split('@')[0],
               },
             });
 
-            if (verifyError) {
-              throw new Error(verifyError.message);
+            if (verifyError || !verifyData?.success) {
+              throw new Error(verifyError?.message || verifyData?.error || 'Payment verification failed');
             }
 
             toast({
-              title: 'Payment Successful!',
-              description: `Welcome to ${planNames[plan]}! Your subscription is now active.`,
+              title: '✅ Payment Successful!',
+              description: `Welcome to ${planNames[plan]}! Your subscription is now active. Invoice: ${verifyData.invoice?.invoice_number}`,
+            });
+
+            options?.onSuccess?.({
+              success: true,
+              invoice: verifyData.invoice,
             });
 
             // Reload to reflect new plan
-            window.location.reload();
+            setTimeout(() => {
+              window.location.reload();
+            }, 1500);
           } catch (error: any) {
             toast({
-              title: 'Payment Verification Failed',
+              title: '❌ Payment Verification Failed',
               description: error.message,
               variant: 'destructive',
             });
+            options?.onFailure?.(error.message);
           }
         },
         prefill: {
-          email: user?.email || '',
+          name: options?.userName || '',
+          email: user.email || '',
+          contact: options?.userPhone || '',
+        },
+        notes: {
+          plan,
+          user_id: user.id,
         },
         theme: {
           color: '#7c3aed',
         },
+        modal: {
+          escape: false,
+          backdropclose: false,
+          ondismiss: () => {
+            setLoading(false);
+            toast({
+              title: 'Payment Cancelled',
+              description: 'You can try again anytime.',
+            });
+          },
+        },
       };
 
-      const razorpay = new window.Razorpay(options);
+      const razorpay = new window.Razorpay(razorpayOptions);
       razorpay.open();
     } catch (error: any) {
       toast({
@@ -134,6 +209,7 @@ export const useRazorpay = () => {
         description: error.message,
         variant: 'destructive',
       });
+      options?.onFailure?.(error.message);
     } finally {
       setLoading(false);
     }

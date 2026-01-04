@@ -46,6 +46,7 @@ import About from "./pages/About";
 import Blog from "./pages/Blog";
 import Careers from "./pages/Careers";
 import Contact from "./pages/Contact";
+import Checkout from "./pages/Checkout";
 
 const queryClient = new QueryClient();
 
@@ -86,6 +87,8 @@ const App = () => (
                 <Route path="/data-policy" element={<DataPolicy />} />
                 <Route path="/gdpr" element={<GDPRPolicy />} />
                 <Route path="/security" element={<Security />} />
+                {/* Checkout */}
+                <Route path="/checkout" element={<Checkout />} />
                 {/* App Routes */}
                 <Route path="/app" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
                 <Route path="/app/chat" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
