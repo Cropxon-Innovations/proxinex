@@ -99,30 +99,50 @@ export const SourceVerificationLoader = ({
       <div className="flex items-center gap-4">
         <div className="relative">
           <div className="relative w-16 h-16 flex items-center justify-center">
-            {/* Multi-layer pulsing glow effect */}
-            <div className="absolute inset-0 rounded-full bg-primary/50 blur-2xl animate-pulse" />
+            {/* Color-shifting glow effect */}
+            <div className={`absolute inset-0 rounded-full bg-primary/50 blur-2xl ${isComplete ? '' : 'animate-color-shift-glow'}`} />
             <div 
-              className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/40 via-cyan-500/50 to-primary/40 blur-xl animate-pulse"
+              className={`absolute inset-0 rounded-full bg-gradient-to-r from-primary/40 via-cyan-500/50 to-primary/40 blur-xl ${isComplete ? '' : 'animate-color-shift-glow'}`}
               style={{ animationDelay: '0.3s' }}
             />
             <div 
-              className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/30 via-primary/30 to-cyan-500/30 blur-lg animate-pulse"
+              className={`absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/30 via-primary/30 to-cyan-500/30 blur-lg ${isComplete ? '' : 'animate-color-shift-glow'}`}
               style={{ animationDelay: '0.6s' }}
             />
             
-            {/* Floating particles */}
+            {/* Orbiting particles with trails */}
             {!isComplete && [...Array(8)].map((_, i) => (
-              <div
-                key={i}
-                className="absolute w-2 h-2 rounded-full bg-primary/60"
-                style={{
-                  animation: `float-particle 3s ease-in-out infinite`,
-                  animationDelay: `${i * 0.375}s`,
-                  top: '50%',
-                  left: '50%',
-                  transform: `rotate(${i * 45}deg) translateY(-28px)`,
-                }}
-              />
+              <div key={i} className="absolute inset-0 flex items-center justify-center">
+                {/* Particle trail (faded copies) */}
+                <div
+                  className="absolute w-1 h-1 rounded-full bg-primary/15"
+                  style={{
+                    animation: `particle-orbit 4s linear infinite`,
+                    animationDelay: `${i * 0.5 - 0.4}s`,
+                    '--start-angle': `${i * 45}deg`,
+                    '--orbit-radius': '-28px',
+                  } as React.CSSProperties}
+                />
+                <div
+                  className="absolute w-1.5 h-1.5 rounded-full bg-primary/30"
+                  style={{
+                    animation: `particle-orbit 4s linear infinite`,
+                    animationDelay: `${i * 0.5 - 0.2}s`,
+                    '--start-angle': `${i * 45}deg`,
+                    '--orbit-radius': '-28px',
+                  } as React.CSSProperties}
+                />
+                {/* Main particle */}
+                <div
+                  className="absolute w-2.5 h-2.5 rounded-full bg-primary/70 shadow-[0_0_8px_hsl(var(--primary)/0.5)]"
+                  style={{
+                    animation: `particle-orbit 4s linear infinite`,
+                    animationDelay: `${i * 0.5}s`,
+                    '--start-angle': `${i * 45}deg`,
+                    '--orbit-radius': '-28px',
+                  } as React.CSSProperties}
+                />
+              </div>
             ))}
             
             {/* Logo with spin animation */}

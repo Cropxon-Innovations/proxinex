@@ -85,6 +85,7 @@ const AppDashboard = () => {
   const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
   const [autoMode, setAutoMode] = useState(true);
   const [researchMode, setResearchMode] = useState(false);
+  const [activeModes, setActiveModes] = useState<Record<string, boolean>>({ web: true });
   const [chatSessions, setChatSessions] = useState<ChatSessionData[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
@@ -946,6 +947,17 @@ const AppDashboard = () => {
                   <span className="hidden sm:inline">Research Mode</span>
                 </span>
               )}
+              {/* Active search mode badges in header */}
+              {Object.entries(activeModes)
+                .filter(([key, value]) => value && key !== 'web')
+                .map(([key]) => (
+                  <span 
+                    key={key}
+                    className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize hidden sm:inline-block"
+                  >
+                    {key}
+                  </span>
+                ))}
             </div>
             <div className="flex items-center gap-1 md:gap-2">
               {/* Token Counter - Hidden on mobile */}
@@ -1060,6 +1072,7 @@ const AppDashboard = () => {
                                 <ThinkingAnimation 
                                   isResearchMode={researchMode}
                                   sources={message.researchResponse?.citations?.map(c => c.title.split(' ').slice(0, 3).join(' ')) || []}
+                                  activeModes={activeModes}
                                 />
                               ) : hasResearchResponse ? (
                                 <div className="py-4">
@@ -1136,6 +1149,8 @@ const AppDashboard = () => {
                 onResearchModeChange={setResearchMode}
                 uploadedFiles={uploadedFiles}
                 onFilesChange={setUploadedFiles}
+                activeModes={activeModes}
+                onActiveModesChange={setActiveModes}
               />
             </div>
 

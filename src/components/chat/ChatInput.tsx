@@ -81,7 +81,6 @@ const closedSourceModels: Model[] = [
 ];
 
 const searchModes = [
-  { id: "research", label: "Research", icon: Sparkles, description: "Deep search with citations" },
   { id: "web", label: "Web", icon: Globe, description: "General web search" },
   { id: "finance", label: "Finance", icon: Calculator, description: "Financial data & news" },
   { id: "academic", label: "Academic", icon: GraduationCap, description: "Scholarly articles" },
@@ -113,6 +112,8 @@ interface ChatInputProps {
   onResearchModeChange: (enabled: boolean) => void;
   uploadedFiles?: UploadedFile[];
   onFilesChange?: (files: UploadedFile[]) => void;
+  activeModes?: Record<string, boolean>;
+  onActiveModesChange?: (modes: Record<string, boolean>) => void;
 }
 
 const MAX_FILES = 10;
@@ -137,11 +138,15 @@ export const ChatInput = ({
   onResearchModeChange,
   uploadedFiles = [],
   onFilesChange,
+  activeModes: externalActiveModes,
+  onActiveModesChange,
 }: ChatInputProps) => {
   const [showModelSelector, setShowModelSelector] = useState(false);
   const [showSearchModes, setShowSearchModes] = useState(false);
   const [showConnectorMenu, setShowConnectorMenu] = useState(false);
-  const [activeModes, setActiveModes] = useState<Record<string, boolean>>({ web: true });
+  const [internalActiveModes, setInternalActiveModes] = useState<Record<string, boolean>>({ web: true });
+  const activeModes = externalActiveModes ?? internalActiveModes;
+  const setActiveModes = onActiveModesChange ?? setInternalActiveModes;
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [enhanceDialogOpen, setEnhanceDialogOpen] = useState(false);
   const [originalPrompt, setOriginalPrompt] = useState("");
@@ -185,10 +190,18 @@ export const ChatInput = ({
   };
 
   const handleModeToggle = (modeId: string) => {
-    if (modeId === 'research') {
-      onResearchModeChange(!researchMode);
-    }
-    setActiveModes(prev => ({ ...prev, [modeId]: !prev[modeId] }));
+    const newModes = { ...activeModes, [modeId]: !activeModes[modeId] };
+    setActiveModes(newModes);
+  };
+
+  const handleClearAllModes = () => {
+    const clearedModes: Record<string, boolean> = {};
+    searchModes.forEach(mode => { clearedModes[mode.id] = false; });
+    setActiveModes(clearedModes);
+  };
+
+  const getActiveModesCount = () => {
+    return Object.entries(activeModes).filter(([key, value]) => value && key !== 'research').length;
   };
 
   // Sync activeModes with researchMode prop
@@ -537,17 +550,42 @@ export const ChatInput = ({
               <div className="flex items-center border border-border rounded-lg overflow-hidden">
                 <Popover open={showSearchModes} onOpenChange={setShowSearchModes}>
                   <PopoverTrigger asChild>
-                    <button type="button" className="p-2 hover:bg-secondary transition-colors">
-                      <Globe className={`h-4 w-4 ${activeModes.web ? "text-primary" : "text-muted-foreground"}`} />
+                    <button type="button" className="p-2 hover:bg-secondary transition-colors flex items-center gap-1.5">
+                      <Globe className={`h-4 w-4 ${getActiveModesCount() > 0 ? "text-primary" : "text-muted-foreground"}`} />
+                      {getActiveModesCount() > 0 && (
+                        <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-medium">
+                          {getActiveModesCount()}
+                        </span>
+                      )}
                     </button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-48 p-2" align="start">
+                  <PopoverContent className="w-56 p-2" align="start">
                     <div className="space-y-1">
+                      <div className="flex items-center justify-between px-2 py-1.5 mb-1">
+                        <span className="text-xs font-medium text-muted-foreground">Search Modes</span>
+                        <button 
+                          type="button"
+                          onClick={handleClearAllModes}
+                          className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          Clear all
+                        </button>
+                      </div>
                       {searchModes.map(mode => (
-                        <div key={mode.id} className="flex items-center justify-between p-2 rounded hover:bg-secondary">
+                        <div 
+                          key={mode.id} 
+                          className={`flex items-center justify-between p-2 rounded transition-all ${
+                            activeModes[mode.id] 
+                              ? 'bg-primary/10 border border-primary/20' 
+                              : 'hover:bg-secondary border border-transparent'
+                          }`}
+                        >
                           <div className="flex items-center gap-2">
-                            <mode.icon className="h-4 w-4 text-muted-foreground" />
-                            <span className="text-sm">{mode.label}</span>
+                            <mode.icon className={`h-4 w-4 ${activeModes[mode.id] ? 'text-primary' : 'text-muted-foreground'}`} />
+                            <div>
+                              <span className={`text-sm ${activeModes[mode.id] ? 'text-foreground font-medium' : ''}`}>{mode.label}</span>
+                              <p className="text-[10px] text-muted-foreground">{mode.description}</p>
+                            </div>
                           </div>
                           <Switch
                             checked={activeModes[mode.id] || false}
@@ -681,8 +719,26 @@ export const ChatInput = ({
               </div>
             </div>
 
-            {/* Right Actions - Research Mode Toggle */}
-            <div className="flex items-center gap-1">
+            {/* Right Actions - Active Modes & Research Mode Toggle */}
+            <div className="flex items-center gap-2">
+              {/* Active Search Mode Badges */}
+              {Object.entries(activeModes)
+                .filter(([key, value]) => value && key !== 'web')
+                .map(([key]) => {
+                  const mode = searchModes.find(m => m.id === key);
+                  if (!mode) return null;
+                  const Icon = mode.icon;
+                  return (
+                    <div
+                      key={key}
+                      className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary border border-primary/20"
+                    >
+                      <Icon className="h-3 w-3" />
+                      <span className="text-[10px] font-medium">{mode.label}</span>
+                    </div>
+                  );
+                })}
+
               {/* Research Mode Toggle */}
               <TooltipProvider>
                 <Tooltip>
