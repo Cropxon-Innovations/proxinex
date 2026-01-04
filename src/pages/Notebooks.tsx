@@ -21,10 +21,12 @@ import {
   MessageCircle,
   History,
   Share2,
+  Sparkles,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { InlineAskBlock } from "@/components/notebook/InlineAskBlock";
 
 interface Notebook {
   id: string;
@@ -38,7 +40,7 @@ interface Notebook {
 
 interface ContentBlock {
   id: string;
-  type: "text" | "code" | "table";
+  type: "text" | "code" | "table" | "inline_ask";
   content: string;
 }
 
@@ -418,6 +420,12 @@ const NotebooksPage = () => {
                               className="w-full bg-transparent text-foreground font-mono text-sm resize-none focus:outline-none min-h-[80px]"
                             />
                           </div>
+                        )}
+                        {block.type === "inline_ask" && (
+                          <InlineAskBlock 
+                            content={block.content} 
+                            onDelete={() => deleteBlock(block.id)}
+                          />
                         )}
 
                         {/* Add comment button */}

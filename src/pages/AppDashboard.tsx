@@ -91,6 +91,7 @@ const AppDashboard = () => {
   const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
   const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
+  const [allInlineAsks, setAllInlineAsks] = useState<Array<{ id: string; highlighted_text: string; question: string; created_at: string; session_id?: string }>>([]);
   const [inlineAskResearchMode, setInlineAskResearchMode] = useState(false);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
@@ -280,6 +281,11 @@ const AppDashboard = () => {
     };
 
     loadSessions();
+  }, [user]);
+
+  // Load all inline asks for sidebar history
+  useEffect(() => {
+    loadAllInlineAsks();
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -532,6 +538,35 @@ const AppDashboard = () => {
     }
   };
 
+  // Load all inline asks for history sidebar
+  const loadAllInlineAsks = async () => {
+    if (!user) return;
+    
+    const { data, error } = await supabase
+      .from("inline_asks")
+      .select("id, highlighted_text, question, created_at, session_id")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    
+    if (data && !error) {
+      setAllInlineAsks(data);
+    }
+  };
+
+  // Handle selecting an inline ask from history
+  const handleSelectInlineAsk = async (askId: string, sessionId?: string) => {
+    if (sessionId) {
+      // Navigate to the session first
+      await handleSelectSession(sessionId);
+    }
+    // Find the inline ask and maximize it
+    const ask = inlineAsks.find(a => a.id === askId);
+    if (ask) {
+      setMaximizedInlineAsk(ask);
+    }
+  };
+
   const handleSelectSession = async (sessionId: string) => {
     if (!user) return;
 
@@ -776,6 +811,8 @@ const AppDashboard = () => {
           position_end: data.endOffset,
           conversation_history: conversationData
         }]);
+        // Refresh inline asks history
+        loadAllInlineAsks();
       } catch (error) {
         console.error("Failed to persist inline ask:", error);
       }
@@ -902,6 +939,11 @@ const AppDashboard = () => {
               toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
             }}
             onReorderPinnedSessions={handleReorderPinnedSessions}
+            inlineAsks={allInlineAsks}
+            onSelectInlineAsk={(askId, sessionId) => {
+              handleSelectInlineAsk(askId, sessionId);
+              setMobileSidebarOpen(false);
+            }}
           />
         </SwipeableSidebar>
 
@@ -929,6 +971,8 @@ const AppDashboard = () => {
               toast({ title: "Link copied", description: "Proxinex chat link copied to clipboard" });
             }}
             onReorderPinnedSessions={handleReorderPinnedSessions}
+            inlineAsks={allInlineAsks}
+            onSelectInlineAsk={handleSelectInlineAsk}
           />
         </div>
 
