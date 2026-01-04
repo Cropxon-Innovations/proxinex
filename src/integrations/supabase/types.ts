@@ -163,6 +163,68 @@ export type Database = {
           },
         ]
       }
+      invoices: {
+        Row: {
+          amount: number
+          billing_address: string | null
+          billing_email: string | null
+          billing_name: string | null
+          created_at: string
+          currency: string
+          id: string
+          invoice_number: string
+          paid_at: string | null
+          plan: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          status: string
+          subscription_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          billing_address?: string | null
+          billing_email?: string | null
+          billing_name?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number: string
+          paid_at?: string | null
+          plan: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          billing_address?: string | null
+          billing_email?: string | null
+          billing_name?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          invoice_number?: string
+          paid_at?: string | null
+          plan?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          status?: string
+          subscription_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notebooks: {
         Row: {
           content: Json | null
@@ -203,6 +265,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payment_methods: {
+        Row: {
+          card_brand: string | null
+          created_at: string
+          id: string
+          is_default: boolean | null
+          last_four: string | null
+          razorpay_token: string | null
+          type: string
+          upi_id: string | null
+          user_id: string
+        }
+        Insert: {
+          card_brand?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          last_four?: string | null
+          razorpay_token?: string | null
+          type: string
+          upi_id?: string | null
+          user_id: string
+        }
+        Update: {
+          card_brand?: string | null
+          created_at?: string
+          id?: string
+          is_default?: boolean | null
+          last_four?: string | null
+          razorpay_token?: string | null
+          type?: string
+          upi_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
@@ -277,6 +375,63 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      subscriptions: {
+        Row: {
+          amount: number
+          auto_renew: boolean | null
+          cancelled_at: string | null
+          created_at: string
+          currency: string
+          expires_at: string | null
+          grace_period_ends_at: string | null
+          id: string
+          plan: string
+          razorpay_order_id: string | null
+          razorpay_payment_id: string | null
+          razorpay_subscription_id: string | null
+          started_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          auto_renew?: boolean | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          plan?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_subscription_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          auto_renew?: boolean | null
+          cancelled_at?: string | null
+          created_at?: string
+          currency?: string
+          expires_at?: string | null
+          grace_period_ends_at?: string | null
+          id?: string
+          plan?: string
+          razorpay_order_id?: string | null
+          razorpay_payment_id?: string | null
+          razorpay_subscription_id?: string | null
+          started_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
