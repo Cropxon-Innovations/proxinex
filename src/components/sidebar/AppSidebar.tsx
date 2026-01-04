@@ -1,5 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +53,8 @@ import {
   User,
   Star,
   PanelLeftClose,
+  ChevronsLeft,
+  ChevronsRight,
   PanelLeft,
   Pin,
   ChevronDown,
@@ -186,6 +189,7 @@ export const AppSidebar = ({
 }: AppSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const isMobile = useIsMobile();
   const [historyOpen, setHistoryOpen] = useState(true);
   const [chatHistoryExpanded, setChatHistoryExpanded] = useState(true);
   const [researchHistoryExpanded, setResearchHistoryExpanded] = useState(true);
@@ -193,6 +197,13 @@ export const AppSidebar = ({
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const { plan, isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
+
+  // Auto-collapse on mobile
+  useEffect(() => {
+    if (isMobile && !collapsed) {
+      onToggleCollapse();
+    }
+  }, [isMobile]);
 
   const currentPlan = planLabels[plan];
   const PlanIcon = currentPlan.icon;
@@ -684,38 +695,27 @@ export const AppSidebar = ({
     );
   };
 
+  // Responsive width classes
+  const sidebarWidth = collapsed 
+    ? "w-14" 
+    : isMobile 
+      ? "w-14" 
+      : "w-48 md:w-52 lg:w-56";
+
   return (
     <aside
-      className={`${collapsed ? "w-14" : "w-48"} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300 h-full`}
+      className={`${sidebarWidth} border-r border-border bg-sidebar flex flex-col flex-shrink-0 transition-all duration-300 h-full`}
     >
       {/* Header with Logo - Click to start new chat */}
-      <div className="h-14 border-b border-sidebar-border flex items-center justify-between px-3 flex-shrink-0">
+      <div className="h-12 border-b border-sidebar-border flex items-center justify-center px-2 flex-shrink-0">
         <button 
           onClick={onNewSession}
-          className={`${collapsed ? "mx-auto" : ""} hover:opacity-80 transition-opacity`}
+          className="hover:opacity-80 transition-opacity"
           title="New Chat"
         >
-          <Logo size="sm" showText={!collapsed} />
-        </button>
-        <button
-          onClick={onToggleCollapse}
-          className={`p-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors ${collapsed ? "hidden" : ""}`}
-          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          {collapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          <Logo size="sm" showText={!collapsed && !isMobile} />
         </button>
       </div>
-
-      {/* Expand button when collapsed */}
-      {collapsed && (
-        <button
-          onClick={onToggleCollapse}
-          className="p-2 mx-auto mt-2 rounded-lg text-sidebar-foreground hover:bg-sidebar-accent/50 transition-colors"
-          title="Expand sidebar"
-        >
-          <PanelLeft className="h-4 w-4" />
-        </button>
-      )}
 
       {/* Navigation - Scrollable */}
       <nav className="flex-1 overflow-y-auto py-3 space-y-1 min-h-0">
@@ -779,11 +779,11 @@ export const AppSidebar = ({
       </nav>
 
       {/* User Section */}
-      <div className="border-t border-sidebar-border p-3 flex-shrink-0">
+      <div className="border-t border-sidebar-border p-2 flex-shrink-0 space-y-2">
         {user ? (
           <div className="space-y-2">
             {/* Plan Badge & Upgrade */}
-            {!collapsed && (
+            {!collapsed && !isMobile && (
               <Link
                 to="/pricing"
                 className={`flex items-center justify-between px-2 py-1.5 rounded-md ${currentPlan.color} hover:opacity-90 transition-opacity`}
@@ -800,11 +800,11 @@ export const AppSidebar = ({
             
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors ${collapsed ? "justify-center" : ""}`}>
+                <button className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-sidebar-accent/50 transition-colors ${collapsed || isMobile ? "justify-center" : ""}`}>
                   <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                     <User className="h-4 w-4 text-primary" />
                   </div>
-                  {!collapsed && (
+                  {!collapsed && !isMobile && (
                     <div className="flex-1 min-w-0 text-left">
                       <div className="text-sm font-medium text-sidebar-foreground truncate">
                         {user.email?.split("@")[0]}
@@ -852,12 +852,35 @@ export const AppSidebar = ({
         ) : (
           <Link
             to="/auth"
-            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50 ${collapsed ? "justify-center" : ""}`}
+            className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground hover:bg-sidebar-accent/50 ${collapsed || isMobile ? "justify-center" : ""}`}
           >
             <User className="h-4 w-4 flex-shrink-0" />
-            {!collapsed && <span className="text-sm">Sign In</span>}
+            {!collapsed && !isMobile && <span className="text-sm">Sign In</span>}
           </Link>
         )}
+
+        {/* Compact Collapse Toggle */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button
+              onClick={onToggleCollapse}
+              className={`w-full flex items-center gap-2 p-2 rounded-lg text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground transition-colors ${collapsed || isMobile ? "justify-center" : ""}`}
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? (
+                <ChevronsRight className="h-4 w-4" />
+              ) : (
+                <ChevronsLeft className="h-4 w-4" />
+              )}
+              {!collapsed && !isMobile && (
+                <span className="text-xs">Collapse</span>
+              )}
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right">
+            {collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          </TooltipContent>
+        </Tooltip>
       </div>
     </aside>
   );
