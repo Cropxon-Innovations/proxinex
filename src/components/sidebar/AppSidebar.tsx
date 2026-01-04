@@ -82,6 +82,14 @@ interface ChatSession {
   pinColor?: PinColor;
 }
 
+interface InlineAskItem {
+  id: string;
+  highlighted_text: string;
+  question: string;
+  created_at: string;
+  session_id?: string;
+}
+
 interface AppSidebarProps {
   collapsed: boolean;
   onToggleCollapse: () => void;
@@ -97,6 +105,8 @@ interface AppSidebarProps {
   onArchiveSession?: (sessionId: string) => void;
   onShareSession?: (sessionId: string) => void;
   onReorderPinnedSessions?: (sessions: ChatSession[]) => void;
+  inlineAsks?: InlineAskItem[];
+  onSelectInlineAsk?: (askId: string, sessionId?: string) => void;
 }
 
 type FeatureKey = "chat" | "research" | "documents" | "notebooks" | "images" | "video" | "sandbox" | "apiPlayground";
@@ -162,12 +172,15 @@ export const AppSidebar = ({
   onArchiveSession,
   onShareSession,
   onReorderPinnedSessions,
+  inlineAsks = [],
+  onSelectInlineAsk,
 }: AppSidebarProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [historyOpen, setHistoryOpen] = useState(true);
   const [chatHistoryExpanded, setChatHistoryExpanded] = useState(true);
   const [researchHistoryExpanded, setResearchHistoryExpanded] = useState(true);
+  const [inlineAsksExpanded, setInlineAsksExpanded] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const { plan, isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
@@ -430,6 +443,40 @@ export const AppSidebar = ({
                 </CollapsibleContent>
               </Collapsible>
             )}
+
+            {/* Inline Asks - Collapsible */}
+            {inlineAsks.length > 0 && (
+              <Collapsible open={inlineAsksExpanded} onOpenChange={setInlineAsksExpanded} className="mb-2">
+                <CollapsibleTrigger className="w-full">
+                  <div className="px-2 py-1 text-[10px] font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1 hover:bg-secondary/30 rounded transition-colors">
+                    <Sparkles className="h-3 w-3" />
+                    <span className="flex-1 text-left">Inline Asks ({inlineAsks.length})</span>
+                    <ChevronDown className={`h-3 w-3 transition-transform ${inlineAsksExpanded ? "rotate-180" : ""}`} />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="mt-1 space-y-0.5">
+                  {inlineAsks.slice(0, 6).map((ask) => (
+                    <div
+                      key={ask.id}
+                      className="group flex items-center w-full text-left px-2 py-2 text-xs rounded-md transition-colors text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground cursor-pointer"
+                      onClick={() => onSelectInlineAsk?.(ask.id, ask.session_id)}
+                    >
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <Sparkles className="h-3.5 w-3.5 flex-shrink-0 text-primary" />
+                        <div className="flex-1 min-w-0">
+                          <span className="truncate block text-[11px] leading-tight">
+                            {ask.highlighted_text.slice(0, 25)}{ask.highlighted_text.length > 25 ? '...' : ''}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground truncate block">
+                            {ask.question.slice(0, 30)}{ask.question.length > 30 ? '...' : ''}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </CollapsibleContent>
+              </Collapsible>
+            )}
             
             {chatSessions.length > 12 && (
               <Link
@@ -439,7 +486,7 @@ export const AppSidebar = ({
                 View all {chatSessions.length} sessions →
               </Link>
             )}
-            {chatSessions.length === 0 && (
+            {chatSessions.length === 0 && inlineAsks.length === 0 && (
               <div className="px-2 py-1.5 text-xs text-muted-foreground">No history yet</div>
             )}
           </CollapsibleContent>
