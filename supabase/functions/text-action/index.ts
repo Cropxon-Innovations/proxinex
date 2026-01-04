@@ -13,6 +13,7 @@ interface TextActionRequest {
   action: ActionType;
   user_query?: string;
   rewrite_style?: "shorter" | "formal" | "technical" | "friendly";
+  research_mode?: boolean;
 }
 
 async function performTavilySearch(query: string, apiKey: string) {
@@ -67,7 +68,7 @@ serve(async (req) => {
 
   try {
     const body: TextActionRequest = await req.json();
-    const { selected_text, full_answer_context, action, user_query, rewrite_style } = body;
+    const { selected_text, full_answer_context, action, user_query, rewrite_style, research_mode } = body;
     
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
@@ -76,24 +77,73 @@ serve(async (req) => {
       throw new Error("AI service is not configured");
     }
 
-    console.log(`Processing ${action} action for text: "${selected_text.substring(0, 50)}..."`);
+    console.log(`Processing ${action} action for text: "${selected_text.substring(0, 50)}..." (research_mode: ${research_mode})`);
 
     let result: {
       answer: string;
       confidence: number;
-      citations?: Array<{ id: number; title: string; url: string; published_date?: string }>;
+      citations?: Array<{ id: number; title: string; url: string; published_date?: string; snippet?: string }>;
       verified?: boolean;
       verification_status?: "verified" | "partially_supported" | "not_supported" | "insufficient_evidence";
       uses_sources?: boolean;
+      research_mode?: boolean;
     };
 
     switch (action) {
       case "ask": {
-        const systemPrompt = `You are Proxinex, answering a follow-up question about specific highlighted text. 
+        // In research mode, use Tavily to get verified sources
+        if (research_mode && TAVILY_API_KEY) {
+          const searchQuery = `${user_query} ${selected_text}`.substring(0, 400);
+          const searchResults = await performTavilySearch(searchQuery, TAVILY_API_KEY);
+          
+          const citations = searchResults.results?.slice(0, 5).map((r: any, i: number) => ({
+            id: i + 1,
+            title: r.title,
+            url: r.url,
+            published_date: r.published_date,
+            snippet: r.content?.substring(0, 200),
+          })) || [];
+
+          const sourcesContext = citations.map((c: any) => 
+            `[${c.id}] ${c.title}: ${searchResults.results?.[c.id - 1]?.content || ""}`
+          ).join("\n\n");
+
+          const systemPrompt = `You are Proxinex, answering a follow-up question about specific highlighted text using verified sources.
+Be concise and directly address the question. Use inline citations like [1], [2] to reference sources.
+Only make claims that are supported by the provided sources.`;
+          
+          const userMessage = `Context (full answer): ${full_answer_context || "Not provided"}
+
+Highlighted text: "${selected_text}"
+
+User's question: ${user_query}
+
+Verified Sources:
+${sourcesContext || "No sources found."}
+
+Provide a focused, well-cited answer about this specific text.`;
+
+          const answer = await callLLM(systemPrompt, userMessage, LOVABLE_API_KEY);
+          
+          // Calculate confidence based on source quality
+          const confidence = citations.length >= 3 ? 92 : citations.length >= 1 ? 78 : 55;
+          
+          result = { 
+            answer, 
+            confidence, 
+            uses_sources: true, 
+            citations,
+            research_mode: true,
+            verified: citations.length >= 2,
+            verification_status: citations.length >= 3 ? "verified" : citations.length >= 1 ? "partially_supported" : "insufficient_evidence"
+          };
+        } else {
+          // Standard ask without research
+          const systemPrompt = `You are Proxinex, answering a follow-up question about specific highlighted text. 
 Be concise and directly address the question in context of the highlighted text.
 If the question requires factual claims, indicate your confidence level.`;
-        
-        const userMessage = `Context (full answer): ${full_answer_context || "Not provided"}
+          
+          const userMessage = `Context (full answer): ${full_answer_context || "Not provided"}
 
 Highlighted text: "${selected_text}"
 
@@ -101,8 +151,9 @@ User's question: ${user_query}
 
 Provide a focused answer about this specific text.`;
 
-        const answer = await callLLM(systemPrompt, userMessage, LOVABLE_API_KEY);
-        result = { answer, confidence: 85, uses_sources: false };
+          const answer = await callLLM(systemPrompt, userMessage, LOVABLE_API_KEY);
+          result = { answer, confidence: 75, uses_sources: false, research_mode: false };
+        }
         break;
       }
 

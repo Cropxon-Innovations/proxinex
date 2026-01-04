@@ -91,6 +91,7 @@ const AppDashboard = () => {
   const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
   const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
+  const [inlineAskResearchMode, setInlineAskResearchMode] = useState(false);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const [selectedMessageIndex, setSelectedMessageIndex] = useState<number | null>(null);
@@ -1278,6 +1279,8 @@ const AppDashboard = () => {
           selectionOffset={selection.selectionOffset}
           isMaximized={isMaximized}
           onToggleMaximize={toggleMaximize}
+          isResearchMode={inlineAskResearchMode}
+          onToggleResearchMode={setInlineAskResearchMode}
         />
       )}
 

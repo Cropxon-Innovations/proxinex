@@ -14,7 +14,11 @@ import {
   Calendar,
   Maximize2,
   Minimize2,
-  MessageCircle
+  MessageCircle,
+  Search,
+  Shield,
+  ToggleLeft,
+  ToggleRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -42,15 +46,18 @@ interface PersistentInlineAskProps {
   isMaximized?: boolean;
   onToggleMaximize?: () => void;
   sessionId?: string;
+  isResearchMode?: boolean;
+  onToggleResearchMode?: (enabled: boolean) => void;
 }
 
 interface ActionResult {
   answer: string;
   confidence: number;
-  citations?: Array<{ id: number; title: string; url: string; published_date?: string }>;
+  citations?: Array<{ id: number; title: string; url: string; published_date?: string; snippet?: string }>;
   verified?: boolean;
   verification_status?: "verified" | "partially_supported" | "not_supported" | "insufficient_evidence";
   uses_sources?: boolean;
+  research_mode?: boolean;
 }
 
 const actions = [
@@ -79,7 +86,9 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
   selectionOffset = { start: 0, end: 0 },
   isMaximized = false,
   onToggleMaximize,
-  sessionId
+  sessionId,
+  isResearchMode = false,
+  onToggleResearchMode
 }, ref) => {
   const [activeAction, setActiveAction] = useState<ActionType | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -126,6 +135,7 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
           action,
           user_query: action === "ask" ? askQuestion : undefined,
           rewrite_style: rewriteStyle,
+          research_mode: isResearchMode,
         },
       });
 
@@ -245,11 +255,17 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
       {showConversation && conversation.length > 0 && (
         <div className="flex flex-col h-full">
           {/* Header */}
-          <div className="flex items-center justify-between p-3 border-b border-border bg-green-500/10">
+          <div className={`flex items-center justify-between p-3 border-b border-border ${isResearchMode ? 'bg-green-500/10' : 'bg-green-500/10'}`}>
             <div className="flex items-center gap-2">
               <MessageCircle className="h-4 w-4 text-green-500" />
               <span className="text-sm font-medium text-foreground">Inline Ask Conversation</span>
               <span className="text-xs text-muted-foreground">({conversation.length / 2} exchanges)</span>
+              {isResearchMode && (
+                <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-500 rounded-full flex items-center gap-1">
+                  <Shield className="h-2.5 w-2.5" />
+                  Research
+                </span>
+              )}
             </div>
             <div className="flex items-center gap-1">
               {onToggleMaximize && (
@@ -300,6 +316,49 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
             <div ref={conversationEndRef} />
           </div>
 
+          {/* Result with Citations (in research mode) */}
+          {result && isResearchMode && result.citations && result.citations.length > 0 && (
+            <div className="border-t border-border bg-secondary/20 max-h-32 overflow-y-auto">
+              <div className="px-3 py-2">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">Verified Sources</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                      result.confidence >= 80 ? 'bg-green-500/20 text-green-500' : 
+                      result.confidence >= 60 ? 'bg-yellow-500/20 text-yellow-500' : 
+                      'bg-red-500/20 text-red-500'
+                    }`}>
+                      {result.confidence}% confidence
+                    </span>
+                  </div>
+                  {result.verified && (
+                    <span className="text-[10px] text-green-500 flex items-center gap-1">
+                      <CheckCircle className="h-3 w-3" />
+                      Verified
+                    </span>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {result.citations.slice(0, 3).map((citation) => (
+                    <a
+                      key={citation.id}
+                      href={citation.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-start gap-2 p-1.5 rounded bg-card hover:bg-secondary/50 transition-colors group text-xs"
+                    >
+                      <span className="text-primary font-medium">[{citation.id}]</span>
+                      <span className="text-foreground line-clamp-1 group-hover:text-primary transition-colors flex-1">
+                        {citation.title}
+                      </span>
+                      <ExternalLink className="h-3 w-3 text-muted-foreground group-hover:text-primary flex-shrink-0" />
+                    </a>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Continue Asking Input */}
           <div className="p-3 border-t border-green-500/30 bg-green-500/5">
             <div className="flex gap-2">
@@ -308,7 +367,7 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
                 value={askQuestion}
                 onChange={(e) => setAskQuestion(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleAction("ask")}
-                placeholder="Ask a follow-up question..."
+                placeholder={isResearchMode ? "Ask with verified sources..." : "Ask a follow-up question..."}
                 className="flex-1 px-3 py-2 text-sm bg-input border border-green-500/50 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500"
                 autoFocus
               />
@@ -321,6 +380,12 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
                 {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
               </Button>
             </div>
+            {isResearchMode && (
+              <p className="text-[10px] text-muted-foreground mt-1 flex items-center gap-1">
+                <Shield className="h-2.5 w-2.5 text-green-500" />
+                Research mode active
+              </p>
+            )}
           </div>
         </div>
       )}
@@ -379,6 +444,30 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
             </div>
           </div>
           
+          {/* Research Mode Toggle */}
+          <div className="flex items-center justify-between mb-3 p-2 bg-secondary/50 rounded-lg border border-border">
+            <div className="flex items-center gap-2">
+              <Search className="h-3.5 w-3.5 text-primary" />
+              <span className="text-xs font-medium text-foreground">Research Mode</span>
+              {isResearchMode && (
+                <span className="text-[10px] px-1.5 py-0.5 bg-green-500/20 text-green-500 rounded-full flex items-center gap-1">
+                  <Shield className="h-2.5 w-2.5" />
+                  Verified Sources
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => onToggleResearchMode?.(!isResearchMode)}
+              className="flex items-center"
+            >
+              {isResearchMode ? (
+                <ToggleRight className="h-5 w-5 text-green-500" />
+              ) : (
+                <ToggleLeft className="h-5 w-5 text-muted-foreground" />
+              )}
+            </button>
+          </div>
+          
           <div className="text-xs text-muted-foreground mb-3 p-2 bg-yellow-500/10 rounded border border-green-500/30 line-clamp-2">
             "{selectedText}"
           </div>
@@ -389,7 +478,7 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
               value={askQuestion}
               onChange={(e) => setAskQuestion(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && handleAction("ask")}
-              placeholder="Ask a question..."
+              placeholder={isResearchMode ? "Ask with verified sources..." : "Ask a question..."}
               className="flex-1 px-3 py-2 text-sm bg-input border border-green-500/50 rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-green-500"
               autoFocus
             />
@@ -402,6 +491,13 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
               {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
             </Button>
           </div>
+          
+          {isResearchMode && (
+            <p className="text-[10px] text-muted-foreground mt-2 flex items-center gap-1">
+              <Shield className="h-3 w-3 text-green-500" />
+              Answers will include verified citations from trusted sources
+            </p>
+          )}
         </div>
       )}
 
@@ -518,8 +614,20 @@ export const PersistentInlineAsk = forwardRef<HTMLDivElement, PersistentInlineAs
           )}
 
           {/* Indicators */}
-          <div className="flex items-center gap-3 px-3 py-2 border-t border-border text-xs text-muted-foreground">
-            {result.uses_sources && (
+          <div className="flex items-center flex-wrap gap-2 px-3 py-2 border-t border-border text-xs text-muted-foreground">
+            {result.research_mode && result.verified && (
+              <span className="flex items-center gap-1 text-green-500">
+                <Shield className="h-3 w-3" />
+                Verified with sources
+              </span>
+            )}
+            {result.research_mode && !result.verified && (
+              <span className="flex items-center gap-1 text-yellow-500">
+                <AlertTriangle className="h-3 w-3" />
+                Limited sources
+              </span>
+            )}
+            {result.uses_sources && !result.research_mode && (
               <span className="flex items-center gap-1">
                 <Link2 className="h-3 w-3" />
                 Uses external sources
