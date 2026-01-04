@@ -5,8 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { useHistoryData } from "@/hooks/useHistoryData";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { UsageLimitModal } from "@/components/UsageLimitModal";
 import { 
   Plus, 
   BookOpen, 
@@ -83,10 +85,19 @@ const NotebooksPage = () => {
   const [editingTitle, setEditingTitle] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const [rightPanelTab, setRightPanelTab] = useState<"collaborators" | "comments" | "history">("collaborators");
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const { plan } = useUserPlan();
   const navigate = useNavigate();
+  const { 
+    usage, 
+    limits, 
+    canUseFeature, 
+    incrementUsage, 
+    getUsageDisplay,
+    getRequiredPlanForUnlimited 
+  } = useUsageLimits();
   const {
     chatSessions,
     inlineAsks,
@@ -101,9 +112,8 @@ const NotebooksPage = () => {
     handleRenameInlineAsk,
   } = useHistoryData();
   
-  const FREE_NOTEBOOK_LIMIT = 5;
   const isFreePlan = plan === "free";
-  const canCreateMore = !isFreePlan || notebooks.length < FREE_NOTEBOOK_LIMIT;
+  const canCreateMore = !isFreePlan || canUseFeature("notebooks");
 
   // Collaboration state (mock data for demo)
   const [collaborators] = useState<Collaborator[]>([
@@ -157,13 +167,16 @@ const NotebooksPage = () => {
   const createNotebook = async () => {
     if (!user) return;
     
-    // Check free plan limit
-    if (isFreePlan && notebooks.length >= FREE_NOTEBOOK_LIMIT) {
-      toast({ 
-        title: "Notebook limit reached", 
-        description: `Free plan allows up to ${FREE_NOTEBOOK_LIMIT} notebooks. Upgrade to create more.`,
-        variant: "destructive" 
-      });
+    // Check usage limits
+    if (!canUseFeature("notebooks")) {
+      setLimitModalOpen(true);
+      return;
+    }
+
+    // Increment usage
+    const success = await incrementUsage("notebooks");
+    if (!success) {
+      setLimitModalOpen(true);
       return;
     }
     
@@ -325,10 +338,10 @@ const NotebooksPage = () => {
               <div className="flex items-center gap-2">
                 <BookOpen className="h-4 w-4 text-primary" />
                 <h2 className="font-semibold text-foreground text-sm">Notebooks</h2>
-                {isFreePlan && (
-                  <span className="text-xs text-muted-foreground">
-                    ({notebooks.length}/{FREE_NOTEBOOK_LIMIT})
-                  </span>
+                {limits.notebooks !== Infinity && (
+                  <Badge variant="secondary" className="text-[10px] h-4">
+                    {getUsageDisplay("notebooks")}
+                  </Badge>
                 )}
               </div>
               <Button 
@@ -336,7 +349,7 @@ const NotebooksPage = () => {
                 onClick={createNotebook} 
                 className="h-8 w-8 p-0"
                 disabled={!canCreateMore}
-                title={!canCreateMore ? `Free plan limit: ${FREE_NOTEBOOK_LIMIT} notebooks` : "Create notebook"}
+                title={!canCreateMore ? "Notebook limit reached" : "Create notebook"}
               >
                 <Plus className="h-4 w-4" />
               </Button>
@@ -641,6 +654,15 @@ const NotebooksPage = () => {
           )}
         </main>
       </div>
+
+      <UsageLimitModal
+        open={limitModalOpen}
+        onOpenChange={setLimitModalOpen}
+        feature="notebooks"
+        usageCount={usage.notebooks}
+        limit={limits.notebooks}
+        requiredPlan={getRequiredPlanForUnlimited("notebooks")}
+      />
     </>
   );
 };

@@ -7,7 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useHistoryData } from "@/hooks/useHistoryData";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { UsageLimitModal } from "@/components/UsageLimitModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -95,10 +97,19 @@ export default function ImagesPage() {
   const [isDragging, setIsDragging] = useState(false);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [lightboxImage, setLightboxImage] = useState<string>("");
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const { 
+    usage, 
+    limits, 
+    canUseFeature, 
+    incrementUsage, 
+    getUsageDisplay,
+    getRequiredPlanForUnlimited 
+  } = useUsageLimits();
   
   const {
     chatSessions,
@@ -121,6 +132,19 @@ export default function ImagesPage() {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+
+    // Check usage limits
+    if (!canUseFeature("images")) {
+      setLimitModalOpen(true);
+      return;
+    }
+
+    // Increment usage
+    const success = await incrementUsage("images");
+    if (!success) {
+      setLimitModalOpen(true);
+      return;
+    }
 
     setIsGenerating(true);
     const modelToUse = autoSelectModel ? "gemini-flash" : selectedModel;
@@ -330,7 +354,14 @@ export default function ImagesPage() {
               </div>
               <div>
                 <h1 className="font-semibold text-foreground text-sm">Images</h1>
-                <span className="text-xs text-muted-foreground">Generate or analyze images with AI</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Generate or analyze images with AI</span>
+                  {limits.images !== Infinity && (
+                    <Badge variant="secondary" className="text-[10px] h-4">
+                      {getUsageDisplay("images")} used
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           </header>
@@ -609,6 +640,15 @@ export default function ImagesPage() {
           <img src={lightboxImage} alt="Preview" className="w-full h-auto rounded-lg" />
         </DialogContent>
       </Dialog>
+
+      <UsageLimitModal
+        open={limitModalOpen}
+        onOpenChange={setLimitModalOpen}
+        feature="images"
+        usageCount={usage.images}
+        limit={limits.images}
+        requiredPlan={getRequiredPlanForUnlimited("images")}
+      />
     </>
   );
 }

@@ -7,7 +7,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useHistoryData } from "@/hooks/useHistoryData";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { UsageLimitModal } from "@/components/UsageLimitModal";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import {
@@ -100,12 +102,21 @@ export default function VideoPage() {
   const [selectedVideo, setSelectedVideo] = useState<UploadedVideo | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { addNotification, updateNotification } = useNotifications();
+  const { 
+    usage, 
+    limits, 
+    canUseFeature, 
+    incrementUsage, 
+    getUsageDisplay,
+    getRequiredPlanForUnlimited 
+  } = useUsageLimits();
   
   const {
     chatSessions,
@@ -130,6 +141,19 @@ export default function VideoPage() {
 
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
+
+    // Check usage limits
+    if (!canUseFeature("video")) {
+      setLimitModalOpen(true);
+      return;
+    }
+
+    // Increment usage
+    const success = await incrementUsage("video");
+    if (!success) {
+      setLimitModalOpen(true);
+      return;
+    }
 
     setIsGenerating(true);
     const modelToUse = autoSelectModel ? "proxinex-video" : selectedModel;
@@ -368,7 +392,14 @@ export default function VideoPage() {
               </div>
               <div>
                 <h1 className="font-semibold text-foreground text-sm">Video</h1>
-                <span className="text-xs text-muted-foreground">Generate or analyze videos with AI</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Generate or analyze videos with AI</span>
+                  {limits.video !== Infinity && (
+                    <Badge variant="secondary" className="text-[10px] h-4">
+                      {getUsageDisplay("video")} used
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           </header>
@@ -627,6 +658,15 @@ export default function VideoPage() {
           </div>
         </main>
       </div>
+
+      <UsageLimitModal
+        open={limitModalOpen}
+        onOpenChange={setLimitModalOpen}
+        feature="video"
+        usageCount={usage.video}
+        limit={limits.video}
+        requiredPlan={getRequiredPlanForUnlimited("video")}
+      />
     </>
   );
 }

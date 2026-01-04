@@ -74,6 +74,7 @@ import {
   Download,
 } from "lucide-react";
 import { useUserPlan, UserPlan } from "@/hooks/useUserPlan";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { pinColors, PinColor } from "@/components/chat/PinColorSelector";
 import { DraggablePinnedSession } from "./DraggablePinnedSession";
 
@@ -195,6 +196,7 @@ export const AppSidebar = ({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
   const { plan, isFeatureAvailable, getUpgradeHint, getRequiredPlan } = useUserPlan();
+  const { limits, getUsageDisplay, getRemainingUsage } = useUsageLimits();
 
   // Auto-collapse on mobile
   useEffect(() => {
@@ -668,6 +670,9 @@ export const AppSidebar = ({
             const ItemIcon = item.icon;
             const active = isActive(item.path);
             const isLocked = item.feature && !isFeatureAvailable(item.feature);
+            const featureKey = item.feature as "documents" | "images" | "video" | "sandbox" | "notebooks" | undefined;
+            const showUsageBadge = featureKey && limits[featureKey] !== Infinity;
+            const remaining = featureKey ? getRemainingUsage(featureKey) : 0;
             
             if (isLocked) {
               return renderLockedItem(item, ItemIcon, active);
@@ -684,7 +689,15 @@ export const AppSidebar = ({
                 }`}
               >
                 <ItemIcon className={`h-4 w-4 flex-shrink-0 ${active ? "text-primary" : ""}`} />
-                <span className="text-sm">{item.label}</span>
+                <span className="text-sm flex-1">{item.label}</span>
+                {showUsageBadge && (
+                  <Badge 
+                    variant={remaining === 0 ? "destructive" : "secondary"} 
+                    className="text-[9px] h-4 px-1.5"
+                  >
+                    {remaining}
+                  </Badge>
+                )}
               </Link>
             );
           })}

@@ -2,10 +2,13 @@ import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Send, Star, Clock, DollarSign, Check, Loader2, AlertCircle } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useUsageLimits } from "@/hooks/useUsageLimits";
+import { UsageLimitModal } from "@/components/UsageLimitModal";
 
 const models = [
   { id: "gemini-flash", name: "Gemini 2.5 Flash", provider: "Google", selected: true },
@@ -38,7 +41,16 @@ const Sandbox = () => {
   const [selectedModels, setSelectedModels] = useState(["gemini-flash", "gemini-pro", "gpt5-mini"]);
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState<ComparisonResult | null>(null);
+  const [limitModalOpen, setLimitModalOpen] = useState(false);
   const { toast } = useToast();
+  const { 
+    usage, 
+    limits, 
+    canUseFeature, 
+    incrementUsage, 
+    getUsageDisplay,
+    getRequiredPlanForUnlimited 
+  } = useUsageLimits();
 
   const toggleModel = (modelId: string) => {
     setSelectedModels(prev => 
@@ -56,6 +68,19 @@ const Sandbox = () => {
         description: "Please enter a query and select at least one model",
         variant: "destructive",
       });
+      return;
+    }
+
+    // Check usage limits
+    if (!canUseFeature("sandbox")) {
+      setLimitModalOpen(true);
+      return;
+    }
+
+    // Increment usage
+    const success = await incrementUsage("sandbox");
+    if (!success) {
+      setLimitModalOpen(true);
       return;
     }
 
@@ -107,7 +132,14 @@ const Sandbox = () => {
           <div className="container mx-auto px-4">
             {/* Header */}
             <div className="max-w-3xl mx-auto text-center mb-12">
-              <span className="text-sm text-primary font-medium">Sandbox</span>
+              <div className="flex items-center justify-center gap-2 mb-2">
+                <span className="text-sm text-primary font-medium">Sandbox</span>
+                {limits.sandbox !== Infinity && (
+                  <Badge variant="secondary" className="text-[10px]">
+                    {getUsageDisplay("sandbox")} used
+                  </Badge>
+                )}
+              </div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mt-2 mb-4">
                 Compare AI Models
               </h1>
@@ -294,6 +326,15 @@ const Sandbox = () => {
 
         <Footer />
       </div>
+
+      <UsageLimitModal
+        open={limitModalOpen}
+        onOpenChange={setLimitModalOpen}
+        feature="sandbox"
+        usageCount={usage.sandbox}
+        limit={limits.sandbox}
+        requiredPlan={getRequiredPlanForUnlimited("sandbox")}
+      />
     </>
   );
 };
