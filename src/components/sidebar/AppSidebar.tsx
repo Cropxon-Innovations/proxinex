@@ -352,10 +352,10 @@ export const AppSidebar = ({
         <TooltipContent side="right" className="max-w-[200px]">
           <p className="text-xs">{hint}</p>
           <Link 
-            to="/pricing" 
+            to="/app/settings?tab=plan" 
             className="text-xs text-primary hover:underline mt-1 block"
           >
-            View {requiredPlan.charAt(0).toUpperCase() + requiredPlan.slice(1)} Plan →
+            Upgrade to {requiredPlan.charAt(0).toUpperCase() + requiredPlan.slice(1)} →
           </Link>
         </TooltipContent>
       </Tooltip>
@@ -785,7 +785,7 @@ export const AppSidebar = ({
             {/* Plan Badge & Upgrade */}
             {!collapsed && !isMobile && (
               <Link
-                to="/pricing"
+                to="/app/settings?tab=plan"
                 className={`flex items-center justify-between px-2 py-1.5 rounded-md ${currentPlan.color} hover:opacity-90 transition-opacity`}
               >
                 <div className="flex items-center gap-2">
