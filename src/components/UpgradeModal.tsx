@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Zap, Rocket, Building2, IndianRupee, DollarSign, Loader2, X } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Check, Zap, Rocket, Building2, IndianRupee, DollarSign, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useRazorpay } from "@/hooks/useRazorpay";
 import { useUserPlan } from "@/hooks/useUserPlan";
@@ -130,82 +131,103 @@ export const UpgradeModal = ({ open, onOpenChange }: UpgradeModalProps) => {
         </DialogHeader>
 
         <div className="p-6 pt-4">
-          {/* Pricing Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {plans.map((plan) => {
-              const isCurrentPlan = currentPlan === plan.planKey;
-              const isDowngrade = currentPlan !== "free" && getPlanIndex(plan.planKey) < getPlanIndex(currentPlan);
-              const PlanIcon = plan.icon;
-
-              return (
-                <div
-                  key={plan.name}
-                  className={`relative rounded-lg border bg-card p-4 flex flex-col ${
-                    plan.popular ? "border-primary ring-1 ring-primary" : "border-border"
-                  }`}
-                >
-                  {plan.popular && (
-                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary text-primary-foreground text-[10px] font-medium rounded-full">
-                      Popular
-                    </div>
-                  )}
-
-                  <div className="mb-3">
-                    <div className="p-1.5 rounded-md bg-secondary w-fit mb-2">
-                      <PlanIcon className="h-4 w-4 text-primary" />
-                    </div>
-                    <h3 className="text-base font-bold text-foreground">{plan.name}</h3>
-                    <p className="text-xs text-muted-foreground">{plan.description}</p>
+          {/* Loading Skeleton */}
+          {isDetecting ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-lg border border-border bg-card p-4 flex flex-col">
+                  <Skeleton className="h-8 w-8 rounded-md mb-2" />
+                  <Skeleton className="h-5 w-20 mb-1" />
+                  <Skeleton className="h-3 w-32 mb-3" />
+                  <Skeleton className="h-8 w-24 mb-3" />
+                  <div className="space-y-2 mb-4 flex-1">
+                    <Skeleton className="h-3 w-full" />
+                    <Skeleton className="h-3 w-3/4" />
+                    <Skeleton className="h-3 w-5/6" />
+                    <Skeleton className="h-3 w-2/3" />
                   </div>
-
-                  <div className="mb-3">
-                    <span className="text-2xl font-bold text-foreground">
-                      {currency === "INR" ? plan.priceINR : plan.priceUSD}
-                    </span>
-                    <span className="text-xs text-muted-foreground">{plan.period}</span>
-                  </div>
-
-                  <ul className="space-y-1.5 mb-4 flex-1">
-                    {plan.features.map((feature) => (
-                      <li key={feature} className="flex items-start gap-1.5">
-                        <Check className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
-                        <span className="text-xs text-foreground">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  {plan.planKey === "free" ? (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={isCurrentPlan}
-                      className="w-full text-xs"
-                    >
-                      {isCurrentPlan ? "Current Plan" : "Free Plan"}
-                    </Button>
-                  ) : (
-                    <Button
-                      variant={plan.popular ? "default" : "outline"}
-                      size="sm"
-                      disabled={loading || isCurrentPlan}
-                      onClick={() => handleSubscribe(plan.planKey as "go" | "pro")}
-                      className="w-full text-xs"
-                    >
-                      {loading ? (
-                        <Loader2 className="h-3 w-3 animate-spin" />
-                      ) : isCurrentPlan ? (
-                        "Current Plan"
-                      ) : isDowngrade ? (
-                        "Downgrade"
-                      ) : (
-                        `Upgrade to ${plan.name}`
-                      )}
-                    </Button>
-                  )}
+                  <Skeleton className="h-8 w-full" />
                 </div>
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          ) : (
+            /* Pricing Cards */
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {plans.map((plan) => {
+                const isCurrentPlan = currentPlan === plan.planKey;
+                const isDowngrade = currentPlan !== "free" && getPlanIndex(plan.planKey) < getPlanIndex(currentPlan);
+                const PlanIcon = plan.icon;
+
+                return (
+                  <div
+                    key={plan.name}
+                    className={`relative rounded-lg border bg-card p-4 flex flex-col ${
+                      plan.popular ? "border-primary ring-1 ring-primary" : "border-border"
+                    }`}
+                  >
+                    {plan.popular && (
+                      <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-primary text-primary-foreground text-[10px] font-medium rounded-full">
+                        Popular
+                      </div>
+                    )}
+
+                    <div className="mb-3">
+                      <div className="p-1.5 rounded-md bg-secondary w-fit mb-2">
+                        <PlanIcon className="h-4 w-4 text-primary" />
+                      </div>
+                      <h3 className="text-base font-bold text-foreground">{plan.name}</h3>
+                      <p className="text-xs text-muted-foreground">{plan.description}</p>
+                    </div>
+
+                    <div className="mb-3">
+                      <span className="text-2xl font-bold text-foreground">
+                        {currency === "INR" ? plan.priceINR : plan.priceUSD}
+                      </span>
+                      <span className="text-xs text-muted-foreground">{plan.period}</span>
+                    </div>
+
+                    <ul className="space-y-1.5 mb-4 flex-1">
+                      {plan.features.map((feature) => (
+                        <li key={feature} className="flex items-start gap-1.5">
+                          <Check className="h-3.5 w-3.5 text-primary flex-shrink-0 mt-0.5" />
+                          <span className="text-xs text-foreground">{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+
+                    {plan.planKey === "free" ? (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        disabled={isCurrentPlan}
+                        className="w-full text-xs"
+                      >
+                        {isCurrentPlan ? "Current Plan" : "Free Plan"}
+                      </Button>
+                    ) : (
+                      <Button
+                        variant={plan.popular ? "default" : "outline"}
+                        size="sm"
+                        disabled={loading || isCurrentPlan}
+                        onClick={() => handleSubscribe(plan.planKey as "go" | "pro")}
+                        className="w-full text-xs"
+                      >
+                        {loading ? (
+                          <Loader2 className="h-3 w-3 animate-spin" />
+                        ) : isCurrentPlan ? (
+                          "Current Plan"
+                        ) : isDowngrade ? (
+                          "Downgrade"
+                        ) : (
+                          `Upgrade to ${plan.name}`
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
           <p className="text-[10px] text-muted-foreground text-center mt-4">
             All plans include access to our AI Intelligence Control Plane. 
