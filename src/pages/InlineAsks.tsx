@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useHistoryData } from "@/hooks/useHistoryData";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { PinColorPickerDialog } from "@/components/chat/PinColorPickerDialog";
 import { pinColors, PinColor } from "@/components/chat/PinColorSelector";
@@ -79,6 +80,20 @@ const InlineAsksPage = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+  
+  const {
+    chatSessions,
+    inlineAsks: sidebarInlineAsks,
+    handlePinSession,
+    handleArchiveSession,
+    handleDeleteSession,
+    handleRenameSession,
+    handleReorderPinnedSessions,
+    handlePinInlineAsk: sidebarPinInlineAsk,
+    handleArchiveInlineAsk: sidebarArchiveInlineAsk,
+    handleDeleteInlineAsk: sidebarDeleteInlineAsk,
+    handleRenameInlineAsk: sidebarRenameInlineAsk,
+  } = useHistoryData();
 
   useEffect(() => {
     if (user) fetchInlineAsks();
@@ -290,6 +305,36 @@ const InlineAsksPage = () => {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           user={user}
           onSignOut={handleSignOut}
+          chatSessions={chatSessions}
+          onSelectSession={(id) => navigate(`/app?chat=${id}`)}
+          onNewSession={() => navigate("/app")}
+          onDeleteSession={handleDeleteSession}
+          onRenameSession={handleRenameSession}
+          onPinSession={handlePinSession}
+          onArchiveSession={handleArchiveSession}
+          onShareSession={(sessionId) => {
+            const baseUrl = window.location.hostname === 'localhost' 
+              ? window.location.origin 
+              : 'https://proxinex.com';
+            const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
+            navigator.clipboard.writeText(shareUrl);
+            toast({ title: "Link copied", description: "Chat link copied to clipboard" });
+          }}
+          onReorderPinnedSessions={handleReorderPinnedSessions}
+          inlineAsks={sidebarInlineAsks}
+          onSelectInlineAsk={(askId, sessionId) => {
+            if (sessionId) {
+              navigate(`/app?chat=${sessionId}`);
+            }
+          }}
+          onDeleteInlineAsk={sidebarDeleteInlineAsk}
+          onRenameInlineAsk={sidebarRenameInlineAsk}
+          onPinInlineAsk={sidebarPinInlineAsk}
+          onArchiveInlineAsk={sidebarArchiveInlineAsk}
+          onShareInlineAsk={(askId) => {
+            navigator.clipboard.writeText(`Inline Ask: ${askId}`);
+            toast({ title: "Link copied" });
+          }}
         />
 
         <main className="flex-1 flex flex-col overflow-hidden">

@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useUserPlan } from "@/hooks/useUserPlan";
+import { useHistoryData } from "@/hooks/useHistoryData";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { 
   Plus, 
@@ -86,6 +87,19 @@ const NotebooksPage = () => {
   const { toast } = useToast();
   const { plan } = useUserPlan();
   const navigate = useNavigate();
+  const {
+    chatSessions,
+    inlineAsks,
+    handlePinSession,
+    handleArchiveSession,
+    handleDeleteSession,
+    handleRenameSession,
+    handleReorderPinnedSessions,
+    handlePinInlineAsk,
+    handleArchiveInlineAsk,
+    handleDeleteInlineAsk,
+    handleRenameInlineAsk,
+  } = useHistoryData();
   
   const FREE_NOTEBOOK_LIMIT = 5;
   const isFreePlan = plan === "free";
@@ -271,6 +285,36 @@ const NotebooksPage = () => {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           user={user}
           onSignOut={handleSignOut}
+          chatSessions={chatSessions}
+          onSelectSession={(id) => navigate(`/app?chat=${id}`)}
+          onNewSession={() => navigate("/app")}
+          onDeleteSession={handleDeleteSession}
+          onRenameSession={handleRenameSession}
+          onPinSession={handlePinSession}
+          onArchiveSession={handleArchiveSession}
+          onShareSession={(sessionId) => {
+            const baseUrl = window.location.hostname === 'localhost' 
+              ? window.location.origin 
+              : 'https://proxinex.com';
+            const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
+            navigator.clipboard.writeText(shareUrl);
+            toast({ title: "Link copied", description: "Chat link copied to clipboard" });
+          }}
+          onReorderPinnedSessions={handleReorderPinnedSessions}
+          inlineAsks={inlineAsks}
+          onSelectInlineAsk={(askId, sessionId) => {
+            if (sessionId) {
+              navigate(`/app?chat=${sessionId}`);
+            }
+          }}
+          onDeleteInlineAsk={handleDeleteInlineAsk}
+          onRenameInlineAsk={handleRenameInlineAsk}
+          onPinInlineAsk={handlePinInlineAsk}
+          onArchiveInlineAsk={handleArchiveInlineAsk}
+          onShareInlineAsk={(askId) => {
+            navigator.clipboard.writeText(`Inline Ask: ${askId}`);
+            toast({ title: "Link copied" });
+          }}
         />
 
         {/* Main */}

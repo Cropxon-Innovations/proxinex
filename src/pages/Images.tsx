@@ -6,6 +6,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { useHistoryData } from "@/hooks/useHistoryData";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -98,6 +99,20 @@ export default function ImagesPage() {
   const { toast } = useToast();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  
+  const {
+    chatSessions,
+    inlineAsks,
+    handlePinSession,
+    handleArchiveSession,
+    handleDeleteSession,
+    handleRenameSession,
+    handleReorderPinnedSessions,
+    handlePinInlineAsk,
+    handleArchiveInlineAsk,
+    handleDeleteInlineAsk,
+    handleRenameInlineAsk,
+  } = useHistoryData();
 
   const handleSignOut = async () => {
     await signOut();
@@ -273,6 +288,36 @@ export default function ImagesPage() {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
           user={user}
           onSignOut={handleSignOut}
+          chatSessions={chatSessions}
+          onSelectSession={(id) => navigate(`/app?chat=${id}`)}
+          onNewSession={() => navigate("/app")}
+          onDeleteSession={handleDeleteSession}
+          onRenameSession={handleRenameSession}
+          onPinSession={handlePinSession}
+          onArchiveSession={handleArchiveSession}
+          onShareSession={(sessionId) => {
+            const baseUrl = window.location.hostname === 'localhost' 
+              ? window.location.origin 
+              : 'https://proxinex.com';
+            const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
+            navigator.clipboard.writeText(shareUrl);
+            toast({ title: "Link copied", description: "Chat link copied to clipboard" });
+          }}
+          onReorderPinnedSessions={handleReorderPinnedSessions}
+          inlineAsks={inlineAsks}
+          onSelectInlineAsk={(askId, sessionId) => {
+            if (sessionId) {
+              navigate(`/app?chat=${sessionId}`);
+            }
+          }}
+          onDeleteInlineAsk={handleDeleteInlineAsk}
+          onRenameInlineAsk={handleRenameInlineAsk}
+          onPinInlineAsk={handlePinInlineAsk}
+          onArchiveInlineAsk={handleArchiveInlineAsk}
+          onShareInlineAsk={(askId) => {
+            navigator.clipboard.writeText(`Inline Ask: ${askId}`);
+            toast({ title: "Link copied" });
+          }}
         />
 
         {/* Main Content */}
