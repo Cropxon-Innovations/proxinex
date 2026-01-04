@@ -28,7 +28,7 @@ serve(async (req) => {
   }
 
   try {
-    const { query, include_answer = false, max_sources = 15, is_deep_research = false } = await req.json();
+    const { query, include_answer = false, max_sources = 15, is_deep_research = false, search_modes = [] } = await req.json();
     const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
@@ -42,22 +42,60 @@ serve(async (req) => {
       throw new Error("AI service is not configured");
     }
 
-    console.log(`Searching for: "${query}"`);
+    console.log(`Searching for: "${query}" with modes: ${JSON.stringify(search_modes)}`);
+
+    // Build domain filters based on search modes
+    const domainFilters: string[] = [];
+    
+    if (search_modes.includes("finance")) {
+      domainFilters.push(
+        "bloomberg.com", "reuters.com", "wsj.com", "ft.com", "cnbc.com",
+        "marketwatch.com", "finance.yahoo.com", "investing.com", "seekingalpha.com"
+      );
+    }
+    
+    if (search_modes.includes("academic")) {
+      domainFilters.push(
+        "scholar.google.com", "arxiv.org", "pubmed.ncbi.nlm.nih.gov", "jstor.org",
+        "sciencedirect.com", "researchgate.net", "nature.com", "science.org", "ieee.org"
+      );
+    }
+    
+    if (search_modes.includes("social")) {
+      domainFilters.push(
+        "twitter.com", "x.com", "reddit.com", "linkedin.com", "medium.com",
+        "substack.com", "news.ycombinator.com", "quora.com"
+      );
+    }
+
+    // Enhance query with mode context if modes are selected
+    let enhancedQuery = query;
+    if (search_modes.length > 0 && domainFilters.length > 0) {
+      const modeLabels = search_modes.map((m: string) => m.charAt(0).toUpperCase() + m.slice(1));
+      enhancedQuery = `${query} (${modeLabels.join(", ")} perspective)`;
+    }
 
     // Step 1: Search with Tavily
+    const tavilyBody: Record<string, unknown> = {
+      api_key: TAVILY_API_KEY,
+      query: enhancedQuery,
+      search_depth: is_deep_research ? "advanced" : "advanced",
+      include_answer: false,
+      include_raw_content: false,
+      max_results: Math.min(max_sources, 20),
+    };
+    
+    // Add domain filter if modes are selected
+    if (domainFilters.length > 0) {
+      tavilyBody.include_domains = domainFilters;
+    }
+
     const tavilyResponse = await fetch("https://api.tavily.com/search", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        api_key: TAVILY_API_KEY,
-        query: query,
-        search_depth: is_deep_research ? "advanced" : "advanced",
-        include_answer: false,
-        include_raw_content: false,
-        max_results: Math.min(max_sources, 20), // Dynamic limit, max 20 from Tavily
-      }),
+      body: JSON.stringify(tavilyBody),
     });
 
     if (!tavilyResponse.ok) {
