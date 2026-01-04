@@ -101,10 +101,15 @@ export type Database = {
           created_at: string
           highlighted_text: string
           id: string
+          is_archived: boolean | null
+          is_pinned: boolean | null
+          pin_color: string | null
+          pin_order: number | null
           position_end: number | null
           position_start: number | null
           question: string
           session_id: string | null
+          title: string | null
           user_id: string
         }
         Insert: {
@@ -113,10 +118,15 @@ export type Database = {
           created_at?: string
           highlighted_text: string
           id?: string
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
+          pin_color?: string | null
+          pin_order?: number | null
           position_end?: number | null
           position_start?: number | null
           question: string
           session_id?: string | null
+          title?: string | null
           user_id: string
         }
         Update: {
@@ -125,10 +135,15 @@ export type Database = {
           created_at?: string
           highlighted_text?: string
           id?: string
+          is_archived?: boolean | null
+          is_pinned?: boolean | null
+          pin_color?: string | null
+          pin_order?: number | null
           position_end?: number | null
           position_start?: number | null
           question?: string
           session_id?: string | null
+          title?: string | null
           user_id?: string
         }
         Relationships: [

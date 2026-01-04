@@ -7,6 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { PinColorPickerDialog } from "@/components/chat/PinColorPickerDialog";
+import { pinColors, PinColor } from "@/components/chat/PinColorSelector";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +56,8 @@ interface InlineAsk {
   conversation_history: any[];
   is_pinned?: boolean;
   is_archived?: boolean;
+  pin_color?: PinColor;
+  title?: string;
 }
 
 const InlineAsksPage = () => {
@@ -70,6 +74,8 @@ const InlineAsksPage = () => {
   const [renameDialogOpen, setRenameDialogOpen] = useState(false);
   const [renameId, setRenameId] = useState<string | null>(null);
   const [renameQuestion, setRenameQuestion] = useState("");
+  const [pinColorOpen, setPinColorOpen] = useState(false);
+  const [pendingPinId, setPendingPinId] = useState<string | null>(null);
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
@@ -117,8 +123,10 @@ const InlineAsksPage = () => {
         (data || []).map((ask) => ({
           ...ask,
           conversation_history: Array.isArray(ask.conversation_history) ? ask.conversation_history : [],
-          is_pinned: false,
-          is_archived: false,
+          is_pinned: ask.is_pinned ?? false,
+          is_archived: ask.is_archived ?? false,
+          pin_color: (ask.pin_color as PinColor) || "primary",
+          title: ask.title ?? undefined,
         }))
       );
     }
@@ -175,18 +183,60 @@ const InlineAsksPage = () => {
     setRenameQuestion("");
   };
 
-  const handlePin = (id: string) => {
-    setInlineAsks((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, is_pinned: !a.is_pinned } : a))
-    );
-    toast({ title: "Pin status updated" });
+  const handlePin = async (id: string) => {
+    const ask = inlineAsks.find(a => a.id === id);
+    if (ask?.is_pinned) {
+      // Unpin
+      const { error } = await supabase
+        .from("inline_asks")
+        .update({ is_pinned: false })
+        .eq("id", id);
+      
+      if (!error) {
+        setInlineAsks((prev) =>
+          prev.map((a) => (a.id === id ? { ...a, is_pinned: false } : a))
+        );
+        toast({ title: "Unpinned" });
+      }
+    } else {
+      // Show color picker
+      setPendingPinId(id);
+      setPinColorOpen(true);
+    }
   };
 
-  const handleArchive = (id: string) => {
-    setInlineAsks((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, is_archived: !a.is_archived } : a))
-    );
-    toast({ title: "Archive status updated" });
+  const handlePinColorSelect = async (color: PinColor) => {
+    if (!pendingPinId) return;
+    
+    const { error } = await supabase
+      .from("inline_asks")
+      .update({ is_pinned: true, pin_color: color })
+      .eq("id", pendingPinId);
+    
+    if (!error) {
+      setInlineAsks((prev) =>
+        prev.map((a) => (a.id === pendingPinId ? { ...a, is_pinned: true, pin_color: color } : a))
+      );
+      toast({ title: "Pinned" });
+    }
+    setPendingPinId(null);
+  };
+
+  const handleArchive = async (id: string) => {
+    const ask = inlineAsks.find(a => a.id === id);
+    const newArchived = !ask?.is_archived;
+    
+    const { error } = await supabase
+      .from("inline_asks")
+      .update({ is_archived: newArchived })
+      .eq("id", id);
+    
+    if (!error) {
+      setInlineAsks((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, is_archived: newArchived } : a))
+      );
+      toast({ title: newArchived ? "Archived" : "Unarchived" });
+    }
   };
 
   const handleShare = (id: string) => {
@@ -338,33 +388,35 @@ const InlineAsksPage = () => {
               </div>
             ) : (
               <div className="grid gap-3 max-w-4xl mx-auto">
-                {filteredAsks.map((ask) => (
-                  <div
-                    key={ask.id}
-                    className={`group rounded-lg border p-4 transition-colors ${
-                      selectedAsks.has(ask.id)
-                        ? "border-primary bg-primary/5"
-                        : "border-border bg-card hover:border-primary/50"
-                    }`}
-                  >
-                    <div className="flex items-start gap-3">
-                      {/* Checkbox */}
-                      <Checkbox
-                        checked={selectedAsks.has(ask.id)}
-                        onCheckedChange={() => toggleSelect(ask.id)}
-                        className="mt-1"
-                      />
+                {filteredAsks.map((ask) => {
+                  const colorConfig = pinColors.find(c => c.id === (ask.pin_color || "primary")) || pinColors[0];
+                  return (
+                    <div
+                      key={ask.id}
+                      className={`group rounded-lg border p-4 transition-colors ${
+                        selectedAsks.has(ask.id)
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-card hover:border-primary/50"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        {/* Checkbox */}
+                        <Checkbox
+                          checked={selectedAsks.has(ask.id)}
+                          onCheckedChange={() => toggleSelect(ask.id)}
+                          className="mt-1"
+                        />
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        {/* Question */}
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2 min-w-0">
-                            {ask.is_pinned && <Pin className="h-3 w-3 text-primary flex-shrink-0" />}
-                            <span className="font-medium text-foreground text-sm truncate">
-                              {ask.question}
-                            </span>
-                          </div>
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          {/* Question */}
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              {ask.is_pinned && <Pin className={`h-3 w-3 flex-shrink-0 ${colorConfig.text} ${colorConfig.fill}`} />}
+                              <span className="font-medium text-foreground text-sm truncate">
+                                {ask.title || ask.question}
+                              </span>
+                            </div>
                           
                           {/* Actions Menu */}
                           <DropdownMenu>
@@ -385,7 +437,7 @@ const InlineAsksPage = () => {
                                 Rename
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handlePin(ask.id)}>
-                                <Pin className={`h-3 w-3 mr-2 ${ask.is_pinned ? "text-primary" : ""}`} />
+                                <Pin className={`h-3 w-3 mr-2 ${ask.is_pinned ? colorConfig.fill + " " + colorConfig.text : ""}`} />
                                 {ask.is_pinned ? "Unpin" : "Pin"}
                               </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleShare(ask.id)}>
@@ -451,9 +503,10 @@ const InlineAsksPage = () => {
                           )}
                         </div>
                       </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -520,6 +573,14 @@ const InlineAsksPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Pin Color Picker Dialog */}
+      <PinColorPickerDialog
+        open={pinColorOpen}
+        onOpenChange={setPinColorOpen}
+        onSelectColor={handlePinColorSelect}
+        currentColor="primary"
+      />
     </>
   );
 };

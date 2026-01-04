@@ -91,7 +91,9 @@ const AppDashboard = () => {
   const [relatedQueries, setRelatedQueries] = useState<string[]>([]);
   const [pinnedMessages, setPinnedMessages] = useState<MessageWithMetrics[]>([]);
   const [inlineAsks, setInlineAsks] = useState<InlineAskData[]>([]);
-  const [allInlineAsks, setAllInlineAsks] = useState<Array<{ id: string; highlighted_text: string; question: string; created_at: string; session_id?: string }>>([]);
+  const [allInlineAsks, setAllInlineAsks] = useState<Array<{ id: string; highlighted_text: string; question: string; created_at: string; session_id?: string; is_pinned?: boolean; is_archived?: boolean; pin_color?: PinColor; title?: string }>>([]);
+  const [inlineAskPinColorOpen, setInlineAskPinColorOpen] = useState(false);
+  const [pendingPinInlineAskId, setPendingPinInlineAskId] = useState<string | null>(null);
   const [inlineAskResearchMode, setInlineAskResearchMode] = useState(false);
   const [maximizedInlineAsk, setMaximizedInlineAsk] = useState<InlineAskData | null>(null);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
@@ -544,13 +546,19 @@ const AppDashboard = () => {
     
     const { data, error } = await supabase
       .from("inline_asks")
-      .select("id, highlighted_text, question, created_at, session_id")
+      .select("id, highlighted_text, question, created_at, session_id, is_pinned, is_archived, pin_color, title")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
       .limit(20);
     
     if (data && !error) {
-      setAllInlineAsks(data);
+      setAllInlineAsks(data.map(d => ({
+        ...d,
+        is_pinned: d.is_pinned ?? false,
+        is_archived: d.is_archived ?? false,
+        pin_color: (d.pin_color as PinColor) || "primary",
+        title: d.title ?? undefined
+      })));
     }
   };
 
@@ -887,14 +895,65 @@ const AppDashboard = () => {
     }
   };
 
-  // Pin inline ask
+  // Pin inline ask with color picker
   const handlePinInlineAsk = async (id: string) => {
+    const ask = allInlineAsks.find(a => a.id === id);
+    if (ask?.is_pinned) {
+      // Unpin
+      setAllInlineAsks(prev => prev.map(a => a.id === id ? { ...a, is_pinned: false } : a));
+      if (user) {
+        await supabase
+          .from("inline_asks")
+          .update({ is_pinned: false })
+          .eq("id", id)
+          .eq("user_id", user.id);
+      }
+      toast({ title: "Inline Ask unpinned" });
+    } else {
+      // Show color picker
+      setPendingPinInlineAskId(id);
+      setInlineAskPinColorOpen(true);
+    }
+  };
+
+  // Handle color selection for inline ask pin
+  const handleInlineAskPinColorSelect = async (color: PinColor) => {
+    if (!pendingPinInlineAskId) return;
+    
+    setAllInlineAsks(prev => prev.map(a => 
+      a.id === pendingPinInlineAskId ? { ...a, is_pinned: true, pin_color: color } : a
+    ));
+    
+    if (user) {
+      await supabase
+        .from("inline_asks")
+        .update({ is_pinned: true, pin_color: color })
+        .eq("id", pendingPinInlineAskId)
+        .eq("user_id", user.id);
+    }
+    
     toast({ title: "Inline Ask pinned" });
+    setPendingPinInlineAskId(null);
   };
 
   // Archive inline ask
   const handleArchiveInlineAsk = async (id: string) => {
-    toast({ title: "Inline Ask archived" });
+    const ask = allInlineAsks.find(a => a.id === id);
+    const newArchived = !ask?.is_archived;
+    
+    setAllInlineAsks(prev => prev.map(a => 
+      a.id === id ? { ...a, is_archived: newArchived } : a
+    ));
+    
+    if (user) {
+      await supabase
+        .from("inline_asks")
+        .update({ is_archived: newArchived })
+        .eq("id", id)
+        .eq("user_id", user.id);
+    }
+    
+    toast({ title: newArchived ? "Inline Ask archived" : "Inline Ask unarchived" });
   };
 
   // Share inline ask
@@ -1406,6 +1465,14 @@ const AppDashboard = () => {
         onOpenChange={setDeleteDialogOpen}
         sessionTitle={deleteSessionTitle}
         onConfirm={handleConfirmDelete}
+      />
+
+      {/* Pin Color Picker for Inline Asks */}
+      <PinColorPickerDialog
+        open={inlineAskPinColorOpen}
+        onOpenChange={setInlineAskPinColorOpen}
+        onSelectColor={handleInlineAskPinColorSelect}
+        currentColor="primary"
       />
     </>
   );
