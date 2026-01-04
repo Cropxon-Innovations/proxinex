@@ -31,6 +31,7 @@ interface ThinkingAnimationProps {
   isResearchMode?: boolean;
   sources?: string[];
   className?: string;
+  activeModes?: Record<string, boolean>;
 }
 
 const researchSteps: Omit<ThinkingStep, "status">[] = [
@@ -51,7 +52,8 @@ const chatSteps: Omit<ThinkingStep, "status">[] = [
 export const ThinkingAnimation = ({ 
   isResearchMode = false, 
   sources = [],
-  className 
+  className,
+  activeModes = {}
 }: ThinkingAnimationProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [steps, setSteps] = useState<ThinkingStep[]>([]);
@@ -115,23 +117,46 @@ export const ThinkingAnimation = ({
         <div className="flex items-center gap-3 mb-4">
           <div className="relative">
             <div className="w-12 h-12 flex items-center justify-center">
-              {/* Pulsing glow effect */}
-              <div className="absolute inset-0 rounded-full bg-primary/40 blur-xl animate-pulse" />
-              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/40 to-primary/30 blur-lg animate-pulse" style={{ animationDelay: '0.5s' }} />
+              {/* Color-shifting glow effect */}
+              <div className="absolute inset-0 rounded-full bg-primary/50 blur-xl animate-color-shift-glow" />
+              <div 
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/40 via-cyan-500/50 to-primary/40 blur-lg animate-color-shift-glow" 
+                style={{ animationDelay: '0.5s' }} 
+              />
               
-              {/* Floating particles */}
+              {/* Orbiting particles with trails */}
               {[...Array(6)].map((_, i) => (
-                <div
-                  key={i}
-                  className="absolute w-1.5 h-1.5 rounded-full bg-primary/70"
-                  style={{
-                    animation: `float-particle 3s ease-in-out infinite`,
-                    animationDelay: `${i * 0.5}s`,
-                    top: '50%',
-                    left: '50%',
-                    transform: `rotate(${i * 60}deg) translateY(-20px)`,
-                  }}
-                />
+                <div key={i} className="absolute inset-0 flex items-center justify-center">
+                  {/* Particle trail (faded copies) */}
+                  <div
+                    className="absolute w-1 h-1 rounded-full bg-primary/20"
+                    style={{
+                      animation: `particle-orbit 3s linear infinite`,
+                      animationDelay: `${i * 0.5 - 0.3}s`,
+                      '--start-angle': `${i * 60}deg`,
+                      '--orbit-radius': '-20px',
+                    } as React.CSSProperties}
+                  />
+                  <div
+                    className="absolute w-1.5 h-1.5 rounded-full bg-primary/40"
+                    style={{
+                      animation: `particle-orbit 3s linear infinite`,
+                      animationDelay: `${i * 0.5 - 0.15}s`,
+                      '--start-angle': `${i * 60}deg`,
+                      '--orbit-radius': '-20px',
+                    } as React.CSSProperties}
+                  />
+                  {/* Main particle */}
+                  <div
+                    className="absolute w-2 h-2 rounded-full bg-primary/80 shadow-[0_0_6px_hsl(var(--primary)/0.6)]"
+                    style={{
+                      animation: `particle-orbit 3s linear infinite`,
+                      animationDelay: `${i * 0.5}s`,
+                      '--start-angle': `${i * 60}deg`,
+                      '--orbit-radius': '-20px',
+                    } as React.CSSProperties}
+                  />
+                </div>
               ))}
               
               {/* Logo with spin animation */}
@@ -144,10 +169,21 @@ export const ThinkingAnimation = ({
               <span className="relative inline-flex rounded-full h-3 w-3 bg-primary"></span>
             </span>
           </div>
-          <div>
-            <span className="text-sm font-medium text-foreground block">
-              {isResearchMode ? "Deep Research Mode" : "Thinking..."}
-            </span>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-foreground">
+                {isResearchMode ? "Deep Research Mode" : "Thinking..."}
+              </span>
+              {/* Active search modes badges */}
+              {Object.entries(activeModes).filter(([key, value]) => value && key !== 'research' && key !== 'web').map(([key]) => (
+                <span 
+                  key={key}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium capitalize"
+                >
+                  {key}
+                </span>
+              ))}
+            </div>
             <span className="text-xs text-muted-foreground">
               {isResearchMode ? "Extended analysis with verified sources" : "Processing your request"}
             </span>
