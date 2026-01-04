@@ -21,6 +21,7 @@ export interface Citation {
 
 interface EnhancedCitationTooltipProps {
   citation: Citation;
+  onPreviewClick?: (citationId: string) => void;
 }
 
 const getDomainFromUrl = (url: string): string => {
@@ -47,7 +48,7 @@ const getFaviconUrl = (url: string): string => {
   }
 };
 
-export const EnhancedCitationTooltip = ({ citation }: EnhancedCitationTooltipProps) => {
+export const EnhancedCitationTooltip = ({ citation, onPreviewClick }: EnhancedCitationTooltipProps) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isClicked, setIsClicked] = useState(false);
   
@@ -60,6 +61,12 @@ export const EnhancedCitationTooltip = ({ citation }: EnhancedCitationTooltipPro
     e.preventDefault();
     e.stopPropagation();
     setIsClicked(!isClicked);
+  };
+
+  const handlePreviewClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onPreviewClick?.(String(citation.id - 1));
+    setIsClicked(false);
   };
 
   const handleVisitSource = (e: React.MouseEvent) => {
@@ -157,18 +164,21 @@ export const EnhancedCitationTooltip = ({ citation }: EnhancedCitationTooltipPro
 
             {/* Actions */}
             <div className="p-3 pt-0 flex gap-2">
+              {onPreviewClick && (
+                <button
+                  onClick={handlePreviewClick}
+                  className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
+                >
+                  <Eye className="h-3 w-3" />
+                  Preview
+                </button>
+              )}
               <button
                 onClick={handleVisitSource}
                 className="flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
               >
                 <ExternalLink className="h-3 w-3" />
                 Visit Source
-              </button>
-              <button
-                onClick={() => setIsClicked(false)}
-                className="px-3 py-2 rounded-lg bg-secondary text-secondary-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
-              >
-                <Eye className="h-3 w-3" />
               </button>
             </div>
           </div>

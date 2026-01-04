@@ -33,6 +33,7 @@ interface CitationAnswerProps {
   onCitationClick?: (citationId: string) => void;
   onViewSources?: () => void;
   messageIndex?: number;
+  searchModes?: string[];
 }
 
 export const CitationAnswer = ({
@@ -46,10 +47,17 @@ export const CitationAnswer = ({
   onCitationClick,
   onViewSources,
   messageIndex,
+  searchModes = [],
 }: CitationAnswerProps) => {
   const hasCitations = citations.length > 0;
   const isLowConfidence = confidence < 40;
   const isGeneralKnowledge = confidence >= 80 && !hasCitations;
+  
+  const modeLabels: Record<string, { label: string; color: string; bg: string }> = {
+    finance: { label: "Finance", color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
+    academic: { label: "Academic", color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+    social: { label: "Social", color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-500/10" },
+  };
 
   // Show verification loader when loading
   if (isLoading && !answer) {
@@ -63,6 +71,25 @@ export const CitationAnswer = ({
 
   return (
     <div className="space-y-4">
+      {/* Search Mode Indicators */}
+      {searchModes.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-xs text-muted-foreground">Filtered by:</span>
+          {searchModes.map((mode) => {
+            const modeInfo = modeLabels[mode];
+            if (!modeInfo) return null;
+            return (
+              <span
+                key={mode}
+                className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${modeInfo.bg} ${modeInfo.color}`}
+              >
+                {modeInfo.label}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       {/* Answer Header with TTS */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -131,6 +158,10 @@ export const CitationAnswer = ({
           answer={answer}
           citations={citations}
           isLoading={isLoading}
+          onCitationClick={(id) => {
+            onCitationClick?.(id);
+            onViewSources?.();
+          }}
         />
       </div>
 

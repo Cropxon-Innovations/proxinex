@@ -22,6 +22,62 @@ interface Citation {
   score: number;
 }
 
+// Generate dynamic related queries based on the user query and answer content
+function generateRelatedQueries(userQuery: string, answer: string): string[] {
+  const queries: string[] = [];
+  const combinedText = `${userQuery} ${answer}`.toLowerCase();
+  
+  // Extract key topics and entities from the query
+  const words = userQuery.split(/\s+/).filter(w => w.length > 3);
+  const mainTopic = words.slice(0, 4).join(" ");
+  
+  // Topic-specific related queries
+  const topicPatterns: Array<{ pattern: RegExp; queries: string[] }> = [
+    { pattern: /finance|stock|market|invest|trading|crypto|bitcoin/i, queries: ["Market trends this week", "Investment strategies for beginners", "Financial news today"] },
+    { pattern: /academic|research|study|paper|science|scientific/i, queries: ["Recent research findings", "Academic publications on this topic", "Peer-reviewed studies"] },
+    { pattern: /social|twitter|reddit|opinion|trending|viral/i, queries: ["What people are saying", "Trending discussions", "Community perspectives"] },
+    { pattern: /ai|artificial intelligence|machine learning|neural|llm|gpt/i, queries: ["Latest AI developments", "AI practical applications", "AI limitations and challenges"] },
+    { pattern: /health|medical|disease|treatment|medicine/i, queries: ["Latest medical research", "Treatment options", "Health recommendations"] },
+    { pattern: /tech|technology|software|programming|code/i, queries: ["Technology trends", "Best practices", "Implementation examples"] },
+    { pattern: /business|startup|company|enterprise/i, queries: ["Business strategies", "Industry analysis", "Market opportunities"] },
+    { pattern: /climate|environment|energy|sustainable/i, queries: ["Environmental impact", "Sustainability solutions", "Climate action"] },
+  ];
+  
+  // Add topic-specific queries
+  for (const { pattern, queries: topicQueries } of topicPatterns) {
+    if (pattern.test(combinedText)) {
+      queries.push(...topicQueries.slice(0, 2));
+    }
+  }
+  
+  // Generate query-specific follow-ups
+  if (mainTopic) {
+    queries.push(
+      `${mainTopic} latest updates`,
+      `${mainTopic} alternatives`,
+      `How does ${mainTopic} compare to others?`
+    );
+  }
+  
+  // Add action-oriented queries based on query intent
+  if (/what is|explain|define/i.test(userQuery)) {
+    queries.push("Practical examples", "Common use cases");
+  }
+  if (/how to|guide|tutorial/i.test(userQuery)) {
+    queries.push("Step-by-step instructions", "Best practices");
+  }
+  if (/compare|vs|versus|difference/i.test(userQuery)) {
+    queries.push("Detailed comparison", "Pros and cons");
+  }
+  if (/why|reason|cause/i.test(userQuery)) {
+    queries.push("Underlying factors", "Historical context");
+  }
+  
+  // Remove duplicates and limit
+  const uniqueQueries = [...new Set(queries)];
+  return uniqueQueries.slice(0, 4);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -195,7 +251,10 @@ Respond with a well-structured answer using the sources above. Include inline ci
 
     console.log(`Generated answer with ${confidence}% confidence (${confidence_label})`);
 
-    // Return structured response with snippets
+    // Step 6: Generate dynamic related queries based on answer content
+    const relatedQueries = generateRelatedQueries(query, answer);
+
+    // Return structured response with snippets and search modes
     return new Response(
       JSON.stringify({
         answer,
@@ -209,6 +268,8 @@ Respond with a well-structured answer using the sources above. Include inline ci
           score: Math.round(c.score * 100),
           snippet: c.content.slice(0, 200) + (c.content.length > 200 ? "..." : ""),
         })),
+        searchModes: search_modes,
+        relatedQueries,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

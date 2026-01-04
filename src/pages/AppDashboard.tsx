@@ -325,6 +325,12 @@ const AppDashboard = () => {
         ];
 
         setMessages(finalMessages);
+        
+        // Set related queries from research response
+        if (response.relatedQueries && response.relatedQueries.length > 0) {
+          setRelatedQueries(response.relatedQueries);
+        }
+        
         await saveChatSession(finalMessages);
 
         if (response.error) {
@@ -1090,11 +1096,16 @@ const AppDashboard = () => {
                                     citations={message.researchResponse!.citations}
                                     isLoading={isLoading && isLastMessage}
                                     onOpenLinkPreview={handleOpenLinkPreview}
-                                    onCitationClick={(id) => setSelectedSourceId(id)}
+                                    onCitationClick={(id) => {
+                                      setSelectedSourceId(id);
+                                      setSelectedMessageIndex(index);
+                                      setRightPanelCollapsed(false);
+                                    }}
                                     onViewSources={() => {
                                       setSelectedMessageIndex(index);
                                       setRightPanelCollapsed(false);
                                     }}
+                                    searchModes={message.researchResponse!.searchModes || []}
                                   />
                                 </div>
                               ) : (
