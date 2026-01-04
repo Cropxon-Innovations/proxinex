@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -10,8 +9,7 @@ import { useRazorpay } from "@/hooks/useRazorpay";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserPlan } from "@/hooks/useUserPlan";
 import { useToast } from "@/hooks/use-toast";
-
-type Currency = "INR" | "USD";
+import { useCurrency, Currency } from "@/hooks/useCurrency";
 
 interface PlanDetails {
   name: string;
@@ -111,7 +109,7 @@ const plans: PlanDetails[] = [
 ];
 
 const Pricing = () => {
-  const [currency, setCurrency] = useState<Currency>("INR");
+  const { currency, setCurrency, isDetecting } = useCurrency();
   const { initiatePayment, loading } = useRazorpay();
   const { user } = useAuth();
   const { plan: currentPlan } = useUserPlan();
