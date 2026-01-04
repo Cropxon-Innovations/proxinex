@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.downgrade-subscription]
 verify_jwt = false
+
+[functions.send-renewal-reminders]
+verify_jwt = false
