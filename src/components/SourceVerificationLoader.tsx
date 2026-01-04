@@ -109,6 +109,22 @@ export const SourceVerificationLoader = ({
               className="absolute inset-0 rounded-full bg-gradient-to-r from-cyan-500/30 via-primary/30 to-cyan-500/30 blur-lg animate-pulse"
               style={{ animationDelay: '0.6s' }}
             />
+            
+            {/* Floating particles */}
+            {!isComplete && [...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="absolute w-2 h-2 rounded-full bg-primary/60"
+                style={{
+                  animation: `float-particle 3s ease-in-out infinite`,
+                  animationDelay: `${i * 0.375}s`,
+                  top: '50%',
+                  left: '50%',
+                  transform: `rotate(${i * 45}deg) translateY(-28px)`,
+                }}
+              />
+            ))}
+            
             {/* Logo with spin animation */}
             <ProxinexIcon 
               className={`w-12 h-12 relative z-10 text-primary drop-shadow-[0_0_20px_hsl(var(--primary)/0.7)] ${isComplete ? '' : 'animate-spin'}`}

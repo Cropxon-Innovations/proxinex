@@ -215,6 +215,17 @@
   50% { transform: translateY(-10px); }
 }
 
+@keyframes float-particle {
+  0%, 100% { 
+    opacity: 0.3;
+    transform: rotate(var(--rotation, 0deg)) translateY(-20px) scale(0.8);
+  }
+  50% { 
+    opacity: 1;
+    transform: rotate(var(--rotation, 0deg)) translateY(-30px) scale(1.2);
+  }
+}
+
 @keyframes shimmer {
   0% { transform: translateX(-100%); }
   100% { transform: translateX(100%); }

@@ -118,6 +118,22 @@ export const ThinkingAnimation = ({
               {/* Pulsing glow effect */}
               <div className="absolute inset-0 rounded-full bg-primary/40 blur-xl animate-pulse" />
               <div className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 via-cyan-500/40 to-primary/30 blur-lg animate-pulse" style={{ animationDelay: '0.5s' }} />
+              
+              {/* Floating particles */}
+              {[...Array(6)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-1.5 h-1.5 rounded-full bg-primary/70"
+                  style={{
+                    animation: `float-particle 3s ease-in-out infinite`,
+                    animationDelay: `${i * 0.5}s`,
+                    top: '50%',
+                    left: '50%',
+                    transform: `rotate(${i * 60}deg) translateY(-20px)`,
+                  }}
+                />
+              ))}
+              
               {/* Logo with spin animation */}
               <ProxinexIcon 
                 className="w-10 h-10 relative z-10 text-primary drop-shadow-[0_0_15px_hsl(var(--primary)/0.6)] animate-spin"
