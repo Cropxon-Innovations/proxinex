@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -121,7 +122,8 @@ export const connectors = [
 export default function Settings() {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState("profile");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get("tab") || "profile");
   const [notifications, setNotifications] = useState({
     email: true,
     push: false,
@@ -130,6 +132,19 @@ export default function Settings() {
   });
   const [appearance, setAppearance] = useState("system");
   const [localConnectors, setLocalConnectors] = useState(connectors);
+
+  // Sync tab with URL params
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && ["profile", "plan", "notifications", "connectors", "security", "advanced"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    setSearchParams({ tab: value });
+  };
 
   const handleConnectorToggle = (connectorId: string) => {
     setLocalConnectors(prev =>
@@ -162,7 +177,7 @@ export default function Settings() {
       </div>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid grid-cols-6 w-full max-w-2xl">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
