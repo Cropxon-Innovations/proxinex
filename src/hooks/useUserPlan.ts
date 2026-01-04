@@ -18,22 +18,22 @@ interface PlanFeatures {
 const planFeatures: Record<UserPlan, PlanFeatures> = {
   free: {
     chat: true,
-    research: true, // Limited
-    documents: false,
-    notebooks: true, // Limited to 5
-    images: false,
-    video: false,
-    sandbox: false,
+    research: true,
+    documents: true, // Metered - 3 prompts
+    notebooks: true, // Metered - 5 notebooks
+    images: true, // Metered - 3 prompts
+    video: true, // Metered - 3 prompts
+    sandbox: true, // Metered - 3 prompts
     apiPlayground: false,
   },
   go: {
     chat: true,
     research: true,
     documents: true,
-    notebooks: true,
-    images: false,
-    video: false,
-    sandbox: false,
+    notebooks: true, // Unlimited
+    images: true, // Metered - 10
+    video: true, // Metered - 5
+    sandbox: true, // Metered - 10
     apiPlayground: false,
   },
   pro: {
