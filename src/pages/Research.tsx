@@ -8,6 +8,7 @@ import { SourceVerificationLoader } from "@/components/SourceVerificationLoader"
 import { ResearchSummaryCard } from "@/components/ResearchSummaryCard";
 import { SourceVerificationPanel, VerifiedSource } from "@/components/chat/SourceVerificationPanel";
 import { useToast } from "@/hooks/use-toast";
+import { useHistoryData } from "@/hooks/useHistoryData";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -46,7 +47,6 @@ const ResearchPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [researchHistory, setResearchHistory] = useState<string[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
-  const [chatSessions, setChatSessions] = useState<SidebarSession[]>([]);
   const [showSourcesPanel, setShowSourcesPanel] = useState(false);
   const [selectedSourceId, setSelectedSourceId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -54,41 +54,25 @@ const ResearchPage = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const { selection, handleMouseUp, clearSelection } = useSelectToAsk();
+  
+  const {
+    chatSessions,
+    inlineAsks,
+    loadChatSessions,
+    handlePinSession,
+    handleArchiveSession,
+    handleDeleteSession,
+    handleRenameSession,
+    handleReorderPinnedSessions,
+    handlePinInlineAsk,
+    handleArchiveInlineAsk,
+    handleDeleteInlineAsk,
+    handleRenameInlineAsk,
+  } = useHistoryData();
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-
-  useEffect(() => {
-    const loadSessions = async () => {
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("chat_sessions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("updated_at", { ascending: false });
-
-      if (error || !data) return;
-
-      const mapped: SidebarSession[] = data.map((session: any) => {
-        const messagesArray = Array.isArray(session.messages) ? (session.messages as any[]) : [];
-        const hasResearchResponse = messagesArray.some((m: any) => m?.researchResponse);
-
-        return {
-          id: session.id,
-          title: session.title,
-          isPinned: session.is_pinned || false,
-          isResearch: hasResearchResponse,
-          pinColor: session.pin_color || "primary",
-        };
-      });
-
-      setChatSessions(mapped);
-    };
-
-    loadSessions();
-  }, [user]);
 
   const handleSelectSession = async (sessionId: string) => {
     if (!user) return;
@@ -155,24 +139,8 @@ const ResearchPage = () => {
 
     if (data && !error) {
       setActiveSessionId(data.id);
-
-      const updatedSession: SidebarSession = {
-        id: data.id,
-        title: data.title,
-        isPinned: (data as any).is_pinned || false,
-        isResearch: true,
-        pinColor: (data as any).pin_color || "primary",
-      };
-
-      setChatSessions((prev) => {
-        const existingIndex = prev.findIndex((s) => s.id === data.id);
-        if (existingIndex >= 0) {
-          const updated = [...prev];
-          updated[existingIndex] = updatedSession;
-          return updated;
-        }
-        return [updatedSession, ...prev];
-      });
+      // Reload chat sessions to reflect the update
+      loadChatSessions();
     }
   };
 
@@ -252,6 +220,33 @@ const ResearchPage = () => {
           activeSessionId={activeSessionId}
           onSelectSession={handleSelectSession}
           onNewSession={() => navigate("/app")}
+          onDeleteSession={handleDeleteSession}
+          onRenameSession={handleRenameSession}
+          onPinSession={handlePinSession}
+          onArchiveSession={handleArchiveSession}
+          onShareSession={(sessionId) => {
+            const baseUrl = window.location.hostname === 'localhost' 
+              ? window.location.origin 
+              : 'https://proxinex.com';
+            const shareUrl = `${baseUrl}/app?chat=${sessionId}`;
+            navigator.clipboard.writeText(shareUrl);
+            toast({ title: "Link copied", description: "Chat link copied to clipboard" });
+          }}
+          onReorderPinnedSessions={handleReorderPinnedSessions}
+          inlineAsks={inlineAsks}
+          onSelectInlineAsk={(askId, sessionId) => {
+            if (sessionId) {
+              navigate(`/app?chat=${sessionId}`);
+            }
+          }}
+          onDeleteInlineAsk={handleDeleteInlineAsk}
+          onRenameInlineAsk={handleRenameInlineAsk}
+          onPinInlineAsk={handlePinInlineAsk}
+          onArchiveInlineAsk={handleArchiveInlineAsk}
+          onShareInlineAsk={(askId) => {
+            navigator.clipboard.writeText(`Inline Ask: ${askId}`);
+            toast({ title: "Link copied" });
+          }}
         />
 
         {/* Main */}
