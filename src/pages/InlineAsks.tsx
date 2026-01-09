@@ -46,6 +46,7 @@ import {
 import { Helmet } from "react-helmet-async";
 import { Checkbox } from "@/components/ui/checkbox";
 import { format } from "date-fns";
+import { AppHeader } from "@/components/AppHeader";
 
 interface InlineAsk {
   id: string;
@@ -339,16 +340,12 @@ const InlineAsksPage = () => {
 
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <div className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
-            <div className="flex items-center gap-3">
-              <Sparkles className="h-5 w-5 text-primary" />
-              <h1 className="font-semibold text-foreground">Inline Asks</h1>
-              <Badge variant="secondary" className="text-xs">
-                {filteredAsks.length}
-              </Badge>
-            </div>
-
-            <div className="flex items-center gap-2">
+          <AppHeader
+            title="Inline Asks"
+            subtitle={`${filteredAsks.length} inline asks`}
+            icon={<Sparkles className="h-4 w-4 text-primary" />}
+          >
+            <div className="flex items-center gap-2 ml-auto">
               {selectedAsks.size > 0 && (
                 <Button
                   size="sm"
@@ -360,7 +357,7 @@ const InlineAsksPage = () => {
                 </Button>
               )}
             </div>
-          </div>
+          </AppHeader>
 
           {/* Filters & Search */}
           <div className="p-4 border-b border-border flex flex-wrap items-center gap-3 bg-card/30">

@@ -29,6 +29,10 @@ import {
   Brain
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { AppHeader } from "@/components/AppHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { KeyboardShortcutsButton } from "@/components/KeyboardShortcuts";
 import { Badge } from "@/components/ui/badge";
 import {
   Accordion,
@@ -228,6 +232,13 @@ const HelpCenterPage = () => {
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-5xl mx-auto p-6 space-y-8">
             {/* Header */}
+            {/* Header with theme controls */}
+            <div className="flex items-center justify-end gap-2 mb-4">
+              <KeyboardShortcutsButton />
+              <NotificationCenter />
+              <ThemeToggle />
+            </div>
+            
             <div className="text-center py-8">
               <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto mb-4">
                 <HelpCircle className="h-8 w-8 text-primary" />

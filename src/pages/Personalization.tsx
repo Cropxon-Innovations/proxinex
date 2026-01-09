@@ -1,32 +1,17 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  Plus, 
-  MessageSquare, 
-  Search, 
-  Layers, 
-  BookOpen, 
-  FileText, 
-  Image, 
-  Video, 
-  Code,
-  BarChart3,
-  Key,
-  Settings,
-  ChevronLeft,
-  ChevronRight,
   Sparkles,
-  Sliders,
   MessageCircle,
   Zap,
-  BookMarked,
-  Globe,
   Save,
   RotateCcw,
-  Brain
+  Globe,
+  Code,
+  BookMarked,
+  SlidersHorizontal,
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { Switch } from "@/components/ui/switch";
@@ -39,23 +24,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AppHeader } from "@/components/AppHeader";
+import { AppSidebar } from "@/components/sidebar/AppSidebar";
+import { useHistoryData } from "@/hooks/useHistoryData";
 
-const sidebarItems = [
-  { icon: Plus, label: "New Session", path: "/app", isNew: true },
-  { icon: MessageSquare, label: "Chat", path: "/app/chat" },
-  { icon: Search, label: "Research", path: "/app/research" },
-  { icon: Brain, label: "Memory", path: "/app/memory" },
-  { icon: Layers, label: "Sandbox", path: "/app/sandbox" },
-  { icon: BookOpen, label: "Notebooks", path: "/app/notebooks" },
-  { icon: FileText, label: "Documents", path: "/app/documents" },
-  { icon: Image, label: "Images", path: "/app/images" },
-  { icon: Video, label: "Video", path: "/app/video" },
-  { icon: Code, label: "API Playground", path: "/app/api" },
-  { divider: true },
-  { icon: BarChart3, label: "Usage & Cost", path: "/app/usage" },
-  { icon: Key, label: "API Keys", path: "/app/api-keys" },
-  { icon: Settings, label: "Settings", path: "/app/settings" },
-];
+// Removed sidebarItems - now using AppSidebar component
 
 interface PersonalizationSettings {
   tone: "professional" | "casual" | "technical" | "friendly" | "concise";
@@ -142,55 +115,41 @@ const PersonalizationPage = () => {
         <meta name="description" content="Customize how Proxinex AI responds to you." />
       </Helmet>
 
-      <div className="min-h-screen bg-background flex">
-        {/* Sidebar */}
-        <aside className={`${sidebarCollapsed ? 'w-16' : 'w-64'} border-r border-border bg-sidebar flex flex-col transition-all duration-300 flex-shrink-0`}>
-          <div className="h-16 border-b border-sidebar-border flex items-center px-4">
-            <Link to="/"><Logo size="sm" showText={!sidebarCollapsed} /></Link>
-          </div>
-          <nav className="flex-1 py-4 overflow-y-auto">
-            {sidebarItems.map((item, index) => {
-              if ('divider' in item && item.divider) return <div key={index} className="my-4 border-t border-sidebar-border" />;
-              const Icon = item.icon!;
-              const isActive = item.path === "/app/settings";
-              return (
-                <Link key={item.path} to={item.path!} className={`flex items-center gap-3 px-4 py-2.5 mx-2 rounded-lg transition-colors ${isActive ? 'bg-sidebar-accent text-sidebar-accent-foreground' : 'text-sidebar-foreground hover:bg-sidebar-accent/50'}`}>
-                  <Icon className="h-5 w-5 flex-shrink-0" />
-                  {!sidebarCollapsed && <span className="text-sm">{item.label}</span>}
-                </Link>
-              );
-            })}
-          </nav>
-          <button onClick={() => setSidebarCollapsed(!sidebarCollapsed)} className="h-12 border-t border-sidebar-border flex items-center justify-center text-sidebar-foreground hover:bg-sidebar-accent/50">
-            {sidebarCollapsed ? <ChevronRight className="h-5 w-5" /> : <ChevronLeft className="h-5 w-5" />}
-          </button>
-        </aside>
+      <div className="h-screen bg-background flex overflow-hidden">
+        {/* AppSidebar */}
+        <AppSidebar
+          collapsed={sidebarCollapsed}
+          onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
+          chatSessions={[]}
+          onSelectSession={() => {}}
+          onNewSession={() => {}}
+          onDeleteSession={() => {}}
+          onRenameSession={() => {}}
+          onPinSession={() => {}}
+          onArchiveSession={() => {}}
+        />
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-4xl mx-auto p-6 space-y-8">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <Sparkles className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">Personalization</h1>
-                  <p className="text-sm text-muted-foreground">Customize how Proxinex AI responds to you</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" onClick={handleReset} className="border-border">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  Reset
-                </Button>
-                <Button onClick={handleSave} className="bg-primary text-primary-foreground">
-                  <Save className="h-4 w-4 mr-2" />
-                  Save Changes
-                </Button>
-              </div>
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <AppHeader
+            title="Personalization"
+            subtitle="Customize how Proxinex AI responds to you"
+            icon={<Sparkles className="h-4 w-4 text-primary" />}
+          >
+            <div className="flex items-center gap-2 ml-auto">
+              <Button variant="outline" onClick={handleReset} className="border-border">
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
+              <Button onClick={handleSave} className="bg-primary text-primary-foreground">
+                <Save className="h-4 w-4 mr-2" />
+                Save Changes
+              </Button>
             </div>
+          </AppHeader>
+
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="max-w-4xl mx-auto space-y-8">
 
             {/* Response Style */}
             <div className="bg-card border border-border rounded-2xl p-6">
@@ -434,7 +393,7 @@ const PersonalizationPage = () => {
             {/* Custom Instructions */}
             <div className="bg-card border border-border rounded-2xl p-6">
               <div className="flex items-center gap-2 mb-4">
-                <Sliders className="h-5 w-5 text-primary" />
+                <SlidersHorizontal className="h-5 w-5 text-primary" />
                 <h2 className="font-semibold text-foreground">Custom Instructions</h2>
               </div>
               <p className="text-sm text-muted-foreground mb-4">
@@ -449,6 +408,7 @@ const PersonalizationPage = () => {
               <p className="text-xs text-muted-foreground mt-2">
                 {customInstructions.length}/1000 characters
               </p>
+            </div>
             </div>
           </div>
         </main>
