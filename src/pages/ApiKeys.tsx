@@ -44,7 +44,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { AppHeader } from "@/components/AppHeader";
+import { usePageTransition } from "@/contexts/PageTransitionContext";
 
 interface ApiKey {
   id: string;
@@ -193,31 +194,21 @@ const ApiKeysPage = () => {
 
       <div className="min-h-screen bg-background">
         {/* Header */}
-        <div className="border-b border-border bg-card/50">
-          <div className="max-w-5xl mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Link to="/app" className="p-2 hover:bg-secondary rounded-lg transition-colors">
-                  <ArrowLeft className="h-5 w-5 text-muted-foreground" />
-                </Link>
-                <div>
-                  <h1 className="text-xl font-semibold text-foreground flex items-center gap-2">
-                    <Key className="h-5 w-5 text-primary" />
-                    API Keys
-                  </h1>
-                  <p className="text-sm text-muted-foreground">
-                    Manage API keys and view documentation
-                  </p>
-                </div>
-              </div>
-              <ThemeToggle />
-              <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
-                <Plus className="h-4 w-4" />
-                Create New Key
-              </Button>
-            </div>
+        <AppHeader
+          title="API Keys"
+          subtitle="Manage API keys and view documentation"
+          icon={<Key className="h-4 w-4 text-primary" />}
+        >
+          <div className="flex items-center gap-3 ml-auto">
+            <Link to="/app" className="p-2 hover:bg-secondary rounded-lg transition-colors">
+              <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+            </Link>
+            <Button onClick={() => setShowCreateDialog(true)} className="gap-2">
+              <Plus className="h-4 w-4" />
+              Create New Key
+            </Button>
           </div>
-        </div>
+        </AppHeader>
 
         <div className="max-w-5xl mx-auto px-6 py-8">
           <Tabs value={activeTab} onValueChange={setActiveTab}>

@@ -38,7 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Helmet } from "react-helmet-async";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { AppHeader } from "@/components/AppHeader";
+import { usePageTransition } from "@/contexts/PageTransitionContext";
 
 interface ImageModel {
   id: string;
@@ -348,25 +349,11 @@ export default function ImagesPage() {
         {/* Main Content */}
         <main className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}
-          <header className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <ImageIcon className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-semibold text-foreground text-sm">Images</h1>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground">Generate or analyze images with AI</span>
-                  {limits.images !== Infinity && (
-                    <Badge variant="secondary" className="text-[10px] h-4">
-                      {getUsageDisplay("images")} used
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            </div>
-            <ThemeToggle />
-          </header>
+          <AppHeader
+            title="Images"
+            subtitle={`Generate or analyze images with AI${limits.images !== Infinity ? ` • ${getUsageDisplay("images")} used` : ""}`}
+            icon={<ImageIcon className="h-4 w-4 text-primary" />}
+          />
 
           <div className="flex-1 overflow-y-auto p-6">
             {/* Mode Tabs */}

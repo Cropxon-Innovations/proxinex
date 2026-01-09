@@ -40,7 +40,8 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
-import { ThemeToggle } from "@/components/ThemeToggle";
+import { AppHeader } from "@/components/AppHeader";
+import { usePageTransition } from "@/contexts/PageTransitionContext";
 
 interface Project {
   id: string;
@@ -256,17 +257,12 @@ export default function ProjectsPage() {
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Header */}
-          <header className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <FolderOpen className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-semibold text-foreground text-sm">Projects</h1>
-                <span className="text-xs text-muted-foreground">{projects.length} projects</span>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
+          <AppHeader
+            title="Projects"
+            subtitle={`${projects.length} projects`}
+            icon={<FolderOpen className="h-4 w-4 text-primary" />}
+          >
+            <div className="flex items-center gap-3 ml-auto">
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -290,13 +286,12 @@ export default function ProjectsPage() {
                   <List className="h-4 w-4" />
                 </button>
               </div>
-              <ThemeToggle />
               <Button onClick={() => setShowCreateDialog(true)} size="sm" className="gap-2">
                 <Plus className="h-4 w-4" />
                 New Project
               </Button>
             </div>
-          </header>
+          </AppHeader>
 
           {/* Content Area */}
           <div className="flex-1 overflow-y-auto p-6">
