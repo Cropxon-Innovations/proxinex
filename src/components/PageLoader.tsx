@@ -86,16 +86,22 @@ export const PageLoader = ({ onComplete, minimal = false }: PageLoaderProps) => 
       <div className={`absolute bottom-8 text-center transition-opacity duration-500 ${
         phase === "active" ? "opacity-100" : "opacity-0"
       }`}>
-        <p className="text-xs text-muted-foreground">
-          by{" "}
-          <a 
-            href="https://www.cropxon.com/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-foreground font-medium hover:text-primary transition-colors"
-          >
-            CROPXON INNOVATIONS PVT. LTD.
-          </a>
+        <p className="text-xs text-muted-foreground mb-1">
+          Powered By
+        </p>
+        <a 
+          href="https://www.cropxon.com/" 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="text-sm text-foreground font-semibold hover:text-primary transition-colors"
+        >
+          CROPXON INNOVATIONS PVT. LTD.
+        </a>
+        <p className="text-[10px] text-muted-foreground/70 mt-2">
+          Building the Future of AI Intelligence
+        </p>
+        <p className="text-[10px] text-muted-foreground/50 mt-1">
+          Beta v0.1.0
         </p>
       </div>
 

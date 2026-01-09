@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { Logo } from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { AppHeader } from "@/components/AppHeader";
 import {
   BarChart3,
   TrendingUp,
@@ -147,12 +148,12 @@ export default function Usage() {
         {/* Main Content */}
         <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Header */}
-          <header className="h-16 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
-            <div className="flex items-center gap-4">
-              <BarChart3 className="h-5 w-5 text-primary" />
-              <h1 className="font-semibold text-foreground">Usage & Cost</h1>
-            </div>
-            <div className="flex items-center gap-3">
+          <AppHeader
+            title="Usage & Cost"
+            subtitle="Track your AI usage and spending"
+            icon={<BarChart3 className="h-4 w-4 text-primary" />}
+          >
+            <div className="flex items-center gap-3 ml-auto">
               <Select value={timeRange} onValueChange={setTimeRange}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
@@ -169,7 +170,7 @@ export default function Usage() {
                 Export
               </Button>
             </div>
-          </header>
+          </AppHeader>
 
           {/* Content */}
           <div className="flex-1 overflow-y-auto p-6">

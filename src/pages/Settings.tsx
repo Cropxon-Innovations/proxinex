@@ -41,6 +41,8 @@ import {
   Keyboard
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { AppHeader } from "@/components/AppHeader";
+import { SettingsIcon as SettingsIconLucide } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -161,20 +163,18 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b border-border bg-card">
-        <div className="max-w-6xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-4">
+        {/* Header */}
+        <AppHeader
+          title="Settings"
+          subtitle="Manage your account and preferences"
+          icon={<SettingsIcon className="h-4 w-4 text-primary" />}
+        >
+          <div className="flex items-center gap-3 ml-auto">
             <Link to="/app" className="p-2 hover:bg-secondary rounded-lg transition-colors">
               <ArrowLeft className="h-5 w-5 text-muted-foreground" />
             </Link>
-            <div>
-              <h1 className="text-xl font-semibold text-foreground">Settings</h1>
-              <p className="text-sm text-muted-foreground">Manage your account and preferences</p>
-            </div>
           </div>
-        </div>
-      </div>
+        </AppHeader>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">

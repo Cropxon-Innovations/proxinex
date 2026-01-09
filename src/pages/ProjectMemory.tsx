@@ -34,6 +34,10 @@ import {
   X
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { AppHeader } from "@/components/AppHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { KeyboardShortcutsButton } from "@/components/KeyboardShortcuts";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -267,8 +271,8 @@ ${item.content}
           {/* Memory Content */}
           <div className="flex-1 overflow-y-auto">
             <div className="max-w-4xl mx-auto p-6 space-y-6">
-              {/* Header */}
-              <div className="flex items-center justify-between">
+              {/* Header with theme controls */}
+              <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
                   <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
                     <Brain className="h-6 w-6 text-primary" />
@@ -279,6 +283,9 @@ ${item.content}
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
+                  <KeyboardShortcutsButton />
+                  <NotificationCenter />
+                  <ThemeToggle />
                   <Button variant="outline" size="sm" onClick={() => handleExportMemory("markdown")} className="border-border">
                     <Download className="h-4 w-4 mr-2" />
                     Export

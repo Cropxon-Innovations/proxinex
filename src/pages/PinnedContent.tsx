@@ -35,6 +35,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { Message } from "@/lib/chat";
+import { AppHeader } from "@/components/AppHeader";
 
 interface PinnedChat {
   id: string;
@@ -174,20 +175,20 @@ export default function PinnedContent() {
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="container flex h-14 items-center gap-4">
+      <AppHeader
+        title="Pinned Content"
+        subtitle="Your bookmarked chats and messages"
+        icon={<Pin className="h-4 w-4 text-primary" />}
+      >
+        <div className="flex items-center gap-3 ml-auto">
           <Link to="/app">
             <Button variant="ghost" size="sm" className="gap-2">
               <ArrowLeft className="h-4 w-4" />
               Back to Chat
             </Button>
           </Link>
-          <div className="flex items-center gap-2">
-            <Pin className="h-5 w-5 text-primary" />
-            <h1 className="text-lg font-semibold">Pinned Content</h1>
-          </div>
         </div>
-      </header>
+      </AppHeader>
 
       <main className="container py-6 max-w-5xl">
         {/* Stats Cards */}

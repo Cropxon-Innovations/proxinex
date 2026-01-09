@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useHistoryData } from "@/hooks/useHistoryData";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Send,
@@ -23,6 +24,7 @@ import {
   X
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import { AppHeader } from "@/components/AppHeader";
 
 interface ResearchMessage {
   role: "user" | "assistant";
@@ -251,32 +253,26 @@ const ResearchPage = () => {
 
         {/* Main */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          <header className="h-14 border-b border-border flex items-center justify-between px-6 flex-shrink-0 bg-background">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Search className="h-4 w-4 text-primary" />
-              </div>
-              <div>
-                <h1 className="font-semibold text-foreground text-sm flex items-center gap-2">
-                  Research Mode
-                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
-                    Deep Analysis
-                  </span>
-                </h1>
-                <span className="text-xs text-muted-foreground">Tavily + RAG with Extended Verification</span>
-              </div>
+          <AppHeader
+            title="Research Mode"
+            subtitle="Tavily + RAG with Extended Verification"
+            icon={<Search className="h-4 w-4 text-primary" />}
+          >
+            <Badge variant="secondary" className="text-[10px] ml-2">
+              Deep Analysis
+            </Badge>
+            <div className="flex items-center gap-2 ml-auto">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowSourcesPanel(!showSourcesPanel)}
+                className="lg:hidden gap-1.5 text-xs"
+              >
+                <PanelRight className="h-4 w-4" />
+                {showSourcesPanel ? 'Hide' : 'Sources'}
+              </Button>
             </div>
-            {/* View Sources Toggle Button (Mobile/Tablet) */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowSourcesPanel(!showSourcesPanel)}
-              className="lg:hidden gap-1.5 text-xs"
-            >
-              <PanelRight className="h-4 w-4" />
-              {showSourcesPanel ? 'Hide' : 'Sources'}
-            </Button>
-          </header>
+          </AppHeader>
 
           <div className="flex-1 flex overflow-hidden relative">
             <div className="flex-1 overflow-y-auto p-6" onMouseUp={handleMouseUp}>
