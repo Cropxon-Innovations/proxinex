@@ -4,59 +4,60 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Proxinex Design System - Dark, Calm, Precise */
+/* Proxinex Design System - Deep Tint (#003646) Brand Colors */
 
 @layer base {
   :root {
-    /* Light theme */
+    /* Light theme - Deep Tint primary */
     --background: 0 0% 100%;
-    --foreground: 222 47% 11%;
+    --foreground: 193 100% 14%;
 
-    --card: 0 0% 98%;
-    --card-foreground: 222 47% 11%;
+    --card: 193 20% 98%;
+    --card-foreground: 193 100% 14%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
+    --popover-foreground: 193 100% 14%;
 
-    --primary: 186 100% 40%;
+    /* Deep Tint Primary - #003646 */
+    --primary: 193 100% 14%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 220 14% 96%;
-    --secondary-foreground: 222 47% 11%;
+    --secondary: 193 20% 95%;
+    --secondary-foreground: 193 100% 14%;
 
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 193 15% 94%;
+    --muted-foreground: 193 30% 40%;
 
-    --accent: 186 70% 40%;
+    --accent: 193 80% 25%;
     --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 186 100% 40%;
+    --border: 193 20% 88%;
+    --input: 193 20% 88%;
+    --ring: 193 100% 14%;
 
     --radius: 0.5rem;
 
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 186 100% 40%;
+    --sidebar-background: 193 20% 98%;
+    --sidebar-foreground: 193 100% 14%;
+    --sidebar-primary: 193 100% 14%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 220 14% 96%;
-    --sidebar-accent-foreground: 222 47% 11%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 186 100% 40%;
+    --sidebar-accent: 193 20% 95%;
+    --sidebar-accent-foreground: 193 100% 14%;
+    --sidebar-border: 193 20% 88%;
+    --sidebar-ring: 193 100% 14%;
 
-    --chart-1: 186 100% 40%;
-    --chart-2: 172 66% 40%;
-    --chart-3: 199 89% 48%;
-    --chart-4: 215 70% 60%;
-    --chart-5: 262 83% 58%;
+    --chart-1: 193 100% 14%;
+    --chart-2: 193 80% 25%;
+    --chart-3: 193 60% 35%;
+    --chart-4: 193 40% 45%;
+    --chart-5: 193 20% 55%;
 
     /* Custom Proxinex tokens */
-    --glow: 186 100% 40%;
-    --glow-muted: 186 50% 60%;
+    --glow: 193 100% 14%;
+    --glow-muted: 193 50% 30%;
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
@@ -65,64 +66,66 @@
     --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 
-    --shadow-glow: 0 0 20px hsl(186 100% 40% / 0.15);
-    --shadow-glow-lg: 0 0 40px hsl(186 100% 40% / 0.2);
+    --shadow-glow: 0 0 20px hsl(193 100% 14% / 0.15);
+    --shadow-glow-lg: 0 0 40px hsl(193 100% 14% / 0.2);
   }
 
   .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 96%;
+    /* Dark theme - Deep Tint */
+    --background: 193 100% 4%;
+    --foreground: 193 20% 95%;
 
-    --card: 222 47% 9%;
-    --card-foreground: 210 40% 96%;
+    --card: 193 80% 8%;
+    --card-foreground: 193 20% 95%;
 
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 96%;
+    --popover: 193 80% 10%;
+    --popover-foreground: 193 20% 95%;
 
-    --primary: 186 100% 50%;
-    --primary-foreground: 222 47% 6%;
+    /* Deep Tint Primary - lighter for dark mode visibility */
+    --primary: 193 100% 35%;
+    --primary-foreground: 193 100% 4%;
 
-    --secondary: 222 47% 14%;
-    --secondary-foreground: 210 40% 96%;
+    --secondary: 193 60% 15%;
+    --secondary-foreground: 193 20% 95%;
 
-    --muted: 222 30% 18%;
-    --muted-foreground: 215 20% 55%;
+    --muted: 193 50% 18%;
+    --muted-foreground: 193 20% 55%;
 
-    --accent: 186 70% 40%;
-    --accent-foreground: 222 47% 6%;
+    --accent: 193 70% 30%;
+    --accent-foreground: 193 100% 4%;
 
     --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 193 20% 95%;
 
-    --border: 222 30% 18%;
-    --input: 222 30% 14%;
-    --ring: 186 100% 50%;
+    --border: 193 50% 18%;
+    --input: 193 50% 14%;
+    --ring: 193 100% 35%;
 
-    --sidebar-background: 222 47% 8%;
-    --sidebar-foreground: 210 40% 96%;
-    --sidebar-primary: 186 100% 50%;
-    --sidebar-primary-foreground: 222 47% 6%;
-    --sidebar-accent: 222 30% 14%;
-    --sidebar-accent-foreground: 210 40% 96%;
-    --sidebar-border: 222 30% 16%;
-    --sidebar-ring: 186 100% 50%;
+    --sidebar-background: 193 80% 6%;
+    --sidebar-foreground: 193 20% 95%;
+    --sidebar-primary: 193 100% 35%;
+    --sidebar-primary-foreground: 193 100% 4%;
+    --sidebar-accent: 193 50% 14%;
+    --sidebar-accent-foreground: 193 20% 95%;
+    --sidebar-border: 193 50% 16%;
+    --sidebar-ring: 193 100% 35%;
 
-    --chart-1: 186 100% 50%;
-    --chart-2: 172 66% 50%;
-    --chart-3: 199 89% 48%;
-    --chart-4: 215 70% 60%;
-    --chart-5: 262 83% 58%;
+    --chart-1: 193 100% 35%;
+    --chart-2: 193 80% 40%;
+    --chart-3: 193 60% 45%;
+    --chart-4: 193 40% 50%;
+    --chart-5: 193 20% 55%;
 
     /* Custom Proxinex tokens */
-    --glow: 186 100% 50%;
-    --glow-muted: 186 50% 30%;
+    --glow: 193 100% 35%;
+    --glow-muted: 193 50% 25%;
     --success: 142 76% 36%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
 
-    --shadow-glow: 0 0 20px hsl(186 100% 50% / 0.15);
-    --shadow-glow-lg: 0 0 40px hsl(186 100% 50% / 0.2);
+    --shadow-glow: 0 0 20px hsl(193 100% 35% / 0.2);
+    --shadow-glow-lg: 0 0 40px hsl(193 100% 35% / 0.3);
   }
 }
 
@@ -203,10 +206,10 @@
 
 @keyframes pulseGlow {
   0%, 100% { 
-    box-shadow: 0 0 20px hsl(186 100% 50% / 0.2);
+    box-shadow: 0 0 20px hsl(193 100% 35% / 0.2);
   }
   50% { 
-    box-shadow: 0 0 30px hsl(186 100% 50% / 0.4);
+    box-shadow: 0 0 30px hsl(193 100% 35% / 0.4);
   }
 }
 
