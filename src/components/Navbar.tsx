@@ -84,7 +84,7 @@ export const Navbar = () => {
         {/* Desktop CTA */}
         <div className="hidden md:flex items-center gap-3">
           <ThemeToggle />
-          <Link to="/signin">
+          <Link to="/auth">
             <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
               Sign In
             </Button>
@@ -129,7 +129,7 @@ export const Navbar = () => {
               </Link>
             ))}
             <div className="pt-4 space-y-2">
-              <Link to="/signin" onClick={() => setMobileMenuOpen(false)}>
+              <Link to="/auth" onClick={() => setMobileMenuOpen(false)}>
                 <Button variant="ghost" className="w-full justify-start text-muted-foreground">
                   Sign In
                 </Button>

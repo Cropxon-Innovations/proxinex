@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
 
     console.log(`Processing document: ${fileName} (${fileType})`);
 
-    // Get API key for Proxinex AI (powered by Lovable AI gateway)
+    // Get API key for Proxinex AI
     const apiKey = Deno.env.get("LOVABLE_API_KEY");
     if (!apiKey) {
       console.error("API key not configured");
