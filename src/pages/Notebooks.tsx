@@ -30,6 +30,9 @@ import {
 import { Helmet } from "react-helmet-async";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { NotificationCenter } from "@/components/NotificationCenter";
+import { KeyboardShortcutsButton } from "@/components/KeyboardShortcuts";
+import { usePageTransition } from "@/contexts/PageTransitionContext";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { InlineAskBlock } from "@/components/notebook/InlineAskBlock";
 
@@ -426,6 +429,8 @@ const NotebooksPage = () => {
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    <KeyboardShortcutsButton />
+                    <NotificationCenter />
                     <ThemeToggle />
                     {/* Live collaborators avatars */}
                     <div className="flex -space-x-2 mr-2">
