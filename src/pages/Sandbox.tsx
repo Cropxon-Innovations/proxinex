@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, Navigate } from "react-router-dom";
 import { Navbar } from "@/components/Navbar";
 import { Footer } from "@/components/Footer";
 import { Button } from "@/components/ui/button";
@@ -27,7 +28,8 @@ import {
   Pen,
   MessageSquare,
   Search,
-  Workflow
+  Workflow,
+  LogIn
 } from "lucide-react";
 import { Helmet } from "react-helmet-async";
 import { supabase } from "@/integrations/supabase/client";
@@ -36,6 +38,8 @@ import { useUsageLimits } from "@/hooks/useUsageLimits";
 import { UsageLimitModal } from "@/components/UsageLimitModal";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useAuth } from "@/contexts/AuthContext";
+import { ModelRecommendationBanner } from "@/components/ModelRecommendationBanner";
 
 interface AIModel {
   id: string;
@@ -522,6 +526,7 @@ const categoryLabels: Record<string, { label: string; icon: React.ElementType }>
 };
 
 const Sandbox = () => {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [selectedModels, setSelectedModels] = useState<string[]>(["llama3-8b", "mixtral-8x7b", "gpt4o"]);
   const [isLoading, setIsLoading] = useState(false);
@@ -538,6 +543,14 @@ const Sandbox = () => {
     getUsageDisplay,
     getRequiredPlanForUnlimited 
   } = useUsageLimits();
+
+  const handleModelRecommendationSelect = (modelId: string) => {
+    setSelectedModels(prev => 
+      prev.includes(modelId) 
+        ? prev.filter(id => id !== modelId)
+        : [...prev, modelId]
+    );
+  };
 
   const filteredModels = models.filter(model => {
     const typeMatch = filterType === "all" || model.type === filterType;
@@ -648,6 +661,61 @@ const Sandbox = () => {
                 <span className="block mt-1 text-sm">Proxinex picks the right model automatically — or choose manually here.</span>
               </p>
             </div>
+
+            {/* Auth Gate for Free Users */}
+            {!user && (
+              <div className="max-w-2xl mx-auto mb-8 p-6 rounded-xl border border-primary/30 bg-primary/5 text-center">
+                <Lock className="h-10 w-10 text-primary mx-auto mb-3" />
+                <h3 className="text-lg font-semibold text-foreground mb-2">Sign in to Compare Models</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Create a free account to run queries and compare AI models. Free plan includes 3 sandbox comparisons.
+                </p>
+                <div className="flex items-center justify-center gap-3">
+                  <Link to="/auth">
+                    <Button className="gap-2">
+                      <LogIn className="h-4 w-4" />
+                      Sign In Free
+                    </Button>
+                  </Link>
+                  <Link to="/pricing">
+                    <Button variant="outline">View Plans</Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Usage Limit Banner */}
+            {user && limits.sandbox !== Infinity && (
+              <div className="max-w-3xl mx-auto mb-6 p-4 rounded-xl border border-border bg-card">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Zap className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium text-foreground">Free Plan Usage</p>
+                      <p className="text-xs text-muted-foreground">
+                        {getUsageDisplay("sandbox")} comparisons used this month
+                      </p>
+                    </div>
+                  </div>
+                  <Link to="/pricing">
+                    <Button variant="outline" size="sm" className="text-xs">
+                      Upgrade for Unlimited
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            )}
+
+            {/* Model Recommendation Banner */}
+            {user && query.trim() && (
+              <div className="max-w-3xl mx-auto">
+                <ModelRecommendationBanner 
+                  query={query} 
+                  onSelectModel={handleModelRecommendationSelect}
+                  selectedModels={selectedModels}
+                />
+              </div>
+            )}
 
             {/* Filters */}
             <div className="max-w-5xl mx-auto mb-6 space-y-4">
