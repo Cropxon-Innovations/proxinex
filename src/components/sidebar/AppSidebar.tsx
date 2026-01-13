@@ -154,6 +154,7 @@ const advancedItems: NavItem[] = [
   { icon: Layers, label: "Sandbox", path: "/app/sandbox", feature: "sandbox" },
   { icon: BookOpen, label: "Notebooks", path: "/app/notebooks", feature: "notebooks" },
   { icon: Code, label: "API Playground", path: "/app/api", feature: "apiPlayground" },
+  { icon: Brain, label: "Memorix", path: "/app/memorix", isNew: true },
 ];
 
 const planLabels: Record<UserPlan, { label: string; color: string; icon: any }> = {

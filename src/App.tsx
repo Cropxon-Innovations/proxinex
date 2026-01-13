@@ -31,6 +31,8 @@ import HelpCenterPage from "./pages/HelpCenter";
 import ProjectsPage from "./pages/Projects";
 import PinnedContentPage from "./pages/PinnedContent";
 import NotFound from "./pages/NotFound";
+import Memorix from "./pages/Memorix";
+import MemorixWorkspace from "./pages/MemorixWorkspace";
 import ProductOverview from "./pages/ProductOverview";
 import ProductInlineAsk from "./pages/ProductInlineAsk";
 import ProductHowItWorks from "./pages/ProductHowItWorks";
@@ -66,6 +68,7 @@ const App = () => (
                   <Route path="/" element={<Index />} />
                   <Route path="/compare" element={<Compare />} />
                   <Route path="/sandbox" element={<Sandbox />} />
+                  <Route path="/memorix" element={<Memorix />} />
                   <Route path="/docs" element={<Docs />} />
                   <Route path="/pricing" element={<Pricing />} />
                   <Route path="/auth" element={<Auth />} />
@@ -108,6 +111,7 @@ const App = () => (
                   <Route path="/app/projects" element={<ProtectedRoute><ProjectsPage /></ProtectedRoute>} />
                   <Route path="/app/pinned" element={<ProtectedRoute><PinnedContentPage /></ProtectedRoute>} />
                   <Route path="/app/inline-asks" element={<ProtectedRoute><InlineAsksPage /></ProtectedRoute>} />
+                  <Route path="/app/memorix" element={<ProtectedRoute><MemorixWorkspace /></ProtectedRoute>} />
                   <Route path="/app/*" element={<ProtectedRoute><AppDashboard /></ProtectedRoute>} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
