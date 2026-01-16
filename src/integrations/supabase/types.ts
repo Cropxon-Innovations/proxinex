@@ -225,6 +225,84 @@ export type Database = {
           },
         ]
       }
+      memorix_outputs: {
+        Row: {
+          content: Json | null
+          created_at: string
+          id: string
+          source_ids: string[]
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          content?: Json | null
+          created_at?: string
+          id?: string
+          source_ids: string[]
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          content?: Json | null
+          created_at?: string
+          id?: string
+          source_ids?: string[]
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      memorix_sources: {
+        Row: {
+          created_at: string
+          embeddings: Json | null
+          extracted_text: string | null
+          file_path: string | null
+          file_size: number | null
+          file_url: string | null
+          id: string
+          metadata: Json | null
+          name: string
+          status: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          embeddings?: Json | null
+          extracted_text?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          name: string
+          status?: string
+          type: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          embeddings?: Json | null
+          extracted_text?: string | null
+          file_path?: string | null
+          file_size?: number | null
+          file_url?: string | null
+          id?: string
+          metadata?: Json | null
+          name?: string
+          status?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notebooks: {
         Row: {
           content: Json | null
