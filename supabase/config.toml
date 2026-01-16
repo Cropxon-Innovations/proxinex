@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.send-renewal-reminders]
 verify_jwt = false
+
+[functions.memorix-chat]
+verify_jwt = false

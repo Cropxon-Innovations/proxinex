@@ -72,6 +72,7 @@ import {
   Archive,
   Share2,
   Download,
+  Brain,
 } from "lucide-react";
 import { useUserPlan, UserPlan } from "@/hooks/useUserPlan";
 import { useUsageLimits } from "@/hooks/useUsageLimits";

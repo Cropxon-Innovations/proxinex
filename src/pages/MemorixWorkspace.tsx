@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { 
   Brain, 
   FileText, 
@@ -33,15 +33,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AppHeader } from "@/components/AppHeader";
 import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { useToast } from "@/hooks/use-toast";
-
-interface UploadedSource {
-  id: string;
-  name: string;
-  type: "pdf" | "doc" | "audio" | "video" | "url";
-  size?: string;
-  status: "uploading" | "processing" | "ready" | "error";
-  progress: number;
-}
+import { useMemorixUpload, MemorixSource } from "@/hooks/useMemorixUpload";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 
 interface MemoryOutput {
   id: string;
@@ -55,7 +55,7 @@ const MemorixWorkspace = () => {
   const { user, signOut } = useAuth();
   const { toast } = useToast();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sources, setSources] = useState<UploadedSource[]>([]);
+  const { sources, fetchSources, uploadFile, addUrl, removeSource } = useMemorixUpload();
   const [outputs, setOutputs] = useState<MemoryOutput[]>([]);
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "assistant"; content: string }[]>([]);
   const [inputMessage, setInputMessage] = useState("");
@@ -63,6 +63,17 @@ const MemorixWorkspace = () => {
   const [processingStage, setProcessingStage] = useState(0);
   const [showProcessingOverlay, setShowProcessingOverlay] = useState(false);
   const [activeOutputTab, setActiveOutputTab] = useState<string>("all");
+  const [urlDialogOpen, setUrlDialogOpen] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [currentUploadType, setCurrentUploadType] = useState<"pdf" | "doc" | "audio" | "video">("pdf");
+
+  // Fetch sources on mount
+  useEffect(() => {
+    if (user) {
+      fetchSources();
+    }
+  }, [user, fetchSources]);
 
   const processingStages = [
     { icon: "📥", label: "Ingesting documents...", progress: 15 },
@@ -97,57 +108,49 @@ const MemorixWorkspace = () => {
     return () => clearInterval(interval);
   }, [toast]);
 
-  const handleFileUpload = (type: "pdf" | "doc" | "audio" | "video") => {
-    const newSource: UploadedSource = {
-      id: Date.now().toString(),
-      name: `Sample ${type.toUpperCase()} Document`,
-      type,
-      size: "2.4 MB",
-      status: "uploading",
-      progress: 0,
-    };
+  const handleFileSelect = (type: "pdf" | "doc" | "audio" | "video") => {
+    setCurrentUploadType(type);
+    if (fileInputRef.current) {
+      // Set accept based on type
+      const acceptMap = {
+        pdf: ".pdf",
+        doc: ".doc,.docx,.txt",
+        audio: ".mp3,.wav,.m4a",
+        video: ".mp4,.webm,.mov",
+      };
+      fileInputRef.current.accept = acceptMap[type];
+      fileInputRef.current.click();
+    }
+  };
 
-    setSources((prev) => [...prev, newSource]);
-
-    // Simulate upload progress
-    let progress = 0;
-    const progressInterval = setInterval(() => {
-      progress += 10;
-      setSources((prev) =>
-        prev.map((s) =>
-          s.id === newSource.id
-            ? { ...s, progress: Math.min(progress, 100), status: progress >= 100 ? "processing" : "uploading" }
-            : s
-        )
-      );
-
-      if (progress >= 100) {
-        clearInterval(progressInterval);
-        // Simulate processing
-        setTimeout(() => {
-          setSources((prev) =>
-            prev.map((s) =>
-              s.id === newSource.id ? { ...s, status: "ready", progress: 100 } : s
-            )
-          );
-        }, 2000);
-      }
-    }, 200);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+    
+    for (const file of Array.from(files)) {
+      await uploadFile(file, currentUploadType);
+    }
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleAddUrl = () => {
-    const newSource: UploadedSource = {
-      id: Date.now().toString(),
-      name: "https://example.com/document",
-      type: "url",
-      status: "ready",
-      progress: 100,
-    };
-    setSources((prev) => [...prev, newSource]);
+    setUrlDialogOpen(true);
   };
 
-  const handleRemoveSource = (id: string) => {
-    setSources((prev) => prev.filter((s) => s.id !== id));
+  const handleUrlSubmit = async () => {
+    if (urlInput.trim()) {
+      await addUrl(urlInput.trim());
+      setUrlInput("");
+      setUrlDialogOpen(false);
+    }
+  };
+
+  const handleRemoveSource = async (id: string) => {
+    await removeSource(id);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -160,20 +163,36 @@ const MemorixWorkspace = () => {
 
     setIsProcessing(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      const response = `Based on your uploaded sources, I found relevant information about "${userMessage}". 
+    try {
+      const sourceIds = sources.filter((s) => s.status === "ready").map((s) => s.id);
+      
+      const { data, error } = await supabase.functions.invoke("memorix-chat", {
+        body: {
+          message: userMessage,
+          sourceIds,
+          conversationHistory: chatMessages,
+        },
+      });
 
-**Key Insights:**
-1. The documents mention several important points related to your query.
-2. Cross-referencing multiple sources reveals consistent patterns.
-3. Citation: [Source 1, Page 3], [Source 2, Section 4.2]
+      if (error) throw error;
 
-Would you like me to generate a visual summary or dive deeper into any specific aspect?`;
-
-      setChatMessages((prev) => [...prev, { role: "assistant", content: response }]);
+      if (data?.success && data?.message) {
+        setChatMessages((prev) => [...prev, { role: "assistant", content: data.message }]);
+      } else {
+        throw new Error(data?.error || "Failed to get response");
+      }
+    } catch (error) {
+      console.error("Chat error:", error);
+      setChatMessages((prev) => [
+        ...prev,
+        { 
+          role: "assistant", 
+          content: "I apologize, but I encountered an error processing your request. Please try again." 
+        },
+      ]);
+    } finally {
       setIsProcessing(false);
-    }, 2000);
+    }
   };
 
   const handleGenerateOutput = (type: "slides" | "chart" | "video" | "memory-map") => {
@@ -263,12 +282,19 @@ Would you like me to generate a visual summary or dive deeper into any specific 
             <div className="w-72 border-r border-border flex flex-col bg-card/30">
               <div className="p-4 border-b border-border">
                 <h3 className="font-semibold text-sm text-foreground mb-3">Sources</h3>
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs"
-                    onClick={() => handleFileUpload("pdf")}
+                    onClick={() => handleFileSelect("pdf")}
                   >
                     <FileText className="h-3.5 w-3.5" />
                     PDF
@@ -277,7 +303,7 @@ Would you like me to generate a visual summary or dive deeper into any specific 
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs"
-                    onClick={() => handleFileUpload("doc")}
+                    onClick={() => handleFileSelect("doc")}
                   >
                     <FileText className="h-3.5 w-3.5" />
                     Doc
@@ -286,7 +312,7 @@ Would you like me to generate a visual summary or dive deeper into any specific 
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs"
-                    onClick={() => handleFileUpload("audio")}
+                    onClick={() => handleFileSelect("audio")}
                   >
                     <Mic className="h-3.5 w-3.5" />
                     Audio
@@ -295,7 +321,7 @@ Would you like me to generate a visual summary or dive deeper into any specific 
                     variant="outline"
                     size="sm"
                     className="gap-1.5 text-xs"
-                    onClick={() => handleFileUpload("video")}
+                    onClick={() => handleFileSelect("video")}
                   >
                     <Video className="h-3.5 w-3.5" />
                     Video
@@ -333,7 +359,9 @@ Would you like me to generate a visual summary or dive deeper into any specific 
                             </div>
                             <div className="flex-1 min-w-0">
                               <p className="text-xs font-medium text-foreground truncate">{source.name}</p>
-                              <p className="text-[10px] text-muted-foreground">{source.size || source.type.toUpperCase()}</p>
+                              <p className="text-[10px] text-muted-foreground">
+                                {source.file_size ? `${(source.file_size / 1024 / 1024).toFixed(1)} MB` : source.type.toUpperCase()}
+                              </p>
                             </div>
                             <button
                               onClick={() => handleRemoveSource(source.id)}
@@ -592,6 +620,31 @@ Would you like me to generate a visual summary or dive deeper into any specific 
             </div>
           </div>
         )}
+
+        {/* URL Dialog */}
+        <Dialog open={urlDialogOpen} onOpenChange={setUrlDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add URL Source</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Input
+                placeholder="https://example.com/document"
+                value={urlInput}
+                onChange={(e) => setUrlInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleUrlSubmit()}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setUrlDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUrlSubmit} disabled={!urlInput.trim()}>
+                  Add URL
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </>
   );
