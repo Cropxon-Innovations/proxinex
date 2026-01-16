@@ -21,7 +21,8 @@ import {
   Download,
   ChevronRight,
   X,
-  FolderOpen
+  FolderOpen,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -35,6 +36,9 @@ import { AppSidebar } from "@/components/sidebar/AppSidebar";
 import { useToast } from "@/hooks/use-toast";
 import { useMemorixUpload, MemorixSource } from "@/hooks/useMemorixUpload";
 import { supabase } from "@/integrations/supabase/client";
+import { DragDropUploadZone } from "@/components/memorix/DragDropUploadZone";
+import { MemoryMapVisualization } from "@/components/memorix/MemoryMapVisualization";
+import { DocumentAnalysisPreview } from "@/components/memorix/DocumentAnalysisPreview";
 import {
   Dialog,
   DialogContent,
@@ -65,6 +69,8 @@ const MemorixWorkspace = () => {
   const [activeOutputTab, setActiveOutputTab] = useState<string>("all");
   const [urlDialogOpen, setUrlDialogOpen] = useState(false);
   const [urlInput, setUrlInput] = useState("");
+  const [activeView, setActiveView] = useState<"sources" | "memory-map" | "analysis">("sources");
+  const [selectedSourceForAnalysis, setSelectedSourceForAnalysis] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentUploadType, setCurrentUploadType] = useState<"pdf" | "doc" | "audio" | "video">("pdf");
 
@@ -108,10 +114,15 @@ const MemorixWorkspace = () => {
     return () => clearInterval(interval);
   }, [toast]);
 
+  const handleFilesDropped = async (files: File[], type: "pdf" | "doc" | "audio" | "video") => {
+    for (const file of files) {
+      await uploadFile(file, type);
+    }
+  };
+
   const handleFileSelect = (type: "pdf" | "doc" | "audio" | "video") => {
     setCurrentUploadType(type);
     if (fileInputRef.current) {
-      // Set accept based on type
       const acceptMap = {
         pdf: ".pdf",
         doc: ".doc,.docx,.txt",
@@ -131,7 +142,6 @@ const MemorixWorkspace = () => {
       await uploadFile(file, currentUploadType);
     }
     
-    // Reset input
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -250,6 +260,8 @@ const MemorixWorkspace = () => {
     }
   };
 
+  const selectedSource = sources.find((s) => s.id === selectedSourceForAnalysis);
+
   return (
     <>
       <Helmet>
@@ -278,123 +290,242 @@ const MemorixWorkspace = () => {
           </AppHeader>
 
           <div className="flex-1 flex overflow-hidden">
-            {/* Left Panel - Sources */}
-            <div className="w-72 border-r border-border flex flex-col bg-card/30">
-              <div className="p-4 border-b border-border">
-                <h3 className="font-semibold text-sm text-foreground mb-3">Sources</h3>
-                {/* Hidden file input */}
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => handleFileSelect("pdf")}
+            {/* Left Panel - Sources & Memory Map */}
+            <div className="w-80 border-r border-border flex flex-col bg-card/30">
+              {/* View Toggle */}
+              <div className="p-3 border-b border-border">
+                <div className="flex gap-1 p-1 bg-secondary/50 rounded-lg">
+                  <button
+                    onClick={() => setActiveView("sources")}
+                    className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${
+                      activeView === "sources" 
+                        ? "bg-background text-foreground shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <FileText className="h-3.5 w-3.5" />
-                    PDF
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => handleFileSelect("doc")}
+                    Sources
+                  </button>
+                  <button
+                    onClick={() => setActiveView("memory-map")}
+                    className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${
+                      activeView === "memory-map" 
+                        ? "bg-background text-foreground shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <FileText className="h-3.5 w-3.5" />
-                    Doc
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => handleFileSelect("audio")}
+                    Memory Map
+                  </button>
+                  <button
+                    onClick={() => setActiveView("analysis")}
+                    className={`flex-1 py-1.5 px-3 text-xs font-medium rounded-md transition-colors ${
+                      activeView === "analysis" 
+                        ? "bg-background text-foreground shadow-sm" 
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
                   >
-                    <Mic className="h-3.5 w-3.5" />
-                    Audio
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="gap-1.5 text-xs"
-                    onClick={() => handleFileSelect("video")}
-                  >
-                    <Video className="h-3.5 w-3.5" />
-                    Video
-                  </Button>
+                    Analysis
+                  </button>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full mt-2 gap-1.5 text-xs"
-                  onClick={handleAddUrl}
-                >
-                  <LinkIcon className="h-3.5 w-3.5" />
-                  Add URL
-                </Button>
               </div>
 
-              <ScrollArea className="flex-1">
-                <div className="p-3 space-y-2">
-                  {sources.length === 0 ? (
-                    <div className="text-center py-8 text-muted-foreground">
-                      <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-xs">No sources uploaded yet</p>
-                    </div>
-                  ) : (
-                    sources.map((source) => {
-                      const Icon = getSourceIcon(source.type);
-                      return (
-                        <div
-                          key={source.id}
-                          className="p-3 rounded-lg border border-border bg-card group hover:border-primary/30 transition-colors"
-                        >
-                          <div className="flex items-start gap-2">
-                            <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">
-                              <Icon className="h-4 w-4 text-muted-foreground" />
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-medium text-foreground truncate">{source.name}</p>
-                              <p className="text-[10px] text-muted-foreground">
-                                {source.file_size ? `${(source.file_size / 1024 / 1024).toFixed(1)} MB` : source.type.toUpperCase()}
-                              </p>
-                            </div>
-                            <button
-                              onClick={() => handleRemoveSource(source.id)}
-                              className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-all"
-                            >
-                              <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                            </button>
-                          </div>
-                          {source.status !== "ready" && (
-                            <div className="mt-2">
-                              <div className="flex items-center justify-between text-[10px] mb-1">
-                                <span className="text-muted-foreground">
-                                  {source.status === "uploading" ? "Uploading..." : "Processing..."}
-                                </span>
-                                <span className="text-muted-foreground">{source.progress}%</span>
-                              </div>
-                              <Progress value={source.progress} className="h-1" />
-                            </div>
-                          )}
-                          {source.status === "ready" && (
-                            <div className="mt-2 flex items-center gap-1 text-[10px] text-primary">
-                              <Check className="h-3 w-3" />
-                              <span>Ready</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </ScrollArea>
+              {activeView === "sources" && (
+                <>
+                  {/* Drag & Drop Zone */}
+                  <div className="p-3 border-b border-border">
+                    <DragDropUploadZone
+                      onFilesDropped={handleFilesDropped}
+                      className="min-h-[120px]"
+                    />
+                  </div>
 
-              {sources.filter((s) => s.status === "ready").length > 0 && (
+                  {/* Quick Upload Buttons */}
+                  <div className="p-3 border-b border-border">
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      className="hidden"
+                      onChange={handleFileChange}
+                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() => handleFileSelect("pdf")}
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        PDF
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() => handleFileSelect("doc")}
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        Doc
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() => handleFileSelect("audio")}
+                      >
+                        <Mic className="h-3.5 w-3.5" />
+                        Audio
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-1.5 text-xs"
+                        onClick={() => handleFileSelect("video")}
+                      >
+                        <Video className="h-3.5 w-3.5" />
+                        Video
+                      </Button>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full mt-2 gap-1.5 text-xs"
+                      onClick={handleAddUrl}
+                    >
+                      <LinkIcon className="h-3.5 w-3.5" />
+                      Add URL
+                    </Button>
+                  </div>
+
+                  {/* Sources List */}
+                  <ScrollArea className="flex-1">
+                    <div className="p-3 space-y-2">
+                      {sources.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <FolderOpen className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                          <p className="text-xs">No sources uploaded yet</p>
+                          <p className="text-[10px] mt-1">Drag & drop files above</p>
+                        </div>
+                      ) : (
+                        sources.map((source) => {
+                          const Icon = getSourceIcon(source.type);
+                          return (
+                            <div
+                              key={source.id}
+                              className="p-3 rounded-lg border border-border bg-card group hover:border-primary/30 transition-colors"
+                            >
+                              <div className="flex items-start gap-2">
+                                <div className="w-8 h-8 rounded bg-secondary flex items-center justify-center flex-shrink-0">
+                                  <Icon className="h-4 w-4 text-muted-foreground" />
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs font-medium text-foreground truncate">{source.name}</p>
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {source.file_size ? `${(source.file_size / 1024 / 1024).toFixed(1)} MB` : source.type.toUpperCase()}
+                                  </p>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  {source.status === "ready" && source.metadata && (
+                                    <button
+                                      onClick={() => {
+                                        setSelectedSourceForAnalysis(source.id);
+                                        setActiveView("analysis");
+                                      }}
+                                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-primary/20 rounded transition-all"
+                                      title="View Analysis"
+                                    >
+                                      <Eye className="h-3 w-3 text-primary" />
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => handleRemoveSource(source.id)}
+                                    className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/20 rounded transition-all"
+                                  >
+                                    <X className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                                  </button>
+                                </div>
+                              </div>
+                              {source.status !== "ready" && (
+                                <div className="mt-2">
+                                  <div className="flex items-center justify-between text-[10px] mb-1">
+                                    <span className="text-muted-foreground">
+                                      {source.status === "uploading" ? "Uploading..." : "Processing..."}
+                                    </span>
+                                    <span className="text-muted-foreground">{source.progress}%</span>
+                                  </div>
+                                  <Progress value={source.progress} className="h-1" />
+                                </div>
+                              )}
+                              {source.status === "ready" && (
+                                <div className="mt-2 flex items-center gap-1 text-[10px] text-primary">
+                                  <Check className="h-3 w-3" />
+                                  <span>Ready</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </ScrollArea>
+                </>
+              )}
+
+              {activeView === "memory-map" && (
+                <div className="flex-1 p-3">
+                  <MemoryMapVisualization
+                    sources={sources.filter((s) => s.status === "ready")}
+                    className="h-full"
+                  />
+                </div>
+              )}
+
+              {activeView === "analysis" && (
+                <ScrollArea className="flex-1">
+                  <div className="p-3 space-y-3">
+                    {selectedSource ? (
+                      <DocumentAnalysisPreview
+                        source={{
+                          id: selectedSource.id,
+                          name: selectedSource.name,
+                          type: selectedSource.type,
+                          status: selectedSource.status,
+                          metadata: selectedSource.metadata,
+                          progress: selectedSource.progress,
+                        }}
+                        isProcessing={selectedSource.status === "processing"}
+                      />
+                    ) : sources.filter((s) => s.status === "ready" && s.metadata).length > 0 ? (
+                      <>
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Select a source to view detailed analysis, or browse all:
+                        </p>
+                        {sources
+                          .filter((s) => s.status === "ready" && s.metadata)
+                          .map((source) => (
+                            <DocumentAnalysisPreview
+                              key={source.id}
+                              source={{
+                                id: source.id,
+                                name: source.name,
+                                type: source.type,
+                                status: source.status,
+                                metadata: source.metadata,
+                                progress: source.progress,
+                              }}
+                            />
+                          ))}
+                      </>
+                    ) : (
+                      <div className="text-center py-8 text-muted-foreground">
+                        <Eye className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                        <p className="text-xs">No analyzed documents yet</p>
+                        <p className="text-[10px] mt-1">Upload files to see AI analysis</p>
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              )}
+
+              {sources.filter((s) => s.status === "ready").length > 0 && activeView === "sources" && (
                 <div className="p-3 border-t border-border">
                   <Button
                     className="w-full gap-2"
