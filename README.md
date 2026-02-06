@@ -2,7 +2,7 @@
 
 ## About Proxinex
 
-Proxinex is the AI Intelligence Control Plane that helps you route queries to optimal AI models, verify accuracy with trust scores, and see exact costs. Built by Cropxon Innovations Pvt Ltd.
+Proxinex is the AI Intelligence Control Plane that helps you route queries to optimal AI models, verify accuracy with trust scores, and see exact costs. Built by OriginX Labs PVT. LTD.
 
 ## Features
 
@@ -12,6 +12,7 @@ Proxinex is the AI Intelligence Control Plane that helps you route queries to op
 - **Inline Ask™**: Highlight any text to get instant AI-powered insights
 - **Research Mode**: Deep research with cited sources
 - **Multi-Modal Support**: Documents, Images, Video generation
+- **Memorix**: AI-powered Intelligence Memory Engine with knowledge sources
 
 ## Tech Stack
 
@@ -22,7 +23,7 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
-- Supabase (Backend)
+- Lovable Cloud (Backend)
 
 ## Development
 
@@ -46,28 +47,17 @@ npm install
 npm run dev
 ```
 
-## Project Structure
+## Backend Migration
 
-```
-src/
-├── components/     # Reusable UI components
-├── pages/          # Route pages
-├── hooks/          # Custom React hooks
-├── contexts/       # React contexts
-├── lib/            # Utility functions
-└── integrations/   # Third-party integrations
-
-supabase/
-└── functions/      # Edge functions for backend logic
-```
+For scaling beyond edge functions, see [MIGRATION_GUIDE.md](./MIGRATION_GUIDE.md) for comprehensive documentation on migrating to .NET Core, Python, or Node.js backends with multi-provider AI model routing.
 
 ## Deployment
 
-The application is deployed and accessible at [proxinex.com](https://proxinex.com).
+The application is deployed on Vercel and accessible at [proxinex.com](https://proxinex.com).
 
 ## License
 
-© 2025 Cropxon Innovations Pvt Ltd. All rights reserved.
+© 2026 OriginX Labs PVT. LTD. All rights reserved.
 
 ## Contact
 
