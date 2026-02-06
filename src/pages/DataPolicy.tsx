@@ -22,7 +22,7 @@ const DataPolicy = () => {
               <section>
                 <h2 className="text-2xl font-semibold text-foreground mb-4">1. Overview</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  This Data Policy explains how CROPXON INNOVATIONS PVT LTD handles data within the 
+                  This Data Policy explains how OriginX Labs PVT. LTD handles data within the 
                   Proxinex AI Intelligence Control Plane. We are committed to transparency about our 
                   data practices and protecting your information.
                 </p>
@@ -164,7 +164,7 @@ const DataPolicy = () => {
                 <h2 className="text-2xl font-semibold text-foreground mb-4">9. Contact</h2>
                 <div className="mt-4 p-4 bg-card border border-border rounded-lg">
                   <p className="text-foreground font-medium">Data Protection Officer</p>
-                  <p className="text-foreground">CROPXON INNOVATIONS PVT LTD</p>
+                  <p className="text-foreground">OriginX Labs PVT. LTD</p>
                   <p className="text-muted-foreground">Email: data@proxinex.com</p>
                 </div>
               </section>

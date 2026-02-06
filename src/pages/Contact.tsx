@@ -232,7 +232,7 @@ const Contact = () => {
                         <div className="flex items-start gap-3">
                           <Building className="h-5 w-5 text-primary mt-1" />
                           <div>
-                            <div className="font-medium text-foreground">CROPXON INNOVATIONS PVT LTD</div>
+                            <div className="font-medium text-foreground">OriginX Labs PVT. LTD</div>
                             <div className="text-sm text-muted-foreground">Parent Company</div>
                           </div>
                         </div>

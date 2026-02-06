@@ -90,7 +90,7 @@ export const Logo = ({ className = "", showText = true, size = "md" }: LogoProps
             PROXINEX
           </span>
           <span className="text-[10px] text-muted-foreground tracking-widest">
-            BY CROPXON
+            BY ORIGINX LABS
           </span>
         </div>
       )}

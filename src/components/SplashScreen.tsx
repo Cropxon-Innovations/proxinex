@@ -88,7 +88,7 @@ export const SplashScreen = ({ onComplete }: { onComplete: () => void }) => {
       }`}>
         <p className="text-xs text-muted-foreground">
           A Product by{" "}
-          <span className="text-foreground font-medium">CROPXON INNOVATIONS PVT LTD</span>
+          <span className="text-foreground font-medium">OriginX Labs PVT. LTD</span>
         </p>
         <p className="text-xs text-muted-foreground/60 mt-1">Beta v0.1.0</p>
       </div>

@@ -22,7 +22,7 @@ const PrivacyPolicy = () => {
               <section>
                 <h2 className="text-2xl font-semibold text-foreground mb-4">1. Introduction</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  CROPXON INNOVATIONS PVT LTD ("Company", "we", "us", or "our") operates Proxinex, 
+                  OriginX Labs PVT. LTD ("Company", "we", "us", or "our") operates Proxinex, 
                   an AI Intelligence Control Plane. This Privacy Policy explains how we collect, use, 
                   disclose, and safeguard your information when you use our Service.
                 </p>
@@ -139,7 +139,7 @@ const PrivacyPolicy = () => {
                 </p>
                 <div className="mt-4 p-4 bg-card border border-border rounded-lg">
                   <p className="text-foreground font-medium">Data Protection Officer</p>
-                  <p className="text-foreground">CROPXON INNOVATIONS PVT LTD</p>
+                  <p className="text-foreground">OriginX Labs PVT. LTD</p>
                   <p className="text-muted-foreground">Email: privacy@proxinex.com</p>
                 </div>
               </section>

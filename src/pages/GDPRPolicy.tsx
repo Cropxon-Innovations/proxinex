@@ -22,7 +22,7 @@ const GDPRPolicy = () => {
               <section>
                 <h2 className="text-2xl font-semibold text-foreground mb-4">1. Overview</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  CROPXON INNOVATIONS PVT LTD is committed to protecting the personal data of individuals 
+                  OriginX Labs PVT. LTD is committed to protecting the personal data of individuals 
                   in the European Economic Area (EEA), United Kingdom, and Switzerland in accordance with 
                   the General Data Protection Regulation (GDPR).
                 </p>
@@ -35,7 +35,7 @@ const GDPRPolicy = () => {
               <section>
                 <h2 className="text-2xl font-semibold text-foreground mb-4">2. Data Controller</h2>
                 <div className="p-4 bg-card border border-border rounded-lg">
-                  <p className="text-foreground font-medium">CROPXON INNOVATIONS PVT LTD</p>
+                  <p className="text-foreground font-medium">OriginX Labs PVT. LTD</p>
                   <p className="text-muted-foreground">Operating as: Proxinex</p>
                   <p className="text-muted-foreground">Data Protection Officer: dpo@proxinex.com</p>
                 </div>

@@ -189,12 +189,12 @@ const Auth = () => {
               <p className="text-xs text-muted-foreground">
                 A Product by{" "}
                 <a 
-                  href="https://www.cropxon.com/" 
+                  href="https://www.originxlabs.com/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-foreground font-medium hover:text-primary transition-colors"
                 >
-                  CROPXON INNOVATIONS PVT. LTD.
+                  OriginX Labs PVT. LTD
                 </a>
               </p>
             </div>
@@ -348,12 +348,12 @@ const Auth = () => {
               <p className="text-xs text-muted-foreground">
                 A Product by{" "}
                 <a 
-                  href="https://www.cropxon.com/" 
+                  href="https://www.originxlabs.com/" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="text-foreground font-medium hover:text-primary transition-colors"
                 >
-                  CROPXON INNOVATIONS PVT. LTD.
+                  OriginX Labs PVT. LTD
                 </a>
               </p>
             </div>
