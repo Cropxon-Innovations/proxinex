@@ -23,7 +23,7 @@ const TermsOfService = () => {
                 <h2 className="text-2xl font-semibold text-foreground mb-4">1. Introduction</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   Welcome to Proxinex, an AI Intelligence Control Plane product developed and operated by 
-                  <strong className="text-foreground"> CROPXON INNOVATIONS PVT LTD</strong> ("Company", "we", "us", or "our"), 
+                  <strong className="text-foreground"> OriginX Labs PVT. LTD</strong> ("Company", "we", "us", or "our"), 
                   a company registered in India. These Terms of Service ("Terms") govern your access to and use of 
                   the Proxinex platform, website, APIs, and related services (collectively, the "Service").
                 </p>
@@ -104,16 +104,16 @@ const TermsOfService = () => {
                 <h2 className="text-2xl font-semibold text-foreground mb-4">7. Intellectual Property</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   The Service and its original content, features, and functionality are owned by 
-                  CROPXON INNOVATIONS PVT LTD and are protected by international copyright, trademark, 
+                  OriginX Labs PVT. LTD and are protected by international copyright, trademark, 
                   and other intellectual property laws. Proxinex, Inline Ask™, and the Proxinex logo 
-                  are trademarks of CROPXON INNOVATIONS PVT LTD.
+                  are trademarks of OriginX Labs PVT. LTD.
                 </p>
               </section>
 
               <section>
                 <h2 className="text-2xl font-semibold text-foreground mb-4">8. Limitation of Liability</h2>
                 <p className="text-muted-foreground leading-relaxed">
-                  To the maximum extent permitted by law, CROPXON INNOVATIONS PVT LTD shall not be liable 
+                  To the maximum extent permitted by law, OriginX Labs PVT. LTD shall not be liable 
                   for any indirect, incidental, special, consequential, or punitive damages arising from 
                   your use of the Service.
                 </p>
@@ -134,9 +134,9 @@ const TermsOfService = () => {
                   For questions about these Terms, please contact us at:
                 </p>
                 <div className="mt-4 p-4 bg-card border border-border rounded-lg">
-                  <p className="text-foreground font-medium">CROPXON INNOVATIONS PVT LTD</p>
+                  <p className="text-foreground font-medium">OriginX Labs PVT. LTD</p>
                   <p className="text-muted-foreground">Email: legal@proxinex.com</p>
-                  <p className="text-muted-foreground">Website: <a href="https://www.cropxon.com/" className="text-primary hover:underline">www.cropxon.com</a></p>
+                  <p className="text-muted-foreground">Website: <a href="https://www.originxlabs.com/" className="text-primary hover:underline">www.originxlabs.com</a></p>
                 </div>
               </section>
             </div>

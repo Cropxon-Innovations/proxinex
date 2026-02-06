@@ -70,12 +70,12 @@ export const Footer = () => {
           <p className="text-sm text-muted-foreground">
             © {new Date().getFullYear()}{" "}
             <a
-              href="https://www.cropxon.com/"
+              href="https://www.originxlabs.com/"
               target="_blank"
               rel="noopener noreferrer"
               className="font-medium text-foreground hover:text-primary transition-colors underline-offset-4 hover:underline"
             >
-              CROPXON INNOVATIONS PVT LTD
+              OriginX Labs PVT. LTD
             </a>
             . All rights reserved.
           </p>

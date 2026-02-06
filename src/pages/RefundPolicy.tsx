@@ -23,7 +23,7 @@ const RefundPolicy = () => {
                 <h2 className="text-2xl font-semibold text-foreground mb-4">1. Overview</h2>
                 <p className="text-muted-foreground leading-relaxed">
                   This Refund Policy outlines the terms and conditions for refunds on Proxinex paid 
-                  subscriptions and services offered by CROPXON INNOVATIONS PVT LTD.
+                  subscriptions and services offered by OriginX Labs PVT. LTD.
                 </p>
               </section>
 
@@ -119,7 +119,7 @@ const RefundPolicy = () => {
                   For billing and refund inquiries:
                 </p>
                 <div className="mt-4 p-4 bg-card border border-border rounded-lg">
-                  <p className="text-foreground font-medium">CROPXON INNOVATIONS PVT LTD</p>
+                  <p className="text-foreground font-medium">OriginX Labs PVT. LTD</p>
                   <p className="text-muted-foreground">Billing Support: billing@proxinex.com</p>
                   <p className="text-muted-foreground">Response Time: 24-48 hours</p>
                 </div>

@@ -28,7 +28,7 @@ const NotFound = () => {
         {/* Brand name */}
         <div className="mb-8 text-center">
           <h1 className="text-2xl font-bold tracking-wider text-foreground">PROXINEX</h1>
-          <p className="text-xs text-muted-foreground tracking-widest">BY CROPXON</p>
+          <p className="text-xs text-muted-foreground tracking-widest">BY ORIGINX LABS</p>
         </div>
 
         {/* 404 Message */}
@@ -60,7 +60,7 @@ const NotFound = () => {
         {/* Footer branding */}
         <div className="absolute bottom-8 text-center">
           <p className="text-xs text-muted-foreground">
-            Powered by <span className="font-medium">CROPXON INNOVATIONS PVT. LTD.</span>
+            Powered by <span className="font-medium">OriginX Labs PVT. LTD</span>
           </p>
           <p className="text-[10px] text-muted-foreground/60 mt-1">
             Building the Future of AI Intelligence

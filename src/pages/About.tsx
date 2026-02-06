@@ -28,7 +28,7 @@ const values = [
 ];
 
 const milestones = [
-  { year: "2025", month: "August", event: "Proxinex founded as a division of CROPXON INNOVATIONS PVT LTD" },
+  { year: "2025", month: "August", event: "Proxinex founded as a division of OriginX Labs PVT. LTD" },
   { year: "2025", month: "September", event: "Alpha release with core routing and accuracy scoring" },
   { year: "2025", month: "October", event: "Inline Ask™ feature launched" },
   { year: "2025", month: "November", event: "Beta program opened to early adopters" },
@@ -43,7 +43,7 @@ const About = () => {
         <title>About Proxinex - Our Mission & Story</title>
         <meta 
           name="description" 
-          content="Learn about Proxinex, a division of CROPXON INNOVATIONS PVT LTD. Our mission is to bring transparency and control to AI intelligence." 
+          content="Learn about Proxinex, a division of OriginX Labs PVT. LTD. Our mission is to bring transparency and control to AI intelligence." 
         />
       </Helmet>
 
@@ -130,10 +130,10 @@ const About = () => {
                     <Award className="h-8 w-8 text-primary flex-shrink-0" />
                     <div>
                       <h3 className="text-xl font-semibold text-foreground mb-2">
-                        A Division of CROPXON INNOVATIONS PVT LTD
+                        A Division of OriginX Labs PVT. LTD
                       </h3>
                       <p className="text-muted-foreground">
-                        Proxinex is a product of CROPXON INNOVATIONS PVT LTD, an Indian technology 
+                        Proxinex is a product of OriginX Labs PVT. LTD, an Indian technology 
                         company focused on building intelligent solutions for the modern enterprise. 
                         Our parent company brings years of expertise in AI, cloud infrastructure, 
                         and enterprise software.

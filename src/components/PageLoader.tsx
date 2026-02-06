@@ -90,12 +90,12 @@ export const PageLoader = ({ onComplete, minimal = false }: PageLoaderProps) => 
           Powered By
         </p>
         <a 
-          href="https://www.cropxon.com/" 
+          href="https://www.originxlabs.com/" 
           target="_blank" 
           rel="noopener noreferrer"
           className="text-sm text-foreground font-semibold hover:text-primary transition-colors"
         >
-          CROPXON INNOVATIONS PVT. LTD.
+          OriginX Labs PVT. LTD
         </a>
         <p className="text-[10px] text-muted-foreground/70 mt-2">
           Building the Future of AI Intelligence
